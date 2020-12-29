@@ -59,4 +59,12 @@ export class Random {
             (Math.abs(this.nextInt()) % (toExclusive - fromInclusive))
         );
     }
+
+    clone():Random {
+        let newRand = new Rand(this.seed)
+        newRand = Object.assign(newRand, JSON.parse(JSON.stringify(this.rng)) as Random)
+        const newRandom = new Random(this.seed)
+        newRandom.rng = newRand
+        return this
+    }
 }

@@ -36,4 +36,21 @@ describe('random', () => {
         const rand: Random = new Random('0');
         print(() => [rand.inRange(0, 4), rand.nextBoolean(0.25)], 50);
     });
+
+    it('clone', () => {
+        const rand: Random = new Random('0');
+        rand.nextBoolean()
+        rand.nextInt()
+        const copy1 = rand.clone()
+        console.log(JSON.stringify(rand))
+        console.log(JSON.stringify(copy1))
+        const val1 = rand.nextNumber()
+        rand.nextProb()
+        const copy2 = rand.clone()
+        const val2 = rand.nextLong()
+        const copy1val1 = copy1.nextNumber()
+        const copy2val2 = copy2.nextLong()
+        expect(val1 == copy1val1)
+        expect(val2 == copy2val2)
+    })
 });
