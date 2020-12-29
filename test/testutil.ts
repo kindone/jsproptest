@@ -1,15 +1,18 @@
-import { Shrinkable } from "../src/Shrinkable";
+import { Shrinkable } from '../src/Shrinkable';
 
-export function exhaustive<T>(shrinkable:Shrinkable<T>, level:number = 0, print = true) {
-    if(print) {
-        let str = ''
-        for(let i = 0; i < level; i++)
-            str += '  '
-        console.log(str + ("shrinkable: " + shrinkable.value))
+export function exhaustive<T>(
+    shrinkable: Shrinkable<T>,
+    level: number = 0,
+    print = true
+) {
+    if (print) {
+        let str = '';
+        for (let i = 0; i < level; i++) str += '  ';
+        console.log(str + ('shrinkable: ' + shrinkable.value));
     }
-    const shrinks = shrinkable.shrinks()
-    for(let itr = shrinks.iterator(); itr.hasNext();) {
-        const shrinkable2 = itr.next()
-        exhaustive(shrinkable2, level + 1, print)
+    const shrinks = shrinkable.shrinks();
+    for (let itr = shrinks.iterator(); itr.hasNext(); ) {
+        const shrinkable2 = itr.next();
+        exhaustive(shrinkable2, level + 1, print);
     }
 }
