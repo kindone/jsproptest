@@ -1,6 +1,12 @@
 {
+  "name": "jsproptest",
   "version": "0.1.0",
+  "description": "Javascript Property-based Testing",
+  "author": "Won-Wook Hong",
   "license": "MIT",
+  "keywords": [
+    "property-based-testing"
+  ],
   "repository": {
     "type": "git",
     "url": "http://github.com/kindone/tsproptest.git"
@@ -37,8 +43,6 @@
     "trailingComma": "es5"
   },
   "lint": "tsdx lint src",
-  "name": "tsproptest",
-  "author": "Won-Wook Hong",
   "module": "dist/tsproptest.esm.js",
   "size-limit": [
     {
