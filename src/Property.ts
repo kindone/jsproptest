@@ -9,6 +9,18 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
 // type TupleElement<ARGS extends readonly unknown[], N extends number> = ARGS[N]
 // type WithGenerate<T> = { generate(rand:Random):Shrinkable<number> }
 
+// class PropertyFailedError extends Error{
+//     constructor()
+// }
+
+
+class ShrinkResult {
+    readonly isSucessful:boolean
+    constructor(readonly args?:any[], readonly error?:object) {
+        this.isSucessful = (typeof args !== 'undefined')
+    }
+}
+
 export class Property<ARGS extends unknown[]> {
     private static defaultNumRuns = 100
 
@@ -20,7 +32,7 @@ export class Property<ARGS extends unknown[]> {
         var random = new Random();
         // console.log("func", this.func.length)
         // console.log("gens", gens)
-        var result = true;
+        var result:boolean | object = true;
         for (let i = 0; i < this.numRuns; i++) {
             var savedRandom = random.clone()
             var shrinkables = gens.map((gen: Generator<unknown>) =>
@@ -43,15 +55,39 @@ export class Property<ARGS extends unknown[]> {
                 if(typeof maybe_result !== 'undefined')
                     result = maybe_result;
             } catch(e) {
-                result = false
+                result = e
                 // TODO print failed e and stack trace
             }
-            if(!result) {
-                this.shrink(savedRandom, ...gens)
-                break
+            // failed
+            if(typeof(result) === 'object' || !result) {
+                // shrink
+                const shrinkResult = this.shrink(savedRandom, ...gens)
+                if(shrinkResult.isSucessful)
+                {
+                    const newError = new Error("property failed (simplest args found by shrinking): " + shrinkResult.args)
+                    const error =  (shrinkResult.error as Error)
+                    newError.message += "\n  "// + error.message
+                    newError.stack = error.stack
+                    throw newError
+                }
+                // not shrunk
+                else {
+                    const newError = new Error("property failed (args found): " + shrinkResult.args)
+                    if(typeof result === 'object') {
+                        const error =  (result as Error)
+                        newError.message += "\n  "// + error.message
+                        newError.stack = error.stack
+                        throw newError
+                    }
+                    else {
+                        newError.message += "\n" + "property returned false\n"
+                        Error.captureStackTrace(newError, this.forAll)
+                        throw newError
+                    }
+                }
             }
         }
-        return result;
+        return true
     }
 
     example(...args: ARGS): boolean {
@@ -85,7 +121,7 @@ export class Property<ARGS extends unknown[]> {
         this.defaultNumRuns = numRuns
     }
 
-    private shrink<GENS extends Generator<unknown>[]>(savedRandom:Random, ...gens: GENS) {
+    private shrink<GENS extends Generator<unknown>[]>(savedRandom:Random, ...gens: GENS):ShrinkResult {
         var shrinkables = gens.map((gen: Generator<unknown>) =>
             gen.generate(savedRandom)
         );
@@ -94,15 +130,16 @@ export class Property<ARGS extends unknown[]> {
         const shrinkables_copy = shrinkables.concat()
         const args = shrinkables_copy.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
+        let test_result:boolean | object = true
         for(let n = 0; n < shrinkables_copy.length; n++) {
             let shrinks = shrinkables_copy[n].shrinks()
             while(!shrinks.isEmpty()) {
-                console.log('attempt to shrink')
                 let iter = shrinks.iterator()
                 let shrinkFound = false
                 while(iter.hasNext()) {
                     const next = iter.next()
-                    if(!this.testWithReplace(args, n, next.value)) {
+                    test_result = this.testWithReplace(args, n, next.value)
+                    if(typeof test_result !== 'boolean' || !test_result) {
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
@@ -111,21 +148,32 @@ export class Property<ARGS extends unknown[]> {
                 }
                 if(shrinkFound) {
                     shrunk = true
-                    console.log("  shrinking found simpler failing arg " + n + ": " + args)
-                    // TODO print any exception detail
                 }
+                else
+                    break
             }
         }
-        if(shrunk)
-            console.log("  simplest args found by shrinking: " + args)
+        if(shrunk) {
+            if(typeof test_result === 'object') {
+                // console.log('test_result.stack:')
+                return new ShrinkResult(args, test_result)
+            }
+            else {
+                const error = new Error('  property returned false\n')
+                Error.captureStackTrace(error, this.forAll)
+                return new ShrinkResult(args, error)
+            }
+        }
+        else
+            return new ShrinkResult()
     }
 
-    private testWithReplace(args:unknown[], n:number, replace:unknown):boolean {
+    private testWithReplace(args:unknown[], n:number, replace:unknown):boolean | object {
         const newArgs = [...args.slice(0, n), replace, ...args.slice(n+1)]
         return this.test(newArgs)
     }
 
-    private test(args:unknown[]):boolean {
+    private test(args:unknown[]):boolean | object {
         if (this.func.length !== args.length)
             throw new Error(
                 'forAll(): number of function parameters (' +
@@ -142,7 +190,7 @@ export class Property<ARGS extends unknown[]> {
                 return maybe_result
             return true
         } catch(e) {
-            return false
+            return e
         }
     }
 }

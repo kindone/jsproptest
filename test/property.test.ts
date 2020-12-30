@@ -47,4 +47,13 @@ describe('property', () => {
 
         prop.forAll(numGen, numGen)
     })
+
+    it('shrink2',  () => {
+        const numGen = interval(0, 1000)
+        const prop = new Property((a: number, b: number) => {
+            expect(a > 80 || b < 40).toBe(true)
+        });
+
+        prop.forAll(numGen, numGen)
+    })
 });
