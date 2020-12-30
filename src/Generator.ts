@@ -20,30 +20,30 @@ export class Arbitrary<T> implements Generator<T>{
 
     map<U>(transformer:(arg:T) => U):Generator<U> {
         const self = this
-        return new Arbitrary<U>((rand:Random) => self.generate(rand).transform(transformer))
+        return new Arbitrary<U>((rand:Random) => self.generate(rand).map(transformer))
     }
 
     flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new Arbitrary<U>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).transform(shr => [shr, gen2gen(shr).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
-                interShr.value[1].shrinks().transform(shr =>
-                    new Shrinkable([interShr.value[0], shr])
-                )
-            ).transform(pair => pair[1].value)
+                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
+                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                ).shrinks()
+            ).map(pair => pair[1].value)
         })
     }
 
     chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]> {
         const self = this
         return new Arbitrary<[T,U]>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).transform(shr => [shr, gen2gen(shr).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
                 interShr.value[1].shrinks().transform(shr =>
                     new Shrinkable([interShr.value[0], shr])
                 )
-            ).transform(pair => [pair[0], pair[1].value])
+            ).map(pair => [pair[0], pair[1].value])
         })
     }
 
@@ -68,30 +68,30 @@ export class ArbiContainer<T> implements Generator<T> {
 
     map<U>(transformer:(arg:T) => U):Generator<U> {
         const self = this
-        return new ArbiContainer<U>((rand:Random) => self.generate(rand).transform(transformer), this.minSize, this.maxSize)
+        return new ArbiContainer<U>((rand:Random) => self.generate(rand).map(transformer), this.minSize, this.maxSize)
     }
 
     flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new ArbiContainer<U>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).transform(shr => [shr, gen2gen(shr).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
-                interShr.value[1].shrinks().transform(shr =>
-                    new Shrinkable([interShr.value[0], shr])
-                )
-            ).transform(pair => pair[1].value)
+                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
+                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                ).shrinks()
+            ).map(pair => pair[1].value)
         }, this.minSize, this.maxSize)
     }
 
     chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]> {
         const self = this
         return new ArbiContainer<[T,U]>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).transform(shr => [shr, gen2gen(shr).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
                 interShr.value[1].shrinks().transform(shr =>
                     new Shrinkable([interShr.value[0], shr])
                 )
-            ).transform(pair => [pair[0], pair[1].value])
+            ).map(pair => [pair[0], pair[1].value])
         }, this.minSize, this.maxSize)
     }
 

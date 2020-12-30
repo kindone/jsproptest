@@ -1,5 +1,7 @@
 import { Arbitrary } from '../src/Generator';
 import { interval } from '../src/generator/integer';
+import { TupleGen } from '../src/generator/tuple';
+import { just } from '../src/combinator/just';
 import { Property } from '../src/Property';
 import { Random } from '../src/Random';
 import { Shrinkable } from '../src/Shrinkable';
@@ -55,5 +57,12 @@ describe('property', () => {
         });
 
         expect(() => prop.forAll(numGen, numGen)).toThrow()
+    })
+
+    it('shrink3',  () => {
+        const prop = new Property((arg:[a:number, b:number]) => arg[1] - arg[0] <= 5)
+        const numGen = interval(-1000000, 1000000)
+        const tupleGen = numGen.flatMap(num => TupleGen(numGen, just(num)))
+        expect(() => prop.forAll(tupleGen)).toThrow()
     })
 });

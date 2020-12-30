@@ -51,9 +51,9 @@ export function generateInteger(
     if (value < min || max < value) throw new Error('invalid range');
 
     if (min >= 0)
-        return binarySearchShrinkable(value - min).transform(n => n + min);
+        return binarySearchShrinkable(value - min).map(n => n + min);
     else if (max <= 0)
-        return binarySearchShrinkable(value - max).transform(n => n + max);
+        return binarySearchShrinkable(value - max).map(n => n + max);
     else return binarySearchShrinkable(value);
 }
 

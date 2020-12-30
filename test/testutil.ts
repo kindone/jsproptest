@@ -6,6 +6,9 @@ export function exhaustive<T>(
     print = true
 ) {
     if (print) {
+        if(level == 0) {
+            console.log('exhaustive:')
+        }
         let str = '';
         for (let i = 0; i < level; i++) str += '  ';
         console.log(str + ('shrinkable: ' + shrinkable.value));

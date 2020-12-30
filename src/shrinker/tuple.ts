@@ -11,7 +11,7 @@ type ShrValueTypes<Shrs> = { [K in keyof Shrs]: ShrValueType<Shrs[K]> };
 export function shrinkableTuple<ShrinkableTuple extends Shrinkable<unknown>[]>(
     ...tuple: ShrinkableTuple
 ): Shrinkable<ShrValueTypes<ShrinkableTuple>> {
-    let shrTuple = tuple[0].transform(first => [
+    let shrTuple = tuple[0].map(first => [
         new Shrinkable(first),
         ...tuple.slice(1),
     ]) as Shrinkable<ShrinkableTuple>;
@@ -27,7 +27,7 @@ export function shrinkableTuple<ShrinkableTuple extends Shrinkable<unknown>[]>(
             });
         });
     }
-    return shrTuple.transform(
+    return shrTuple.map(
         tup =>
             tup.map(shr => (shr as Shrinkable<unknown>).value) as ShrValueTypes<
                 ShrinkableTuple

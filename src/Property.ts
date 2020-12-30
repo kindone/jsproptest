@@ -143,6 +143,7 @@ export class Property<ARGS extends unknown[]> {
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
+                        console.log('shrink found:', args)
                         break
                     }
                 }

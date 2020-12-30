@@ -2,8 +2,6 @@ import { Generator, Arbitrary } from '../Generator';
 import { Random } from '../Random';
 import { Shrinkable } from '../Shrinkable';
 
-// type GeneratorType<Gen> = Gen extends Generator<infer T> ? T : any
-
 class WeightedValue<T> {
     constructor(readonly value: T, readonly weight: number) {}
 }

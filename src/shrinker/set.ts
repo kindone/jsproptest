@@ -6,10 +6,10 @@ export function shrinkableSet<T>(
     minSize: number
 ): Shrinkable<Set<T>> {
     const size = set.size;
-    const rangeShrinkable = binarySearchShrinkable(size - minSize).transform(
+    const rangeShrinkable = binarySearchShrinkable(size - minSize).map(
         s => s + minSize
     );
-    const shrinkableArr = rangeShrinkable.transform(newSize => {
+    const shrinkableArr = rangeShrinkable.map(newSize => {
         if (newSize === 0) return [];
         else {
             const arr: Array<Shrinkable<T>> = [];
@@ -19,7 +19,7 @@ export function shrinkableSet<T>(
     });
 
     // TODO: shrink elementwise
-    return shrinkableArr.transform(
+    return shrinkableArr.map(
         theArr => new Set(theArr.map(shr => shr.value))
     );
 }

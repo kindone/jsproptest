@@ -55,13 +55,17 @@ export class Shrinkable<T> {
         }
     }
 
-    transform<U>(transformer: (_: T) => U): Shrinkable<U> {
+    map<U>(transformer: (_: T) => U): Shrinkable<U> {
         const shrinkable: Shrinkable<U> = new Shrinkable<U>(
             transformer(this.value)
         );
         return shrinkable.with(() =>
-            this.shrinksGen().transform(shr => shr.transform<U>(transformer))
+            this.shrinksGen().transform(shr => shr.map<U>(transformer))
         );
+    }
+
+    flatMap<U>(transformer:(_:T) => Shrinkable<U>):Shrinkable<U> {
+        return transformer(this.value).with(() => this.shrinks().transform(shr => shr.flatMap(transformer)))
     }
 
     filter(criteria: (_: T) => boolean): Shrinkable<T> {

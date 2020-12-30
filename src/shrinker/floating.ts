@@ -36,7 +36,7 @@ function shrinkableFloatStream(value: number): Stream<Shrinkable<number>> {
         }
 
         const expShrinkable = binarySearchShrinkable(exponent);
-        var doubleShrinkable = expShrinkable.transform(
+        var doubleShrinkable = expShrinkable.map(
             exp => fraction * Math.pow(2.0, exp)
         );
         // prepend 0.0

@@ -16,8 +16,8 @@ function createDictionary<T>(pairs:Array<[string,Shrinkable<T>]>):Dictionary<T> 
 
 export function shrinkableDictionary<T>(dict:Dictionary<Shrinkable<T>>, minSize:number):Shrinkable<Dictionary<T>> {
     const size = Object.keys(dict).length
-    const rangeShrinkable = binarySearchShrinkable(size - minSize).transform(s => s + minSize)
-    const shrinkableArr = rangeShrinkable.transform(newSize => {
+    const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
+    const shrinkableArr = rangeShrinkable.map(newSize => {
         if(newSize == 0)
             return []
         else {
@@ -30,5 +30,5 @@ export function shrinkableDictionary<T>(dict:Dictionary<Shrinkable<T>>, minSize:
     })
 
     // TODO: shrink elementwise
-    return shrinkableArr.transform(pairs => createDictionary(pairs))
+    return shrinkableArr.map(pairs => createDictionary(pairs))
 }
