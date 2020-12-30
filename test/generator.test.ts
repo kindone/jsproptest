@@ -1,10 +1,10 @@
 import { Random } from '../src/Random';
-import { floatingGen } from '../src/generator/floating';
+import { FloatingGen } from '../src/generator/floating';
 import { interval } from '../src/generator/integer';
 import { booleanGen } from '../src/generator/boolean';
 import { stringGen, UnicodeStringGen } from '../src/generator/string';
 import { ArrayGen } from '../src/generator/array';
-import { setGen } from '../src/generator/set';
+import { SetGen } from '../src/generator/set';
 import { TupleGen } from '../src/generator/tuple';
 import { Generator } from '../src/Generator';
 import { exhaustive } from './testutil';
@@ -20,7 +20,7 @@ function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
 describe('generator', () => {
     const rand = new Random('0');
     it('floating', () => {
-        const gen = floatingGen();
+        const gen = FloatingGen();
         print(rand, gen);
     });
 
@@ -50,7 +50,7 @@ describe('generator', () => {
 
     it('set', () => {
         const elemGen = interval(0, 3);
-        const gen = setGen(elemGen, 0, 3);
+        const gen = SetGen(elemGen, 0, 3);
         print(rand, gen);
     });
 

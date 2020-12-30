@@ -45,7 +45,7 @@ describe('property', () => {
             return a > 80 || b < 40
         });
 
-        prop.forAll(numGen, numGen)
+        expect(() => prop.forAll(numGen, numGen)).toThrow()
     })
 
     it('shrink2',  () => {
@@ -54,6 +54,6 @@ describe('property', () => {
             expect(a > 80 || b < 40).toBe(true)
         });
 
-        prop.forAll(numGen, numGen)
+        expect(() => prop.forAll(numGen, numGen)).toThrow()
     })
 });

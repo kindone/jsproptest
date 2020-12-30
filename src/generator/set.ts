@@ -2,7 +2,7 @@ import { ArbiContainer, Generator } from '../Generator';
 import { Shrinkable } from '../Shrinkable';
 import { shrinkableSet } from '../shrinker/set';
 
-export function setGen<T>(
+export function SetGen<T>(
     elemGen: Generator<T>,
     minSize: number,
     maxSize: number
