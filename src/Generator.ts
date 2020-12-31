@@ -40,9 +40,9 @@ export class Arbitrary<T> implements Generator<T>{
         return new Arbitrary<[T,U]>((rand:Random) => {
             const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
-                interShr.value[1].shrinks().transform(shr =>
-                    new Shrinkable([interShr.value[0], shr])
-                )
+                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
+                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                ).shrinks()
             ).map(pair => [pair[0], pair[1].value])
         })
     }
@@ -88,9 +88,9 @@ export class ArbiContainer<T> implements Generator<T> {
         return new ArbiContainer<[T,U]>((rand:Random) => {
             const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
             return intermediate.andThen(interShr =>
-                interShr.value[1].shrinks().transform(shr =>
-                    new Shrinkable([interShr.value[0], shr])
-                )
+                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
+                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                ).shrinks()
             ).map(pair => [pair[0], pair[1].value])
         }, this.minSize, this.maxSize)
     }
