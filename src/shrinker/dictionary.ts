@@ -1,4 +1,5 @@
 import { Shrinkable } from '../Shrinkable';
+import { shrinkBulkRecursive } from './array';
 import { binarySearchShrinkable } from './integer';
 
 export interface Dictionary<T> {
@@ -17,18 +18,32 @@ function createDictionary<T>(pairs:Array<[string,Shrinkable<T>]>):Dictionary<T> 
 export function shrinkableDictionary<T>(dict:Dictionary<Shrinkable<T>>, minSize:number):Shrinkable<Dictionary<T>> {
     const size = Object.keys(dict).length
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
-    const shrinkableArr = rangeShrinkable.map(newSize => {
+    let shrinkableArr:Shrinkable<Array<[string, Shrinkable<T>]>> = rangeShrinkable.map(newSize => {
         if(newSize == 0)
             return []
         else {
             const arr:Array<[string, Shrinkable<T>]> = []
+            let i = 0
             for(const key in dict) {
-                arr.push([key, dict[key]])
+                if(i < newSize)
+                    arr.push([key, dict[key]])
+                else
+                    break
+                i++
             }
             return arr
         }
     })
 
-    // TODO: shrink elementwise
+    // shrink elementwise
+    shrinkableArr = shrinkableArr.andThen(parent => {
+        const parent2 = parent.map(arr => {
+            return arr.map(pair => pair[1].map<[string, T]>(value => [pair[0], value]))
+        })
+        return shrinkBulkRecursive(parent2, 0, 0).transform(shrArrShrStrT =>
+            shrArrShrStrT.map(arrShrStrT =>
+                arrShrStrT.map(shrStrT =>
+                    [shrStrT.value[0], shrStrT.map(pair => pair[1])])))
+    })
     return shrinkableArr.map(pairs => createDictionary(pairs))
 }

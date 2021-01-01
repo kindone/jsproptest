@@ -1,4 +1,5 @@
 import { Shrinkable } from '../Shrinkable';
+import { shrinkBulkRecursive } from './array';
 import { binarySearchShrinkable } from './integer';
 
 export function shrinkableString(
@@ -9,12 +10,13 @@ export function shrinkableString(
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(
         s => s + minSize
     );
-    const shrinkableArr = rangeShrinkable.map(newSize => {
+    let shrinkableArr = rangeShrinkable.map(newSize => {
         if (newSize === 0) return [];
         else return codepoints.slice(0, newSize);
     });
 
     // TODO: shrink elementwise
+    shrinkableArr = shrinkableArr.andThen(parent => shrinkBulkRecursive(parent, 0, 0))
     return shrinkableArr.map(theArr =>
         String.fromCodePoint(...theArr.map(shr => shr.value))
     );

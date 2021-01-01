@@ -1,5 +1,6 @@
 import { Shrinkable } from '../Shrinkable';
 import { binarySearchShrinkable } from './integer';
+import { shrinkBulkRecursive } from './array';
 
 export function shrinkableSet<T>(
     set: Set<Shrinkable<T>>,
@@ -9,7 +10,7 @@ export function shrinkableSet<T>(
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(
         s => s + minSize
     );
-    const shrinkableArr = rangeShrinkable.map(newSize => {
+    let shrinkableArr = rangeShrinkable.map(newSize => {
         if (newSize === 0) return [];
         else {
             const arr: Array<Shrinkable<T>> = [];
@@ -18,7 +19,8 @@ export function shrinkableSet<T>(
         }
     });
 
-    // TODO: shrink elementwise
+    // shrink elementwise
+    shrinkableArr = shrinkableArr.andThen(parent => shrinkBulkRecursive(parent, 0, 0))
     return shrinkableArr.map(
         theArr => new Set(theArr.map(shr => shr.value))
     );

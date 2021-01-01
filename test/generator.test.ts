@@ -5,6 +5,7 @@ import { booleanGen } from '../src/generator/boolean';
 import { stringGen, UnicodeStringGen } from '../src/generator/string';
 import { ArrayGen } from '../src/generator/array';
 import { SetGen } from '../src/generator/set';
+import { DictionaryGen } from '../src/generator/dictionary';
 import { TupleGen } from '../src/generator/tuple';
 import { Generator } from '../src/Generator';
 import { exhaustive } from './testutil';
@@ -17,8 +18,16 @@ function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
     console.log(arr.toString());
 }
 
+function getArrayFromSet<T>(set:Set<T>):Array<T>  {
+    const arr = new Array<T>()
+    set.forEach(function(item) {
+        arr.push(item)
+    })
+    return arr
+}
+
 describe('generator', () => {
-    const rand = new Random('0');
+    const rand = new Random();
     it('floating', () => {
         const gen = FloatingGen();
         print(rand, gen);
@@ -30,8 +39,9 @@ describe('generator', () => {
     });
 
     it('string', () => {
-        const gen1 = stringGen(0, 10);
+        const gen1 = stringGen(0, 5);
         print(rand, gen1);
+        exhaustive(gen1.generate(rand))
 
         const gen2 = UnicodeStringGen(0, 10);
         print(rand, gen2);
@@ -43,15 +53,24 @@ describe('generator', () => {
     });
 
     it('array', () => {
-        const elemGen = interval(-10, 10);
-        const gen = ArrayGen(elemGen, 0, 3);
+        const elemGen = interval(0, 4);
+        const gen = ArrayGen(elemGen, 4, 8);
         print(rand, gen);
+        exhaustive(gen.generate(rand))
     });
 
     it('set', () => {
-        const elemGen = interval(0, 3);
-        const gen = SetGen(elemGen, 0, 3);
-        print(rand, gen);
+        const elemGen = interval(0, 4);
+        const gen = SetGen(elemGen, 4, 8);
+        print(rand, gen.map(set => getArrayFromSet(set)));
+        exhaustive(gen.generate(rand).map(set => getArrayFromSet(set)))
+    });
+
+    it('dictionary', () => {
+        const elemGen = interval(0, 4);
+        const gen = DictionaryGen(elemGen, 4, 8);
+        print(rand, gen.map(dict => JSON.stringify(dict)));
+        exhaustive(gen.generate(rand).map(dict => JSON.stringify(dict)))
     });
 
     it('tuple', () => {
