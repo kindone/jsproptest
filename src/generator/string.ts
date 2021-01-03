@@ -4,6 +4,7 @@ import { shrinkableString } from '../shrinker/string';
 import { interval } from './integer';
 
 export const ASCIICharGen = interval(1, 0x7f);
+export const PrintableASCIICharGen = interval(0x20, 0x7f)
 export const UnicodeCharGen = interval(
     1,
     0xd7ff + (0x10ffff - 0xe000 + 1)
