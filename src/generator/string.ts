@@ -37,3 +37,11 @@ export function UnicodeStringGen(
 ): Generator<string> {
     return stringGen(minSize, maxSize, UnicodeCharGen);
 }
+
+
+export function PrintableASCIIStringGen(
+    minSize: number,
+    maxSize: number
+): Generator<string> {
+    return stringGen(minSize, maxSize, PrintableASCIICharGen);
+}
