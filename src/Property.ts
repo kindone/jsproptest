@@ -16,8 +16,8 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
 
 class ShrinkResult {
     readonly isSucessful:boolean
-    constructor(readonly args?:any[], readonly error?:object) {
-        this.isSucessful = (typeof args !== 'undefined')
+    constructor(readonly args:any[], readonly error?:object) {
+        this.isSucessful = (typeof error !== 'undefined')
     }
 }
 
@@ -166,7 +166,7 @@ export class Property<ARGS extends unknown[]> {
             }
         }
         else
-            return new ShrinkResult()
+            return new ShrinkResult(args)
     }
 
     private testWithReplace(args:unknown[], n:number, replace:unknown):boolean | object {

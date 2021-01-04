@@ -1,5 +1,6 @@
 import { Arbitrary } from '../src/Generator';
 import { interval } from '../src/generator/integer';
+import { stringGen } from '../src/generator/string';
 import { TupleGen } from '../src/generator/tuple';
 import { just } from '../src/combinator/just';
 import { Property } from '../src/Property';
@@ -7,6 +8,14 @@ import { Random } from '../src/Random';
 import { Shrinkable } from '../src/Shrinkable';
 
 describe('property', () => {
+    it('regression 1: no shrinking possible', () => {
+        const prop = new Property((a:number, b:string) => {
+            return a < 10 || b.length > 3
+        })
+
+        prop.forAll(interval(0,10), stringGen(0, 10))
+    })
+
     it('basic with return', () => {
         const genNumber = new Arbitrary((random: Random) => {
             return new Shrinkable<number>(random.nextInt());
