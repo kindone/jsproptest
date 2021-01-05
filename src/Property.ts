@@ -199,6 +199,6 @@ export class Property<ARGS extends unknown[]> {
 export function forAll<
     ARGS extends unknown[],
     GENS extends Generator<unknown>[]
->(func: PropertyFunction<ARGS>, ...gens: GENS): boolean {
+>(func: PropertyFunction<ARGS>|PropertyFunctionVoid<ARGS>, ...gens: GENS): boolean {
     return new Property<ARGS>(func).forAll(...gens);
 }
