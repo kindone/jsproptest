@@ -24,17 +24,22 @@ class ShrinkResult {
 export class Property<ARGS extends unknown[]> {
     private static defaultNumRuns = 100
 
+    private onStartup?:() => void
+    private onCleanup?:() => void
+    private seed:string = ''
     private numRuns = Property.defaultNumRuns
 
     constructor(readonly func: PropertyFunction<ARGS>|PropertyFunctionVoid<ARGS>) {}
 
     forAll<GENS extends Generator<unknown>[]>(...gens: GENS): boolean {
-        var random = new Random();
+        var random = this.seed === '' ? new Random() : new Random(this.seed);
         // console.log("func", this.func.length)
         // console.log("gens", gens)
         var result:boolean | object = true;
         for (let i = 0; i < this.numRuns; i++) {
             var savedRandom = random.clone()
+            if(this.onStartup)
+                this.onStartup()
             var shrinkables = gens.map((gen: Generator<unknown>) =>
                 gen.generate(random)
             );
@@ -54,6 +59,9 @@ export class Property<ARGS extends unknown[]> {
                 const maybe_result = func(...(args as ARGS))
                 if(typeof maybe_result !== 'undefined')
                     result = maybe_result;
+
+                if(this.onCleanup)
+                    this.onCleanup()
             } catch(e) {
                 result = e
                 // TODO print failed e and stack trace
@@ -112,8 +120,23 @@ export class Property<ARGS extends unknown[]> {
         }
     }
 
-    setNumRuns(numRuns:number):Property<ARGS> {
+    setSeed(seed:string) {
+        this.seed = seed
+        return this
+    }
+
+    setNumRuns(numRuns:number) {
         this.numRuns = numRuns
+        return this
+    }
+
+    setOnStartup(onStartup:() => void) {
+        this.onStartup = onStartup
+        return this
+    }
+
+    setOnCleanup(onCleanup:() => void) {
+        this.onCleanup = onCleanup
         return this
     }
 
