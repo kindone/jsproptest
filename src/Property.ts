@@ -1,6 +1,7 @@
 import { Generator } from './Generator';
 import { Random } from './Random';
 import { Shrinkable } from './Shrinkable';
+import { JSONStringify } from './util/JSON';
 
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean;
 type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
@@ -12,7 +13,6 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
 // class PropertyFailedError extends Error{
 //     constructor()
 // }
-
 
 class ShrinkResult {
     readonly isSucessful:boolean
@@ -64,7 +64,7 @@ export class Property<ARGS extends unknown[]> {
                 const shrinkResult = this.shrink(savedRandom, ...gens)
                 if(shrinkResult.isSucessful)
                 {
-                    const newError = new Error("property failed (simplest args found by shrinking): " + shrinkResult.args)
+                    const newError = new Error("property failed (simplest args found by shrinking): " + JSONStringify(shrinkResult.args))
                     const error =  (shrinkResult.error as Error)
                     newError.message += "\n  "// + error.message
                     newError.stack = error.stack
@@ -72,7 +72,7 @@ export class Property<ARGS extends unknown[]> {
                 }
                 // not shrunk
                 else {
-                    const newError = new Error("property failed (args found): " + shrinkResult.args)
+                    const newError = new Error("property failed (args found): " + JSONStringify(shrinkResult.args))
                     if(typeof result === 'object') {
                         const error =  (result as Error)
                         newError.message += "\n  "// + error.message
@@ -143,7 +143,7 @@ export class Property<ARGS extends unknown[]> {
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
-                        console.log('shrink found:', args)
+                        // console.log('shrink found:', args)
                         break
                     }
                 }

@@ -18,14 +18,6 @@ function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
     console.log(arr.toString());
 }
 
-function getArrayFromSet<T>(set:Set<T>):Array<T>  {
-    const arr = new Array<T>()
-    set.forEach(function(item) {
-        arr.push(item)
-    })
-    return arr
-}
-
 describe('generator', () => {
     const rand = new Random();
     it('floating', () => {
@@ -62,8 +54,8 @@ describe('generator', () => {
     it('set', () => {
         const elemGen = interval(0, 4);
         const gen = SetGen(elemGen, 4, 8);
-        print(rand, gen.map(set => getArrayFromSet(set)));
-        exhaustive(gen.generate(rand).map(set => getArrayFromSet(set)))
+        print(rand, gen);
+        exhaustive(gen.generate(rand))
     });
 
     it('dictionary', () => {
