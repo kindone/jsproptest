@@ -3,19 +3,17 @@ import { binarySearchShrinkable } from './integer';
 import { shrinkBulkRecursive } from './array';
 
 export function shrinkableSet<T>(
-    set: Set<Shrinkable<T>>,
+    array: Array<Shrinkable<T>>,
     minSize: number
 ): Shrinkable<Set<T>> {
-    const size = set.size;
+    const size = array.length;
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(
         s => s + minSize
     );
     let shrinkableArr = rangeShrinkable.map(newSize => {
         if (newSize === 0) return [];
         else {
-            const arr: Array<Shrinkable<T>> = [];
-            set.forEach(elem => arr.push(elem));
-            return arr.slice(0, newSize);
+            return array.slice(0, newSize);
         }
     });
 

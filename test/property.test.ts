@@ -3,7 +3,7 @@ import { interval } from '../src/generator/integer';
 import { stringGen } from '../src/generator/string';
 import { TupleGen } from '../src/generator/tuple';
 import { just } from '../src/combinator/just';
-import { Property } from '../src/Property';
+import { Property, forAll } from '../src/Property';
 import { Random } from '../src/Random';
 import { Shrinkable } from '../src/Shrinkable';
 
@@ -73,5 +73,17 @@ describe('property', () => {
         const numGen = interval(-1000000, 1000000)
         const tupleGen = numGen.flatMap(num => TupleGen(numGen, just(num)))
         expect(() => prop.forAll(tupleGen)).toThrow()
+    })
+
+
+    it('nested shrink',  () => {
+
+        forAll((a: number) => {
+            forAll((a:number) => {
+                return a > 80
+            }, just(a))
+        }, interval(0, 1000));
+
+        
     })
 });

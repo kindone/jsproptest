@@ -9,9 +9,16 @@ export function SetGen<T>(
 ): Generator<Set<T>> {
     return new ArbiContainer<Set<T>>(rand => {
         const size = rand.interval(minSize, maxSize);
-        const set: Set<Shrinkable<T>> = new Set([]);
-        while (set.size < size) set.add(elemGen.generate(rand));
+        const array: Array<Shrinkable<T>> = [];
+        const valueSet:Set<T> = new Set([])
+        while (array.length < size) {
+            const shr = elemGen.generate(rand)
+            if(!valueSet.has(shr.value)) {
+                array.push(shr);
+                valueSet.add(shr.value)
+            }
+        }
 
-        return shrinkableSet(set, minSize);
+        return shrinkableSet(array, minSize);
     });
 }

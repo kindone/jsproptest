@@ -1,6 +1,6 @@
 import { Random } from '../src/Random';
 import { FloatingGen } from '../src/generator/floating';
-import { interval } from '../src/generator/integer';
+import { integers, interval } from '../src/generator/integer';
 import { booleanGen } from '../src/generator/boolean';
 import { stringGen, UnicodeStringGen } from '../src/generator/string';
 import { ArrayGen } from '../src/generator/array';
@@ -8,12 +8,14 @@ import { SetGen } from '../src/generator/set';
 import { DictionaryGen } from '../src/generator/dictionary';
 import { TupleGen } from '../src/generator/tuple';
 import { Generator } from '../src/Generator';
+import { forAll } from '../src/Property';
+import { JSONStringify } from '../src/util/JSON';
 import { exhaustive } from './testutil';
 
 function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
     const arr = [];
     for (let i = 0; i < num; i++)
-        arr.push('{' + generator.generate(rand).value + '}');
+        arr.push('{' + JSONStringify(generator.generate(rand).value) + '}');
 
     console.log(arr.toString());
 }
@@ -52,9 +54,12 @@ describe('generator', () => {
     });
 
     it('set', () => {
-        const elemGen = interval(0, 4);
+        const elemGen = integers(0, 8);
         const gen = SetGen(elemGen, 4, 8);
         print(rand, gen);
+        forAll((set:Set<number>) => {
+            return set.size >= 4 && set.size <= 8
+        }, gen)
         exhaustive(gen.generate(rand))
     });
 
