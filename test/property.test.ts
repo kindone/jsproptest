@@ -76,14 +76,20 @@ describe('property', () => {
     })
 
 
-    it('nested shrink',  () => {
+    it('nested shrink 1',  () => {
 
         forAll((a: number) => {
             forAll((a:number) => {
                 return a > 80
             }, just(a))
         }, interval(0, 1000));
+    })
 
-        
+    it('nested shrink 2',  () => {
+        forAll((a: number) => {
+            forAll((_:number) => {
+                throw new Error('error!')
+            }, just(a))
+        }, interval(0, 1000));
     })
 });

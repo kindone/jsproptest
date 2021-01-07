@@ -153,7 +153,7 @@ export class Property<ARGS extends unknown[]> {
         const shrinkables_copy = shrinkables.concat()
         const args = shrinkables_copy.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
-        let test_result:boolean | object = true
+        let result:boolean | object = true
         for(let n = 0; n < shrinkables_copy.length; n++) {
             let shrinks = shrinkables_copy[n].shrinks()
             while(!shrinks.isEmpty()) {
@@ -161,8 +161,9 @@ export class Property<ARGS extends unknown[]> {
                 let shrinkFound = false
                 while(iter.hasNext()) {
                     const next = iter.next()
-                    test_result = this.testWithReplace(args, n, next.value)
+                    const test_result:boolean | object = this.testWithReplace(args, n, next.value)
                     if(typeof test_result !== 'boolean' || !test_result) {
+                        result = test_result
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
@@ -178,9 +179,9 @@ export class Property<ARGS extends unknown[]> {
             }
         }
         if(shrunk) {
-            if(typeof test_result === 'object') {
+            if(typeof result === 'object') {
                 // console.log('test_result.stack:')
-                return new ShrinkResult(args, test_result)
+                return new ShrinkResult(args, result)
             }
             else {
                 const error = new Error('  property returned false\n')
