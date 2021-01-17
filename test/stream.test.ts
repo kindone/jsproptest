@@ -16,4 +16,17 @@ describe('stream', () => {
             console.log('stream value: ' + value);
         }
     });
+
+    it('many', () => {
+        let stream = Stream.empty<number>()
+        for(let i = 0; i < 1000; i++) {
+            const str = Stream.one<number>(i)
+            stream = stream.concat(str)
+        }
+
+        for(let itr = stream.iterator(); itr.hasNext();)
+        {
+            console.log("stream: " + itr.next())
+        }
+    })
 });

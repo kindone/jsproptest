@@ -19,5 +19,5 @@ export function DictionaryGen<T>(
         }
 
         return shrinkableDictionary(dict, minSize);
-    });
+    }, minSize, maxSize);
 }

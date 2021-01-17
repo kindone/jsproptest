@@ -1,12 +1,16 @@
+import { interval } from './generator/integer';
 import { Random } from './Random';
 import { Shrinkable } from './Shrinkable';
+import { shrinkArrayLength } from './shrinker/array'
+import { Stream } from './Stream';
 
 export interface Generator<T> {
     generate(rand:Random):Shrinkable<T>
-
     map<U>(transformer:(arg:T) => U):Generator<U>
     flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U>
     chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]>
+    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T>
+    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>>
     filter(filterer: (value:T) => boolean):Generator<T>
 }
 
@@ -23,15 +27,55 @@ export class Arbitrary<T> implements Generator<T>{
         return new Arbitrary<U>((rand:Random) => self.generate(rand).map(transformer))
     }
 
+    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+        const self = this
+        return interval(minSize, maxSize).flatMap(size => new Arbitrary<T>((rand:Random) => {
+            let shr = self.generate(rand)
+            for(let i = 0; i < size; i++)
+                shr = gen2gen(shr.value).generate(rand)
+            return shr
+        }))
+    }
+
+    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+        const self = this
+        return new Arbitrary<Array<T>>((rand:Random) => {
+            const size = rand.interval(minSize, maxSize)
+            if(size == 0)
+                return new Shrinkable([])
+
+            let shr = self.generate(rand)
+            const shrArr = [shr]
+            for(let i = 1; i < size; i++) {
+                shr = gen2gen(shr.value).generate(rand)
+                shrArr.push(shr)
+            }
+            return shrinkArrayLength(shrArr, minSize).andThen(parent => {
+                const shrArr = parent.value
+                if(shrArr.length == 0)
+                    return new Stream()
+                const lastElemShr = shrArr[shrArr.length-1]
+                const elemShrinks = lastElemShr.shrinks()
+                if(elemShrinks.isEmpty())
+                    return new Stream()
+                return elemShrinks.transform(elem => {
+                    const copy = shrArr.concat()
+                    copy[copy.length-1] = elem
+                    return new Shrinkable(copy)
+                })
+            }).map(arr => arr.map(shr => shr.value))
+        })
+    }
+
     flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new Arbitrary<U>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
+            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => gen2gen(value).generate(rand))
             return intermediate.andThen(interShr =>
-                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
-                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                interShr.value.flatMap<Shrinkable<U>>(second =>
+                    new Shrinkable(new Shrinkable(second))
                 ).shrinks()
-            ).map(pair => pair[1].value)
+            ).map(shr => shr.value)
         })
     }
 
@@ -74,12 +118,12 @@ export class ArbiContainer<T> implements Generator<T> {
     flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new ArbiContainer<U>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
+            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => gen2gen(value).generate(rand))
             return intermediate.andThen(interShr =>
-                interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
-                    new Shrinkable([interShr.value[0], new Shrinkable(second)])
+                interShr.value.flatMap<Shrinkable<U>>(second =>
+                    new Shrinkable(new Shrinkable(second))
                 ).shrinks()
-            ).map(pair => pair[1].value)
+            ).map(pair => pair.value)
         }, this.minSize, this.maxSize)
     }
 
@@ -93,6 +137,46 @@ export class ArbiContainer<T> implements Generator<T> {
                 ).shrinks()
             ).map(pair => [pair[0], pair[1].value])
         }, this.minSize, this.maxSize)
+    }
+
+    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+        const self = this
+        return interval(minSize, maxSize).flatMap(size => new ArbiContainer<T>((rand:Random) => {
+            let shr = self.generate(rand)
+            for(let i = 0; i < size; i++)
+                shr = gen2gen(shr.value).generate(rand)
+            return shr
+        }, minSize, maxSize))
+    }
+
+    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+        const self = this
+        return new ArbiContainer<Array<T>>((rand:Random) => {
+            const size = rand.interval(minSize, maxSize)
+            if(size == 0)
+                return new Shrinkable([])
+
+            let shr = self.generate(rand)
+            const shrArr = [shr]
+            for(let i = 1; i < size; i++) {
+                shr = gen2gen(shr.value).generate(rand)
+                shrArr.push(shr)
+            }
+            return shrinkArrayLength(shrArr, minSize).andThen(parent => {
+                const shrArr = parent.value
+                if(shrArr.length == 0)
+                    return new Stream()
+                const lastElemShr = shrArr[shrArr.length-1]
+                const elemShrinks = lastElemShr.shrinks()
+                if(elemShrinks.isEmpty())
+                    return new Stream()
+                return elemShrinks.transform(elem => {
+                    const copy = shrArr.concat()
+                    copy[copy.length-1] = elem
+                    return new Shrinkable(copy)
+                })
+            }).map(arr => arr.map(shr => shr.value))
+        }, minSize, maxSize)
     }
 
     filter(filterer:(value:T) => boolean):Generator<T> {

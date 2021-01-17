@@ -95,14 +95,20 @@ export function shrinkBulkRecursive<T>(
     return newShrinkableElemsShr.shrinks()
 }
 
-export function shrinkableArray<T>(shrinkableElems: Array<Shrinkable<T>>, minSize: number): Shrinkable<Array<T>> {
+
+export function shrinkArrayLength<T>(shrinkableElems:Shrinkable<T>[], minSize: number):Shrinkable<Shrinkable<T>[]> {
     const size = shrinkableElems.length
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
-    let shrinkableElemsShr = rangeShrinkable.map(newSize => {
+    return rangeShrinkable.map(newSize => {
         if (newSize === 0) return []
         else return shrinkableElems.slice(0, newSize)
     })
+}
+
+export function shrinkableArray<T>(shrinkableElems: Array<Shrinkable<T>>, minSize: number, shrinkElementWise = true): Shrinkable<Array<T>> {
+    let shrinkableElemsShr = shrinkArrayLength(shrinkableElems, minSize)
     // further shrink element-wise
-    shrinkableElemsShr = shrinkableElemsShr.andThen(parent => shrinkBulkRecursive(parent, 0, 0))
+    if(shrinkElementWise)
+        shrinkableElemsShr = shrinkableElemsShr.andThen(parent => shrinkBulkRecursive(parent, 0, 0))
     return shrinkableElemsShr.map(theArr => theArr.map(shr => shr.value))
 }

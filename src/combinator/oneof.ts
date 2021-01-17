@@ -21,6 +21,14 @@ class Weighted<T> implements Generator<T> {
         return this.gen.chain(gen2gen)
     }
 
+    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+        return this.gen.aggregate(gen2gen, minSize, maxSize)
+    }
+
+    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+        return this.gen.accumulate(gen2gen, minSize, maxSize)
+    }
+
     filter(filterer: (value: T) => boolean): Generator<T> {
         return this.gen.filter(filterer)
     }

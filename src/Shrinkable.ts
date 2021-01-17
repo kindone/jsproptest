@@ -47,7 +47,10 @@ export class Shrinkable<T> {
     }
 
     andThen(then: (_: Shrinkable<T>) => Stream<Shrinkable<T>>): Shrinkable<T> {
-        if (this.shrinks().isEmpty()) return this.with(() => then(this));
+        if (this.shrinks().isEmpty()) {
+            // filter: remove duplicates
+            return this.with(() => then(this).filter(shr => shr.value !== this.value));
+        }
         else {
             return this.with(() =>
                 this.shrinks().transform(shr => shr.andThen(then))

@@ -1,3 +1,5 @@
+import { JSONStringify } from "./util/JSON";
+
 class Iterator<T> {
     constructor(public stream: Stream<T>) {}
 
@@ -75,6 +77,25 @@ export class Stream<T> {
 
     clone() {
         return new Stream<T>(this.head, this.tailGen);
+    }
+
+    toString(n:number = 100) {
+        let str = "Stream(";
+        const first = this.iterator()
+        if(first.hasNext() && n > 0)
+            str += JSONStringify(first.next())
+
+        let i = 1
+        for(let itr = first; itr.hasNext();i++) {
+            if(i >= n) {
+                str += ", ..."
+                break
+            }
+            const value = itr.next()
+            str += ", " + JSONStringify(value)
+        }
+        str += ")"
+        return str
     }
 
     static empty<T>(): Stream<T> {

@@ -27,3 +27,39 @@ describe('jest', () => {
         // expect(5 === a).toBe(true)
     })
 })
+
+
+class Error1 implements Error {
+    constructor(readonly name:string) {
+    }
+
+    message = "Error1"
+}
+
+class Error2 extends Error1 {
+    constructor(readonly name:string) {
+        super(name)
+    }
+
+    message = "Error2"
+}
+
+
+describe('Error', () => {
+    it('error type', () => {
+        try {
+            throw new Error1("hello")
+        }
+        catch(e) {
+            expect(e).toBeInstanceOf(Error1)
+        }
+
+        try {
+            throw new Error2("hello")
+        }
+        catch(e) {
+            expect(e).toBeInstanceOf(Error1)
+            expect(e).toBeInstanceOf(Error2)
+        }
+    })
+})

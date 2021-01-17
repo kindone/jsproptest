@@ -32,6 +32,13 @@ describe('generator', () => {
         print(rand, gen);
     });
 
+    it('integer small', () => {
+        const gen = interval(0, 1);
+        print(rand, gen);
+        for(let i = 0; i < 10; i++)
+            exhaustive(gen.generate(rand))
+    });
+
     it('string', () => {
         const gen1 = stringGen(0, 5);
         print(rand, gen1);
@@ -84,4 +91,34 @@ describe('generator', () => {
         const shr = gen.generate(new Random('0'));
         exhaustive(shr);
     });
+
+    it('dependent sequence with array', () => {
+        const gengen = (n:number) => interval(n, n+1)
+        let gen1 = gengen(0)//.map(num => [num])
+
+        for(let i = 1; i< 20; i++)
+            gen1 = gen1.flatMap(num => gengen(num))
+
+        print(rand, gen1)
+    })
+
+    it('aggregate', () => {
+        const gengen = (n:number) => interval(n, n+1)
+        let gen1 = gengen(0).map(num => [num])
+
+        const gen = gen1.aggregate(nums => gengen(nums[nums.length-1]).map(num => [...nums, num]), 2, 4)
+        print(rand, gen)
+        exhaustive(gen.generate(rand))
+    })
+
+    it('accumulate', () => {
+        const gengen = (n:number) => interval(n, n+2)
+        let gen1 = gengen(0)
+
+        const gen = gen1.accumulate(num => gengen(num), 2, 4)
+        print(rand, gen)
+        for(let i = 0 ; i < 10; i++)
+            exhaustive(gen.generate(rand))
+    })
+
 });

@@ -13,5 +13,5 @@ export function ArrayGen<T>(
         for (let i = 0; i < size; i++) array.push(elemGen.generate(rand));
 
         return shrinkableArray(array, minSize);
-    });
+    }, minSize, maxSize);
 }

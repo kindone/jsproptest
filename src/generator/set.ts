@@ -20,5 +20,5 @@ export function SetGen<T>(
         }
 
         return shrinkableSet(array, minSize);
-    });
+    }, minSize, maxSize);
 }

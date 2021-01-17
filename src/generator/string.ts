@@ -21,7 +21,7 @@ export function stringGen(
         for (let i = 0; i < size; i++) array.push(charGen.generate(rand));
 
         return shrinkableString(array, minSize);
-    });
+    }, minSize, maxSize);
 }
 
 export function ASCIIStringGen(
