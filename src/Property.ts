@@ -40,7 +40,7 @@ export class Property<ARGS extends unknown[]> {
             var savedRandom = random.clone()
             if(this.onStartup)
                 this.onStartup()
-            var shrinkables = gens.map((gen: Generator<unknown>) =>
+            const shrinkables = gens.map((gen: Generator<unknown>) =>
                 gen.generate(random)
             );
             // console.log("shrinkables", shrinkables)

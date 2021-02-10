@@ -1,5 +1,5 @@
 import { Shrinkable } from '../Shrinkable';
-import { shrinkBulkRecursive } from './array';
+import { shrinkElementwise } from './array';
 import { binarySearchShrinkable } from './integer';
 
 export interface Dictionary<T> {
@@ -40,7 +40,7 @@ export function shrinkableDictionary<T>(dict:Dictionary<Shrinkable<T>>, minSize:
         const parent2 = parent.map(arr => {
             return arr.map(pair => pair[1].map<[string, T]>(value => [pair[0], value]))
         })
-        return shrinkBulkRecursive(parent2, 0, 0).transform(shrArrShrStrT =>
+        return shrinkElementwise(parent2, 0, 0).transform(shrArrShrStrT =>
             shrArrShrStrT.map(arrShrStrT =>
                 arrShrStrT.map(shrStrT =>
                     [shrStrT.value[0], shrStrT.map(pair => pair[1])])))

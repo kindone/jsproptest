@@ -54,7 +54,7 @@ describe('generator', () => {
     });
 
     it('array', () => {
-        const elemGen = interval(0, 4);
+        const elemGen = interval(0, 50);
         const gen = ArrayGen(elemGen, 4, 8);
         print(rand, gen);
         exhaustive(gen.generate(rand))
@@ -92,6 +92,15 @@ describe('generator', () => {
         exhaustive(shr);
     });
 
+    it('big tuple', () => {
+        const numGen = interval(0, 3);
+        const gens:Generator<number>[] = []
+        for(let i = 0; i < 800; i++)
+            gens.push(numGen)
+        const gen = TupleGen(...gens);
+        console.log(JSONStringify(gen.generate(new Random('0')).value));
+    });
+
     it('dependent sequence with array', () => {
         const gengen = (n:number) => interval(n, n+1)
         let gen1 = gengen(0)//.map(num => [num])
@@ -103,19 +112,21 @@ describe('generator', () => {
     })
 
     it('aggregate', () => {
-        const gengen = (n:number) => interval(n, n+1)
-        let gen1 = gengen(0).map(num => [num])
+        // const gengen = (n:number) => interval(n, n+1)
+        let gen1 = interval(0, 1).map(num => [num])
 
-        const gen = gen1.aggregate(nums => gengen(nums[nums.length-1]).map(num => [...nums, num]), 2, 4)
+        const gen = gen1.aggregate(nums => {
+            const last = nums[nums.length-1]
+            return interval(last, last+1).map(num => [...nums, num])
+        }, 2, 4)
         print(rand, gen)
         exhaustive(gen.generate(rand))
     })
 
     it('accumulate', () => {
-        const gengen = (n:number) => interval(n, n+2)
-        let gen1 = gengen(0)
+        let gen1:Generator<number> = interval(0, 0+2)
 
-        const gen = gen1.accumulate(num => gengen(num), 2, 4)
+        const gen:Generator<number[]> = gen1.accumulate(num => interval(num, num+2), 2, 4)
         print(rand, gen)
         for(let i = 0 ; i < 10; i++)
             exhaustive(gen.generate(rand))

@@ -1,6 +1,6 @@
 import { Shrinkable } from '../Shrinkable';
 import { binarySearchShrinkable } from './integer';
-import { shrinkBulkRecursive } from './array';
+import { shrinkElementwise } from './array';
 
 export function shrinkableSet<T>(
     array: Array<Shrinkable<T>>,
@@ -18,7 +18,7 @@ export function shrinkableSet<T>(
     });
 
     // shrink elementwise
-    shrinkableArr = shrinkableArr.andThen(parent => shrinkBulkRecursive(parent, 0, 0))
+    shrinkableArr = shrinkableArr.andThen(parent => shrinkElementwise(parent, 0, 0))
     return shrinkableArr.map(
         theArr => new Set(theArr.map(shr => shr.value))
     );
