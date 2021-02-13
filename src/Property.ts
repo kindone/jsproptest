@@ -64,35 +64,11 @@ export class Property<ARGS extends unknown[]> {
                     this.onCleanup()
             } catch(e) {
                 result = e
-                // TODO print failed e and stack trace
             }
             // failed
             if(typeof(result) === 'object' || !result) {
-                // shrink
                 const shrinkResult = this.shrink(savedRandom, ...gens)
-                if(shrinkResult.isSucessful)
-                {
-                    const newError = new Error("property failed (simplest args found by shrinking): " + JSONStringify(shrinkResult.args))
-                    const error =  (shrinkResult.error as Error)
-                    newError.message += "\n  "// + error.message
-                    newError.stack = error.stack
-                    throw newError
-                }
-                // not shrunk
-                else {
-                    const newError = new Error("property failed (args found): " + JSONStringify(shrinkResult.args))
-                    if(typeof result === 'object') {
-                        const error =  (result as Error)
-                        newError.message += "\n  "// + error.message
-                        newError.stack = error.stack
-                        throw newError
-                    }
-                    else {
-                        newError.message += "\n" + "property returned false\n"
-                        Error.captureStackTrace(newError, this.forAll)
-                        throw newError
-                    }
-                }
+                throw this.processFailureAsError(result, shrinkResult)
             }
         }
         return true
@@ -147,23 +123,21 @@ export class Property<ARGS extends unknown[]> {
     private shrink<GENS extends Generator<unknown>[]>(savedRandom:Random, ...gens: GENS):ShrinkResult {
         var shrinkables = gens.map((gen: Generator<unknown>) =>
             gen.generate(savedRandom)
-        );
+        ).map((shr: Shrinkable<unknown>) => shr).concat()
 
-        var shrinkables = shrinkables.map((shr: Shrinkable<unknown>) => shr)
-        const shrinkables_copy = shrinkables.concat()
-        const args = shrinkables_copy.map((shr: Shrinkable<unknown>) => shr.value)
+        const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
-        let result:boolean | object = true
-        for(let n = 0; n < shrinkables_copy.length; n++) {
-            let shrinks = shrinkables_copy[n].shrinks()
+        let result:boolean|object = true
+        for(let n = 0; n < shrinkables.length; n++) {
+            let shrinks = shrinkables[n].shrinks()
             while(!shrinks.isEmpty()) {
                 let iter = shrinks.iterator()
                 let shrinkFound = false
                 while(iter.hasNext()) {
                     const next = iter.next()
-                    const test_result:boolean | object = this.testWithReplace(args, n, next.value)
-                    if(typeof test_result !== 'boolean' || !test_result) {
-                        result = test_result
+                    const testResult:boolean | object = this.testWithReplace(args, n, next.value)
+                    if(typeof testResult !== 'boolean' || !testResult) {
+                        result = testResult
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
@@ -209,13 +183,46 @@ export class Property<ARGS extends unknown[]> {
             );
 
         try {
+            if(this.onStartup)
+                this.onStartup()
+
             const func = this.func as PropertyFunction<ARGS>
             const maybe_result = func(...(args as ARGS))
             if(typeof maybe_result !== 'undefined')
                 return maybe_result
+
+            if(this.onCleanup)
+                this.onCleanup()
             return true
         } catch(e) {
             return e
+        }
+    }
+
+    private processFailureAsError(result:object|boolean, shrinkResult:ShrinkResult):Error {
+        // shrink
+        if(shrinkResult.isSucessful)
+        {
+            const newError = new Error("property failed (simplest args found by shrinking): " + JSONStringify(shrinkResult.args))
+            const error =  (shrinkResult.error as Error)
+            newError.message += "\n  "// + error.message
+            newError.stack = error.stack
+            return newError
+        }
+        // not shrunk
+        else {
+            const newError = new Error("property failed (args found): " + JSONStringify(shrinkResult.args))
+            if(typeof result === 'object') {
+                const error =  (result as Error)
+                newError.message += "\n  "// + error.message
+                newError.stack = error.stack
+                return newError
+            }
+            else {
+                newError.message += "\n" + "property returned false\n"
+                Error.captureStackTrace(newError, this.forAll)
+                return newError
+            }
         }
     }
 }

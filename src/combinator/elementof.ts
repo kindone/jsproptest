@@ -2,11 +2,11 @@ import { Generator, Arbitrary } from '../Generator';
 import { Random } from '../Random';
 import { Shrinkable } from '../Shrinkable';
 
-class WeightedValue<T> {
+export class WeightedValue<T> {
     constructor(readonly value: T, readonly weight: number) {}
 }
 
-function isWeighted<T>(
+export function isWeighted<T>(
     element: WeightedValue<T> | T
 ): element is WeightedValue<T> {
     return (element as WeightedValue<T>).weight !== undefined;
@@ -16,18 +16,16 @@ export function weightedValue<T>(value: T, weight: number) {
     return new WeightedValue(value, weight);
 }
 
-export function elementOf<T>(
-    ...values: Array<T | WeightedValue<T>>
-): Generator<T> {
+export function normalizeWeightedValues<T>(arr:Array<T|WeightedValue<T>>):WeightedValue<T>[] {
     let sum = 0.0;
     let numUnassigned = 0;
-    let weightedGenerators = values.map(value => {
-        if (isWeighted(value)) {
-            sum += value.weight;
-            return value;
+    let weightedValues = arr.map(rawOrWeighted => {
+        if (isWeighted(rawOrWeighted)) {
+            sum += rawOrWeighted.weight;
+            return rawOrWeighted;
         } else {
             numUnassigned++;
-            return new WeightedValue(value, 0.0);
+            return new WeightedValue(rawOrWeighted, 0.0);
         }
     });
 
@@ -36,7 +34,7 @@ export function elementOf<T>(
     if (numUnassigned > 0) {
         let rest = 1.0 - sum;
         const perUnassigned = rest / numUnassigned;
-        weightedGenerators = weightedGenerators.map(weightedGenerator => {
+        weightedValues = weightedValues.map(weightedGenerator => {
             if (weightedGenerator.weight === 0.0)
                 return new WeightedValue(
                     weightedGenerator.value,
@@ -45,12 +43,19 @@ export function elementOf<T>(
             else return weightedGenerator;
         });
     }
+    return weightedValues
+}
+
+export function elementOf<T>(
+    ...values: Array<T | WeightedValue<T>>
+): Generator<T> {
+    const weightedValues = normalizeWeightedValues(values)
 
     return new Arbitrary<T>((rand: Random) => {
         while (true) {
-            const dice = rand.inRange(0, weightedGenerators.length);
-            if (rand.nextBoolean(weightedGenerators[dice].weight)) {
-                return new Shrinkable(weightedGenerators[dice].value);
+            const dice = rand.inRange(0, weightedValues.length);
+            if (rand.nextBoolean(weightedValues[dice].weight)) {
+                return new Shrinkable(weightedValues[dice].value);
             }
         }
     });

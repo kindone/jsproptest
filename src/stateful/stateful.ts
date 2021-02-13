@@ -117,7 +117,7 @@ export function statefulProperty<ObjectType, ModelType>(initialGen:Generator<Obj
         return new StatefulProperty(initialGen, modelFactory, actionGen)
 }
 
-type EmptyModel = {}
+export type EmptyModel = {}
 
 export function simpleStatefulProperty<ObjectType>(initialGen:Generator<ObjectType>,
     actionGen:Generator<SimpleAction<ObjectType>>) {
