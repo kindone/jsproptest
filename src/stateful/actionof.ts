@@ -22,7 +22,7 @@ function isSimpleActionGen<ObjectType>(
     return (element as SimpleActionGen<ObjectType>).generate !== undefined;
 }
 
-export function simpleActionGenFactoryOf<ObjectType>(
+export function simpleActionGenOf<ObjectType>(
     ...simpleActionGenFactories: Array<SimpleActionGenOrFactory<ObjectType> | WeightedValue<SimpleActionGenOrFactory<ObjectType>>>
 ): SimpleActionGenFactory<ObjectType> {
     const weightedFactories = normalizeWeightedValues(simpleActionGenFactories)
@@ -42,7 +42,7 @@ export function simpleActionGenFactoryOf<ObjectType>(
     })
 }
 
-export function actionGenFactoryOf<ObjectType,ModelType>(
+export function actionGenOf<ObjectType,ModelType>(
     ...actionGenFactories: Array<ActionGenOrFactory<ObjectType,ModelType> | WeightedValue<ActionGenOrFactory<ObjectType,ModelType>>>
 ): ActionGenFactory<ObjectType,ModelType> {
     const weightedFactories = normalizeWeightedValues(actionGenFactories)

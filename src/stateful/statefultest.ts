@@ -4,7 +4,7 @@ import { Shrinkable } from "../Shrinkable";
 import { shrinkableArray } from "../shrinker/array";
 import { JSONStringify } from "../util/JSON";
 import { ActionGenFactory, SimpleActionGenFactory } from "./actionof";
-import { Action } from "./statefulbase"
+import { Action, EmptyModel } from "./statefulbase"
 
 class ShrinkResult {
     readonly isSucessful:boolean
@@ -191,8 +191,6 @@ export function statefulProperty<ObjectType, ModelType>(initialGen:Generator<Obj
     actionGenFactory:ActionGenFactory<ObjectType,ModelType>) {
         return new StatefulProperty(initialGen, modelFactory, actionGenFactory)
 }
-
-type EmptyModel = {}
 
 export function simpleStatefulProperty<ObjectType>(initialGen:Generator<ObjectType>,
     simpleActionGenFactory:SimpleActionGenFactory<ObjectType>) {
