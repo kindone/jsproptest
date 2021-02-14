@@ -1,6 +1,6 @@
 import { integers, interval } from "../src/generator/integer";
 import { just } from "../src/combinator/just";
-import { Action, SimpleAction, simpleStatefulProperty, statefulProperty } from "../src/stateful/stateful";
+import { Action, SimpleAction, simpleStatefulPropertyDeprecated, statefulPropertyDeprecated } from "../src/stateful/statefulbase";
 import { oneOf, weightedGen } from "../src/combinator/oneof";
 import { ArrayGen } from "../src/generator/array";
 
@@ -30,7 +30,7 @@ describe('stateful', () => {
         }))
 
         const actionGen = oneOf(pushGen, popGen, weightedGen(clearGen, 0.1))
-        const prop = simpleStatefulProperty(ArrayGen(integers(0, 10000),0,20), actionGen)
+        const prop = simpleStatefulPropertyDeprecated(ArrayGen(integers(0, 10000),0,20), actionGen)
         prop.go()
         prop.setOnStartup(() => console.log("startup"))
         prop.setOnCleanup(() => console.log("cleanup"))
@@ -67,7 +67,7 @@ describe('stateful', () => {
 
         const actionGen = oneOf(pushGen, popGen, weightedGen(clearGen, 0.1))
         const modelFactory = (obj:T):M => { return {count: obj.length} }
-        const prop = statefulProperty(ArrayGen(integers(0, 10000),0,20), modelFactory, actionGen)
+        const prop = statefulPropertyDeprecated(ArrayGen(integers(0, 10000),0,20), modelFactory, actionGen)
         prop.go()
         prop.setOnStartup(() => console.log("startup"))
         prop.setOnCleanup(() => console.log("cleanup"))

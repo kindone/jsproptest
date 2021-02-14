@@ -4,7 +4,7 @@ import { Shrinkable } from "../Shrinkable";
 import { shrinkableArray } from "../shrinker/array";
 import { JSONStringify } from "../util/JSON";
 import { ActionGenFactory, SimpleActionGenFactory } from "./actionof";
-import { Action } from "./stateful"
+import { Action } from "./statefulbase"
 
 class ShrinkResult {
     readonly isSucessful:boolean

@@ -34,9 +34,12 @@ export class Action<ObjectType, ModelType> {
     }
 }
 
+export type SimpleActionGen<ObjectType> = Generator<SimpleAction<ObjectType>>
 export type ActionGen<ObjectType,ModelType> = Generator<Action<ObjectType,ModelType>>
 
-export class StatefulProperty<ObjectType, ModelType> {
+export type EmptyModel = {}
+
+export class StatefulPropertyDeprecated<ObjectType, ModelType> {
     private seed:string = ''
     private numRuns = 0
     private onStartup?:() => void
@@ -111,18 +114,16 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 }
 
-export function statefulProperty<ObjectType, ModelType>(initialGen:Generator<ObjectType>,
+export function statefulPropertyDeprecated<ObjectType, ModelType>(initialGen:Generator<ObjectType>,
     modelFactory:(_:ObjectType) => ModelType,
     actionGen:Generator<Action<ObjectType,ModelType>>) {
-        return new StatefulProperty(initialGen, modelFactory, actionGen)
+        return new StatefulPropertyDeprecated(initialGen, modelFactory, actionGen)
 }
 
-export type EmptyModel = {}
-
-export function simpleStatefulProperty<ObjectType>(initialGen:Generator<ObjectType>,
+export function simpleStatefulPropertyDeprecated<ObjectType>(initialGen:Generator<ObjectType>,
     actionGen:Generator<SimpleAction<ObjectType>>) {
         const actionGen2 = actionGen.map(action => Action.fromSimpleAction<ObjectType,EmptyModel>(action))
         const emptyModel:EmptyModel = {}
         const modelFactory = (_:ObjectType) => emptyModel
-        return new StatefulProperty(initialGen, modelFactory, actionGen2)
+        return new StatefulPropertyDeprecated(initialGen, modelFactory, actionGen2)
 }

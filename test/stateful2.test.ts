@@ -1,7 +1,7 @@
 import { integers, interval } from "../src/generator/integer";
 import { just } from "../src/combinator/just";
-import { Action, SimpleAction } from "../src/stateful/stateful";
-import { simpleStatefulProperty, statefulProperty } from "../src/stateful/stateful2";
+import { Action, SimpleAction } from "../src/stateful/statefulbase";
+import { simpleStatefulProperty, statefulProperty } from "../src/stateful/statefultest";
 import { weightedValue } from "../src/combinator/elementof";
 import { ArrayGen } from "../src/generator/array";
 import { actionGenFactoryOf, simpleActionGenFactoryOf } from "../src/stateful/actionof";
@@ -31,7 +31,7 @@ describe('stateful2', () => {
             expect(obj.length).toBe(0)
         }))
 
-        const actionGenFactory = simpleActionGenFactoryOf<T>((_:T) => pushGen, (_:T) => popGen, weightedValue((_:T) => clearGen, 0.1))
+        const actionGenFactory = simpleActionGenFactoryOf<T>(pushGen, popGen, weightedValue(clearGen, 0.1))
         const prop = simpleStatefulProperty(ArrayGen(integers(0, 10000),0,20), actionGenFactory)
         prop.go()
         prop.setOnStartup(() => console.log("startup"))
