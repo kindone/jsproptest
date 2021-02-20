@@ -4,7 +4,7 @@ import { Action, SimpleAction } from "../src/stateful/statefulbase";
 import { simpleStatefulProperty, statefulProperty } from "../src/stateful/statefultest";
 import { weightedValue } from "../src/combinator/elementof";
 import { ArrayGen } from "../src/generator/array";
-import { actionGenFactoryOf, simpleActionGenFactoryOf } from "../src/stateful/actionof";
+import { actionGenOf, simpleActionGenOf } from "../src/stateful/actionof";
 
 describe('stateful2', () => {
     it('simple', () => {
@@ -31,7 +31,7 @@ describe('stateful2', () => {
             expect(obj.length).toBe(0)
         }))
 
-        const actionGenFactory = simpleActionGenFactoryOf<T>(pushGen, popGen, weightedValue(clearGen, 0.1))
+        const actionGenFactory = simpleActionGenOf<T>(pushGen, popGen, weightedValue(clearGen, 0.1))
         const prop = simpleStatefulProperty(ArrayGen(integers(0, 10000),0,20), actionGenFactory)
         prop.go()
         prop.setOnStartup(() => console.log("startup"))
@@ -67,7 +67,7 @@ describe('stateful2', () => {
             model.count = 0
         }))
 
-        const actionGen = actionGenFactoryOf((_:T, __:M) => pushGen, (_:T, __:M) => popGen, weightedValue((_:T, __:M) => clearGen, 0.1))
+        const actionGen = actionGenOf((_:T, __:M) => pushGen, (_:T, __:M) => popGen, weightedValue((_:T, __:M) => clearGen, 0.1))
         const modelFactory = (obj:T):M => { return {count: obj.length} }
         const prop = statefulProperty(ArrayGen(integers(0, 10000),0,20), modelFactory, actionGen)
         prop.go()

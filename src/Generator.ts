@@ -7,10 +7,10 @@ import { Stream } from './Stream';
 export interface Generator<T> {
     generate(rand:Random):Shrinkable<T>
     map<U>(transformer:(arg:T) => U):Generator<U>
-    flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U>
-    chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]>
-    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T>
-    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>>
+    flatMap<U>(genFactory:(arg:T) => Generator<U>):Generator<U>
+    chain<U>(genFactory:(arg:T) => Generator<U>):Generator<[T,U]>
+    aggregate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T>
+    accumulate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>>
     filter(filterer: (value:T) => boolean):Generator<T>
 }
 
@@ -27,17 +27,17 @@ export class Arbitrary<T> implements Generator<T>{
         return new Arbitrary<U>((rand:Random) => self.generate(rand).map(transformer))
     }
 
-    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+    aggregate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
         const self = this
         return interval(minSize, maxSize).flatMap(size => new Arbitrary<T>((rand:Random) => {
             let shr = self.generate(rand)
             for(let i = 0; i < size; i++)
-                shr = gen2gen(shr.value).generate(rand)
+                shr = genFactory(shr.value).generate(rand)
             return shr
         }))
     }
 
-    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+    accumulate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
         const self = this
         return new Arbitrary<Array<T>>((rand:Random) => {
             const size = rand.interval(minSize, maxSize)
@@ -47,7 +47,7 @@ export class Arbitrary<T> implements Generator<T>{
             let shr = self.generate(rand)
             const shrArr = [shr]
             for(let i = 1; i < size; i++) {
-                shr = gen2gen(shr.value).generate(rand)
+                shr = genFactory(shr.value).generate(rand)
                 shrArr.push(shr)
             }
             return shrinkArrayLength(shrArr, minSize).andThen(parent => {
@@ -67,10 +67,10 @@ export class Arbitrary<T> implements Generator<T>{
         })
     }
 
-    flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
+    flatMap<U>(genFactory:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new Arbitrary<U>((rand:Random) => {
-            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => gen2gen(value).generate(rand))
+            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => genFactory(value).generate(rand))
             return intermediate.andThen(interShr =>
                 interShr.value.flatMap<Shrinkable<U>>(second =>
                     new Shrinkable(new Shrinkable(second))
@@ -79,10 +79,10 @@ export class Arbitrary<T> implements Generator<T>{
         })
     }
 
-    chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]> {
+    chain<U>(genFactory:(arg:T) => Generator<U>):Generator<[T,U]> {
         const self = this
         return new Arbitrary<[T,U]>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, genFactory(value).generate(rand)])
             return intermediate.andThen(interShr =>
                 interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
                     new Shrinkable([interShr.value[0], new Shrinkable(second)])
@@ -115,10 +115,10 @@ export class ArbiContainer<T> implements Generator<T> {
         return new ArbiContainer<U>((rand:Random) => self.generate(rand).map(transformer), this.minSize, this.maxSize)
     }
 
-    flatMap<U>(gen2gen:(arg:T) => Generator<U>):Generator<U> {
+    flatMap<U>(genFactory:(arg:T) => Generator<U>):Generator<U> {
         const self = this
         return new ArbiContainer<U>((rand:Random) => {
-            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => gen2gen(value).generate(rand))
+            const intermediate:Shrinkable<Shrinkable<U>> = self.generate(rand).map(value => genFactory(value).generate(rand))
             return intermediate.andThen(interShr =>
                 interShr.value.flatMap<Shrinkable<U>>(second =>
                     new Shrinkable(new Shrinkable(second))
@@ -127,10 +127,10 @@ export class ArbiContainer<T> implements Generator<T> {
         }, this.minSize, this.maxSize)
     }
 
-    chain<U>(gen2gen:(arg:T) => Generator<U>):Generator<[T,U]> {
+    chain<U>(genFactory:(arg:T) => Generator<U>):Generator<[T,U]> {
         const self = this
         return new ArbiContainer<[T,U]>((rand:Random) => {
-            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, gen2gen(value).generate(rand)])
+            const intermediate:Shrinkable<[T, Shrinkable<U>]> = self.generate(rand).map(value => [value, genFactory(value).generate(rand)])
             return intermediate.andThen(interShr =>
                 interShr.value[1].flatMap<[T, Shrinkable<U>]>(second =>
                     new Shrinkable([interShr.value[0], new Shrinkable(second)])
@@ -139,17 +139,17 @@ export class ArbiContainer<T> implements Generator<T> {
         }, this.minSize, this.maxSize)
     }
 
-    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+    aggregate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
         const self = this
         return interval(minSize, maxSize).flatMap(size => new ArbiContainer<T>((rand:Random) => {
             let shr = self.generate(rand)
             for(let i = 0; i < size; i++)
-                shr = gen2gen(shr.value).generate(rand)
+                shr = genFactory(shr.value).generate(rand)
             return shr
         }, minSize, maxSize))
     }
 
-    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+    accumulate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
         const self = this
         return new ArbiContainer<Array<T>>((rand:Random) => {
             const size = rand.interval(minSize, maxSize)
@@ -159,7 +159,7 @@ export class ArbiContainer<T> implements Generator<T> {
             let shr = self.generate(rand)
             const shrArr = [shr]
             for(let i = 1; i < size; i++) {
-                shr = gen2gen(shr.value).generate(rand)
+                shr = genFactory(shr.value).generate(rand)
                 shrArr.push(shr)
             }
             return shrinkArrayLength(shrArr, minSize).andThen(parent => {

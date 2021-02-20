@@ -2,6 +2,7 @@ import { Random } from '../src/Random';
 import { oneOf, weightedGen } from '../src/combinator/oneof';
 import { construct } from '../src/combinator/construct';
 import { elementOf, weightedValue } from '../src/combinator/elementof';
+import { chainTuple } from '../src/combinator/chaintuple'
 import { interval } from '../src/generator/integer';
 import { Generator } from '../src/Generator';
 import { exhaustive } from './testutil';
@@ -53,4 +54,12 @@ describe('combinator', () => {
         const catShr = catGen.generate(rand);
         exhaustive(catShr);
     });
+
+    it('chainTuple', () => {
+        const numGen1 = interval(1, 3);
+        const pairGen = numGen1.chain(num => interval(0, num))
+        const tripleGen = chainTuple(pairGen, pair => interval(0, pair[1]))
+        const quadGen = chainTuple(tripleGen, triple => interval(0, triple[2]))
+        exhaustive(quadGen.generate(rand))
+    })
 });

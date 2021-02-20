@@ -9,6 +9,7 @@ export { elementOf, weightedValue } from './combinator/elementof'
 export { oneOf, weightedGen } from './combinator/oneof'
 export { lazy } from './combinator/lazy'
 export { just } from './combinator/just'
+export { chainTuple } from './combinator/chaintuple'
 
 export { booleanGen } from './generator/boolean'
 export { inRange, integers, interval } from './generator/integer'
