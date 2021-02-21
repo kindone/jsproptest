@@ -7,6 +7,7 @@ import { ArrayGen } from '../src/generator/array';
 import { SetGen } from '../src/generator/set';
 import { DictionaryGen } from '../src/generator/dictionary';
 import { TupleGen } from '../src/generator/tuple';
+import { just } from '../src/combinator/just';
 import { Generator } from '../src/Generator';
 import { forAll } from '../src/Property';
 import { JSONStringify } from '../src/util/JSON';
@@ -100,6 +101,13 @@ describe('generator', () => {
         const gen = TupleGen(...gens);
         console.log(JSONStringify(gen.generate(new Random('0')).value));
     });
+
+    it('flatMap', () => {
+        const numGen = interval(0, 3);
+        const tupleGen = numGen.flatMap(n => TupleGen(just(n), just(2).map(v => v*n)))
+        for(let i = 0; i < 3; i++)
+            exhaustive(tupleGen.generate(rand))
+    })
 
     it('dependent sequence with array', () => {
         const gengen = (n:number) => interval(n, n+1)
