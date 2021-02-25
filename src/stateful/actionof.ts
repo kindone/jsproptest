@@ -54,8 +54,9 @@ export function actionGenOf<ObjectType,ModelType>(
                 const genOrFactory = weightedFactories[dice].value
                 if(isActionGen(genOrFactory))
                     return genOrFactory.generate(rand)
-                else
+                else {
                     return genOrFactory(obj, model).generate(rand)
+                }
             }
         }
     })

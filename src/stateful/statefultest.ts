@@ -15,9 +15,10 @@ class ShrinkResult {
 
 export class StatefulProperty<ObjectType, ModelType> {
     private seed:string = ''
-    private numRuns = 0
-    private minSize = 1
-    private maxSize = 100
+    private numRuns = 10
+    private minActions = 1
+    private maxActions = 200
+    private maxAllowedConsecutiveGenerationFailures = 20
     private onStartup?:() => void
     private onCleanup?:() => void
     private postCheck?:(obj:ObjectType,mdl:ModelType) => void
@@ -34,6 +35,16 @@ export class StatefulProperty<ObjectType, ModelType> {
 
     setNumRuns(numRuns:number) {
         this.numRuns = numRuns
+        return this
+    }
+
+    setMinActions(num:number) {
+        this.minActions = num
+        return this
+    }
+
+    setMaxActions(num:number) {
+        this.maxActions = num
         return this
     }
 
@@ -58,8 +69,8 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     go() {
-        if(this.minSize <= 0 || this.minSize > this.maxSize)
-            throw new Error('invalid minSize or maxSize: ' + this.minSize + ", " + this.maxSize)
+        if(this.minActions <= 0 || this.minActions > this.maxActions)
+            throw new Error('invalid minSize or maxSize: ' + this.minActions + ", " + this.maxActions)
 
         var rand = this.seed === '' ? new Random() : new Random(this.seed)
 
@@ -71,15 +82,31 @@ export class StatefulProperty<ObjectType, ModelType> {
             const obj = this.initialGen.generate(rand).value
             const model = this.modelFactory(obj)
             const actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[] = [] // actions executed so far
-            const numActions = rand.interval(this.minSize, this.maxSize)
-            for(let i = 0; i < numActions; i++) {
+            const numActions = rand.interval(this.minActions, this.maxActions)
+            let numConsecutiveFailures = 0
+            for(let j = 0; j < numActions;) {
                 // one by one, generate action by calling actionGenFactory with current state
-                const actionShr = this.actionGenFactory(obj, model).generate(rand)
-                actionShrArr.push(actionShr)
+                let actionShr:Shrinkable<Action<ObjectType, ModelType>>
+                try {
+                    actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    actionShrArr.push(actionShr)
+                }
+                catch(e) {
+                    // exception while generating action can happen: ignore and retry unless limit is reached
+                    console.info('discarded action: ' + e.message)
+                    numConsecutiveFailures++
+                    if(numConsecutiveFailures >= this.maxAllowedConsecutiveGenerationFailures) {
+                        console.warn('could not generate a suitable action. Tried ' + this.maxAllowedConsecutiveGenerationFailures + ' failures')
+                        break
+                    }
+                    continue
+                }
+                numConsecutiveFailures = 0
                 // execute the action to update obj and model
                 try {
                     const action = actionShr.value
                     action.call(obj, model)
+                    j++
                 }
                 catch(e) {
                     // shrink based on actionShrArr
@@ -97,7 +124,7 @@ export class StatefulProperty<ObjectType, ModelType> {
 
     shrink(rand:Random, actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[]):ShrinkResult {
         let foundActions = actionShrArr.map(shr => shr.value)
-        let nextActionArrayShr = shrinkableArray(actionShrArr.concat(), this.minSize)
+        let nextActionArrayShr = shrinkableArray(actionShrArr.concat(), this.minActions)
         let shrunk = false
         let result:boolean|object = true
         let shrinks = nextActionArrayShr.shrinks()

@@ -1,6 +1,6 @@
 {
   "name": "jsproptest",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Javascript Property-based Testing",
   "author": "Won-Wook Hong",
   "license": "MIT",
@@ -23,7 +23,7 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
-    "test": "tsdx test",
+    "test": "tsdx test --verbose",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
     "size": "size-limit",

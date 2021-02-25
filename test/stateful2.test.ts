@@ -47,6 +47,7 @@ describe('stateful2', () => {
             obj.push(value)
             expect(obj.length).toBe(size + 1)
             model.count++
+            console.log('pushGen')
         }))
 
         const popGen = just(new Action((obj:T, model:M) => {
@@ -56,6 +57,7 @@ describe('stateful2', () => {
             obj.pop()
             expect(obj.length).toBe(size - 1)
             model.count--
+            console.log('popGen')
         }))
 
         const clearGen = just(new Action((obj:T, model:M) => {
@@ -65,6 +67,7 @@ describe('stateful2', () => {
                 obj.pop()
             expect(obj.length).toBe(0)
             model.count = 0
+            console.log('clear')
         }))
 
         const actionGen = actionGenOf((_:T, __:M) => pushGen, (_:T, __:M) => popGen, weightedValue((_:T, __:M) => clearGen, 0.1))
