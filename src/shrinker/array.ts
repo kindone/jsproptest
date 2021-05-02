@@ -170,7 +170,7 @@ function shrinkMembershipwise<T>(shrinkableElems:Shrinkable<T>[], minSize:number
     //     return shrinkMid2(parent.value, minSize, maxSize).shrinks()
     // })
     // return shrinkMid2(shrinkableElems, minSize, maxSize)
-    return shrinkFront(shrinkableElems, minSize, 0).debug("shrinkMid")
+    return shrinkFront(shrinkableElems, minSize, 0)
 }
 
 export function shrinkableArray<T>(shrinkableElems: Array<Shrinkable<T>>, minSize: number, shrinkElementWise = false): Shrinkable<Array<T>> {

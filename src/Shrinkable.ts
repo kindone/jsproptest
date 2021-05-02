@@ -2,16 +2,10 @@ import { Stream } from './Stream';
 
 export class Shrinkable<T> {
 
-    debug(str:string) {
-        this.debugStr += str
-        return this
-    }
-
     constructor(
         readonly value: T,
         readonly shrinksGen: () => Stream<Shrinkable<T>> = () =>
             new Stream<Shrinkable<T>>(),
-        public debugStr:string = ""
     ) {}
 
     toString() {
@@ -23,7 +17,7 @@ export class Shrinkable<T> {
     }
 
     with(shrinksGen: () => Stream<Shrinkable<T>>): Shrinkable<T> {
-        return new Shrinkable(this.value, shrinksGen, this.debugStr);
+        return new Shrinkable(this.value, shrinksGen);
     }
 
     concatStatic(then: () => Stream<Shrinkable<T>>): Shrinkable<T> {
@@ -69,8 +63,7 @@ export class Shrinkable<T> {
         const shrinkable: Shrinkable<U> = new Shrinkable<U>(
             transformer(this.value),
             () =>
-            this.shrinksGen().transform(shr => shr.map<U>(transformer)),
-            this.debugStr
+            this.shrinksGen().transform(shr => shr.map<U>(transformer))
         );
         return shrinkable
     }

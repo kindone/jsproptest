@@ -66,12 +66,13 @@ describe('generator', () => {
             exhaustive(gen.generate(rand), 0, (shrinkable:Shrinkable<number[]>, _level:number) => {
                 exhaustiveStr += "\n"
                 for (let i = 0; i < _level; i++) exhaustiveStr += '  ';
-                exhaustiveStr += JSONStringify(shrinkable.value)// + "(" + shrinkable.debugStr + ")";
+                exhaustiveStr += JSONStringify(shrinkable.value)
                 // numTotal ++
 
                 const str = JSONStringify(shrinkable.value)
                 if(set.has(str)) {
                     exhaustiveStr += " (already exists)"
+                    // array can have duplicate values
                     // throw new Error(str + " already exists in: " + exhaustiveStr)
                 }
                 set.add(str)
@@ -80,32 +81,70 @@ describe('generator', () => {
         }
     });
 
-    it('set_shrink', () => {
-        const elemGen = interval(0, 99);
-        const minSize = 1
-        const maxSize = 6
-        const gen = SetGen(elemGen, minSize, maxSize);
-        print(rand, gen);
-        for(let i = 0; i < 20; i++) {
-            const set:Set<string> = new Set([])
-            let exhaustiveStr = ""
-            let numTotal = 0
-            const root = gen.generate(rand)
-            exhaustive(root, 0, (shrinkable:Shrinkable<Set<number>>, _level:number) => {
-                exhaustiveStr += "\n"
-                for (let i = 0; i < _level; i++) exhaustiveStr += '  ';
-                exhaustiveStr += JSONStringify(shrinkable.value)// + "(" + shrinkable.debugStr + ")";
-                numTotal ++
-
-                const str = JSONStringify(shrinkable.value)
-                if(set.has(str)) {
-                    throw new Error(str + " already exists in: " + exhaustiveStr)
-                }
-                set.add(str)
-            })
-            console.log('rootSize: ' + root.value.size + ", minSize: " + minSize + ", total: " + numTotal)
-            console.log("exhaustive: " + exhaustiveStr)
+    const combination = (n:number, r:number) => {
+        let result = 1
+        for(let i = 1; i <= r; i++) {
+            result *= n--
+            result /= i
         }
+        return result
+    }
+
+    it('util.combination', () => {
+        // can fail with n >= 67
+        const pairGen = interval(1, 30).chain((n:number) => interval(0, n))
+        forAll((n_and_r:[number, number]) => {
+            const n = n_and_r[0]
+            const r = n_and_r[1]
+            const result = combination(n, r)
+            expect(Math.floor(result)).toBe(result)
+        }, pairGen)
+    })
+
+    it('set_shrink', () => {
+
+        // test if set/array shrinking is thorough and unique
+        // it must cover all combinations and never repeated
+
+        const sumCombinations = (n:number, maxR:number) => {
+            if(maxR < 0)
+                return 0
+            let result = 0
+            for(let r = 0; r <= maxR; r++)
+                result += combination(n, r)
+            return result
+        }
+
+        const minAndMaxSizeGen = interval(0, 10).chain((n:number) => interval(n, 10))
+        forAll((minAndMaxSize:[number, number]) => {
+            const elemGen = interval(0, 99);
+            const minSize = minAndMaxSize[0]
+            const maxSize = minAndMaxSize[1]
+            const gen = SetGen(elemGen, minSize, maxSize);
+            // print(rand, gen);
+            for(let i = 0; i < 3; i++) {
+                const set:Set<string> = new Set([])
+                let exhaustiveStr = ""
+                let numTotal = 0
+                const root = gen.generate(rand)
+                exhaustive(root, 0, (shrinkable:Shrinkable<Set<number>>, _level:number) => {
+                    exhaustiveStr += "\n"
+                    for (let i = 0; i < _level; i++) exhaustiveStr += '  ';
+                    exhaustiveStr += JSONStringify(shrinkable.value)
+                    numTotal ++
+
+                    const str = JSONStringify(shrinkable.value)
+                    if(set.has(str)) {
+                        throw new Error(str + " already exists in: " + exhaustiveStr)
+                    }
+                    set.add(str)
+                })
+                const size = root.value.size
+                // console.log('rootSize: ' + size + ", minSize: " + minSize + ", total: " + numTotal + ", pow: " + Math.pow(2, size) + ", minus: " + sumCombinations(size, minSize-1))
+                // console.log("exhaustive: " + exhaustiveStr)
+                expect(numTotal).toBe(Math.pow(2, size) - sumCombinations(size, minSize-1))
+            }
+        }, minAndMaxSizeGen)
     });
 
     it('set', () => {
