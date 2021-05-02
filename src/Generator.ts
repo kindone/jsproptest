@@ -9,6 +9,7 @@ export interface Generator<T> {
     map<U>(transformer:(arg:T) => U):Generator<U>
     flatMap<U>(genFactory:(arg:T) => Generator<U>):Generator<U>
     chain<U>(genFactory:(arg:T) => Generator<U>):Generator<[T,U]>
+    chainAsTuple<Ts extends unknown[], U>(genFactory:(arg:Ts) => Generator<U>):Generator<[...Ts,U]>
     aggregate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T>
     accumulate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>>
     filter(filterer: (value:T) => boolean):Generator<T>
@@ -91,6 +92,25 @@ export class Arbitrary<T> implements Generator<T>{
         })
     }
 
+    chainAsTuple<Ts extends unknown[], U>(genFactory:(arg:Ts) => Generator<U>):Generator<[...Ts,U]> {
+        const self = this
+        return new Arbitrary<[...Ts,U]>((rand:Random) => {
+            const intermediate:Shrinkable<[...Ts, Shrinkable<U>]> = self.generate(rand).map(value => {
+                if(!Array.isArray(value))
+                    throw new Error('method unsupported for the type')
+                const tuple = value as unknown as Ts
+                return [...tuple, genFactory(tuple).generate(rand)]
+            })
+            return intermediate.andThen(interShr => {
+                const head = interShr.value.slice(0, interShr.value.length-1) as Ts
+                const tail = interShr.value[interShr.value.length-1] as Shrinkable<U>
+                return tail.flatMap<[...Ts, Shrinkable<U>]>(second =>
+                    new Shrinkable([...head, new Shrinkable(second)])
+                ).shrinks()
+            }).map(pair => [...(pair.slice(0, pair.length-1) as Ts), (pair[pair.length-1] as Shrinkable<U>).value])
+        })
+    }
+
     filter(filterer:(value:T) => boolean):Generator<T> {
         const self = this
         return new Arbitrary<T>((rand:Random) => self.generate(rand).filter(filterer))
@@ -137,6 +157,25 @@ export class ArbiContainer<T> implements Generator<T> {
                 ).shrinks()
             ).map(pair => [pair[0], pair[1].value])
         }, this.minSize, this.maxSize)
+    }
+
+    chainAsTuple<Ts extends unknown[], U>(genFactory:(arg:Ts) => Generator<U>):Generator<[...Ts,U]> {
+        const self = this
+        return new Arbitrary<[...Ts,U]>((rand:Random) => {
+            const intermediate:Shrinkable<[...Ts, Shrinkable<U>]> = self.generate(rand).map(value => {
+                if(!Array.isArray(value))
+                    throw new Error('method unsupported for the type')
+                const tuple = value as unknown as Ts
+                return [...tuple, genFactory(tuple).generate(rand)]
+            })
+            return intermediate.andThen(interShr => {
+                const head = interShr.value.slice(0, interShr.value.length-1) as Ts
+                const tail = interShr.value[interShr.value.length-1] as Shrinkable<U>
+                return tail.flatMap<[...Ts, Shrinkable<U>]>(second =>
+                    new Shrinkable([...head, new Shrinkable(second)])
+                ).shrinks()
+            }).map(pair => [...(pair.slice(0, pair.length-1) as Ts), (pair[pair.length-1] as Shrinkable<U>).value])
+        })
     }
 
     aggregate(genFactory:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {

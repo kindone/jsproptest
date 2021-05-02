@@ -12,6 +12,7 @@ import { Generator } from '../src/Generator';
 import { forAll } from '../src/Property';
 import { JSONStringify } from '../src/util/JSON';
 import { exhaustive } from './testutil';
+import { Shrinkable } from '../src/Shrinkable';
 
 function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
     const arr = [];
@@ -55,10 +56,56 @@ describe('generator', () => {
     });
 
     it('array', () => {
-        const elemGen = interval(0, 50);
-        const gen = ArrayGen(elemGen, 4, 8);
+        const elemGen = interval(0, 99);
+        const gen = ArrayGen(elemGen, 5, 6);
         print(rand, gen);
-        exhaustive(gen.generate(rand))
+        for(let i = 0; i < 3; i++) {
+            const set:Set<string> = new Set([])
+            let exhaustiveStr = ""
+            // let numTotal = 0
+            exhaustive(gen.generate(rand), 0, (shrinkable:Shrinkable<number[]>, _level:number) => {
+                exhaustiveStr += "\n"
+                for (let i = 0; i < _level; i++) exhaustiveStr += '  ';
+                exhaustiveStr += JSONStringify(shrinkable.value)// + "(" + shrinkable.debugStr + ")";
+                // numTotal ++
+
+                const str = JSONStringify(shrinkable.value)
+                if(set.has(str)) {
+                    exhaustiveStr += " (already exists)"
+                    // throw new Error(str + " already exists in: " + exhaustiveStr)
+                }
+                set.add(str)
+            })
+            console.log("exhaustive: " + exhaustiveStr)
+        }
+    });
+
+    it('set_shrink', () => {
+        const elemGen = interval(0, 99);
+        const minSize = 1
+        const maxSize = 6
+        const gen = SetGen(elemGen, minSize, maxSize);
+        print(rand, gen);
+        for(let i = 0; i < 20; i++) {
+            const set:Set<string> = new Set([])
+            let exhaustiveStr = ""
+            let numTotal = 0
+            const root = gen.generate(rand)
+            exhaustive(root, 0, (shrinkable:Shrinkable<Set<number>>, _level:number) => {
+                exhaustiveStr += "\n"
+                for (let i = 0; i < _level; i++) exhaustiveStr += '  ';
+                exhaustiveStr += JSONStringify(shrinkable.value)// + "(" + shrinkable.debugStr + ")";
+                numTotal ++
+
+                const str = JSONStringify(shrinkable.value)
+                if(set.has(str)) {
+                    throw new Error(str + " already exists in: " + exhaustiveStr)
+                }
+                set.add(str)
+            })
+            console.log('rootSize: ' + root.value.size + ", minSize: " + minSize + ", total: " + numTotal)
+            console.log("exhaustive: " + exhaustiveStr)
+        }
     });
 
     it('set', () => {

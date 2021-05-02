@@ -62,4 +62,12 @@ describe('combinator', () => {
         const quadGen = chainTuple(tripleGen, triple => interval(0, triple[2]))
         exhaustive(quadGen.generate(rand))
     })
+
+    it('chainAsTuple', () => {
+        const numGen1 = interval(1, 3);
+        const quadGen = numGen1.chain(num => interval(0, num))
+        .chainAsTuple((pair:[number, number]) => interval(0, pair[1]))
+        .chainAsTuple((triple:[number, number, number]) => interval(0, triple[2]))
+        exhaustive(quadGen.generate(rand))
+    })
 });

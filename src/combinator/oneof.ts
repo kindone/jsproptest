@@ -21,6 +21,10 @@ class Weighted<T> implements Generator<T> {
         return this.gen.chain(gen2gen)
     }
 
+    chainAsTuple<Ts extends unknown[], U>(genFactory:(arg:Ts) => Generator<U>):Generator<[...Ts,U]>  {
+        return this.gen.chainAsTuple(genFactory)
+    }
+
     aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
         return this.gen.aggregate(gen2gen, minSize, maxSize)
     }
