@@ -19,6 +19,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     private minActions = 1
     private maxActions = 200
     private maxAllowedConsecutiveGenerationFailures = 20
+    private verbose = false
     private onStartup?:() => void
     private onCleanup?:() => void
     private postCheck?:(obj:ObjectType,mdl:ModelType) => void
@@ -68,6 +69,11 @@ export class StatefulProperty<ObjectType, ModelType> {
         return this
     }
 
+    setVerbosity(verbose:boolean) {
+        this.verbose = verbose
+        return this
+    }
+
     go() {
         if(this.minActions <= 0 || this.minActions > this.maxActions)
             throw new Error('invalid minSize or maxSize: ' + this.minActions + ", " + this.maxActions)
@@ -106,6 +112,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                 try {
                     const action = actionShr.value
                     action.call(obj, model)
+                    if(this.verbose)
+                        console.info('action generated. run: ', i, "action: ", j)
                     j++
                 }
                 catch(e) {

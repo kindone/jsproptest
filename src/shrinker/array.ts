@@ -106,7 +106,7 @@ export function shrinkArrayLength<T>(shrinkableElems:Shrinkable<T>[], minSize: n
 }
 
 
-function shrinkFront<T>(shrinkableElems:Shrinkable<T>[], minSize:number, rearSize:number):Shrinkable<Shrinkable<T>[]> {
+function shrinkFrontAndThenMid<T>(shrinkableElems:Shrinkable<T>[], minSize:number, rearSize:number):Shrinkable<Shrinkable<T>[]> {
     // remove front, fixing rear
     const minFrontSize = Math.max(minSize - rearSize, 0) // rear size already occupies some elements
     const maxFrontSize = shrinkableElems.length - rearSize
@@ -118,11 +118,8 @@ function shrinkFront<T>(shrinkableElems:Shrinkable<T>[], minSize:number, rearSiz
     }).concat(parent => {
         // increase rear size
         const parentSize = parent.value.length
-
         // no further shrinking possible
         if(parentSize <= minSize || parentSize <= rearSize) {
-            // const diminished = shrinkableElems.length - parentSize
-            // const newFrontSize = maxFrontSize - diminished
             if(minSize < parentSize && rearSize+1 < parentSize)
                 return shrinkMid(parent.value, minSize, 1, rearSize + 1).shrinks()
             else
@@ -131,17 +128,11 @@ function shrinkFront<T>(shrinkableElems:Shrinkable<T>[], minSize:number, rearSiz
         // shrink front further by fixing last element in front to rear
         // [[1,2,3,4]]
         // [[1,2,3],[4]] → [[]|[1]|[1,2]|, [4]]
-        return shrinkFront(parent.value, minSize, rearSize + 1).shrinks()
-    })/*.andThen(parent => {
-        const parentSize = parent.value.length
-        if(parentSize <= minFrontSize+1 || minFrontSize+1 >= maxFrontSize)
-            return Stream.empty()
-        return shrinkMid2(parent.value, minFrontSize, maxFrontSize).shrinks()
-    })*/
+        return shrinkFrontAndThenMid(parent.value, minSize, rearSize + 1).shrinks()
+    })
 }
 
 function shrinkMid<T>(shrinkableElems:Shrinkable<T>[], minSize:number, frontSize:number, rearSize:number):Shrinkable<Shrinkable<T>[]> {
-    // remove rear, fixing front
     const minRearSize = Math.max(minSize - frontSize, 0)
     const maxRearSize = shrinkableElems.length - frontSize
     // rear size within [min,max]
@@ -162,15 +153,7 @@ function shrinkMid<T>(shrinkableElems:Shrinkable<T>[], minSize:number, frontSize
 }
 
 function shrinkMembershipwise<T>(shrinkableElems:Shrinkable<T>[], minSize:number):Shrinkable<Shrinkable<T>[]> {
-    // return shrinkMid(shrinkableElems, minSize, maxSize).andThen(parent => {
-    //     const originalSize = shrinkableElems.length
-    //     const parentSize = parent.value.length
-    //     if(parentSize <= minSize)
-    //         return Stream.empty()
-    //     return shrinkMid2(parent.value, minSize, maxSize).shrinks()
-    // })
-    // return shrinkMid2(shrinkableElems, minSize, maxSize)
-    return shrinkFront(shrinkableElems, minSize, 0)
+    return shrinkFrontAndThenMid(shrinkableElems, minSize, 0)
 }
 
 export function shrinkableArray<T>(shrinkableElems: Array<Shrinkable<T>>, minSize: number, shrinkElementWise = false): Shrinkable<Array<T>> {

@@ -226,4 +226,14 @@ describe('generator', () => {
             exhaustive(gen.generate(rand))
     })
 
+    it('accumulate many', () => {
+        let gen1:Generator<number> = interval(0, 0+2)
+
+        const gen:Generator<number[]> = gen1.accumulate(num => interval(num, num+2), 2, 4)
+        print(rand, gen)
+        forAll((_nums:number[]):void => {
+            
+        }, gen)
+    })
+
 });
