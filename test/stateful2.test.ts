@@ -73,10 +73,10 @@ describe('stateful2', () => {
         const actionGen = actionGenOf((_:T, __:M) => pushGen, (_:T, __:M) => popGen, weightedValue((_:T, __:M) => clearGen, 0.1))
         const modelFactory = (obj:T):M => { return {count: obj.length} }
         const prop = statefulProperty(ArrayGen(integers(0, 10000),0,20), modelFactory, actionGen)
-        prop.setVerbosity(true).go()
+        prop.setVerbosity(true).setMaxActions(1000).go()
         prop.setOnStartup(() => console.log("startup"))
         prop.setOnCleanup(() => console.log("cleanup"))
         prop.setPostCheck((_:T, __:M) => { throw new Error('error')})
-        expect(() => prop.setSeed('1').setNumRuns(10).setVerbosity(true).go()).toThrow()
+        // expect(() => prop.setSeed('1').setNumRuns(10).setVerbosity(true).go()).toThrow()
     })
 })

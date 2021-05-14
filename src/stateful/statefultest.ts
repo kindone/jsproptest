@@ -15,9 +15,9 @@ class ShrinkResult {
 
 export class StatefulProperty<ObjectType, ModelType> {
     private seed:string = ''
-    private numRuns = 10
+    private numRuns = 100
     private minActions = 1
-    private maxActions = 200
+    private maxActions = 100
     private maxAllowedConsecutiveGenerationFailures = 20
     private verbose = false
     private onStartup?:() => void
