@@ -1,7 +1,7 @@
 import { Generator } from "../Generator";
 import { Random } from "../Random";
 import { Shrinkable } from "../Shrinkable";
-import { shrinkableArray } from "../shrinker/array";
+import { shrinkArrayLength } from "../shrinker/array";
 import { JSONStringify } from "../util/JSON";
 import { ActionGenFactory, SimpleActionGenFactory } from "./actionof";
 import { Action, EmptyModel } from "./statefulbase"
@@ -132,7 +132,8 @@ export class StatefulProperty<ObjectType, ModelType> {
 
     shrink(rand:Random, actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[]):ShrinkResult {
         let foundActions = actionShrArr.map(shr => shr.value)
-        let nextActionArrayShr = shrinkableArray(actionShrArr.concat(), this.minActions)
+        // shrinkArrayLength: shrink only the rear
+        let nextActionArrayShr = shrinkArrayLength(actionShrArr.concat(), this.minActions).map(arr => arr.map(shr => shr.value))
         let shrunk = false
         let result:boolean|object = true
         let shrinks = nextActionArrayShr.shrinks()
@@ -141,7 +142,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             let shrinkFound = false
             while(iter.hasNext()) {
                 nextActionArrayShr = iter.next()
-                const testResult:boolean|object = this.test(rand, nextActionArrayShr.value)
+                const testResult:boolean|object = this.test(rand.clone(), nextActionArrayShr.value)
                 // found a shrink
                 if(typeof testResult !== 'boolean' || !testResult) {
                     result = testResult
@@ -180,7 +181,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             if(this.onStartup)
                 this.onStartup()
 
-            const obj = this.initialGen.generate(rand.clone()).value
+            const obj = this.initialGen.generate(rand).value
             const model = this.modelFactory(obj)
             for(const action of actions) {
                 action.call(obj, model)

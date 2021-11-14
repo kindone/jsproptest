@@ -113,17 +113,3 @@ export class StatefulPropertyDeprecated<ObjectType, ModelType> {
         prop.forAll(tupleGen)
     }
 }
-
-export function statefulPropertyDeprecated<ObjectType, ModelType>(initialGen:Generator<ObjectType>,
-    modelFactory:(_:ObjectType) => ModelType,
-    actionGen:Generator<Action<ObjectType,ModelType>>) {
-        return new StatefulPropertyDeprecated(initialGen, modelFactory, actionGen)
-}
-
-export function simpleStatefulPropertyDeprecated<ObjectType>(initialGen:Generator<ObjectType>,
-    actionGen:Generator<SimpleAction<ObjectType>>) {
-        const actionGen2 = actionGen.map(action => Action.fromSimpleAction<ObjectType,EmptyModel>(action))
-        const emptyModel:EmptyModel = {}
-        const modelFactory = (_:ObjectType) => emptyModel
-        return new StatefulPropertyDeprecated(initialGen, modelFactory, actionGen2)
-}
