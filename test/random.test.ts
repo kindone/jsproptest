@@ -32,6 +32,20 @@ describe('random', () => {
         // print(() => rand.inRange(1, 0))
     });
 
+    it('random range distribution', () => {
+        for(let i = 0; i < 40; i++) {
+            const rand: Random = new Random('3103480122');
+            print(() => rand.inRange(2, 3+i));
+        }
+    });
+
+    it('random _interval', () => {
+        for(let i = 0; i < 20; i++) {
+            const rand: Random = new Random('3103480122');
+            print(() => rand.nextInt());
+        }
+    });
+
     it('inRangeNextBoolean', () => {
         const rand: Random = new Random('0');
         print(() => [rand.inRange(0, 4), rand.nextBoolean(0.25)], 50);

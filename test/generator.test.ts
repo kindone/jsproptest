@@ -232,7 +232,7 @@ describe('generator', () => {
         const gen:Generator<number[]> = gen1.accumulate(num => interval(num, num+2), 2, 4)
         print(rand, gen)
         forAll((_nums:number[]):void => {
-            
+
         }, gen)
     })
 

@@ -1,11 +1,15 @@
 // import Rand from 'rand-seed'
-import Rand from 'rand-seed';
+import {MersenneTwister19937, int32, int53, real, bool} from "random-js"
 
 export class Random {
-    private rng: Rand;
+    private mt:MersenneTwister19937
 
-    constructor(readonly seed: string = '') {
-        this.rng = seed === '' ? new Rand() : new Rand(seed);
+    constructor(readonly initialSeed: string = '', useCount:number = 0) {
+        const autoSeed = MersenneTwister19937.autoSeed().next()
+        if(initialSeed == '')
+            this.mt = MersenneTwister19937.seed(autoSeed).discard(useCount);
+        else
+            this.mt = MersenneTwister19937.seed(Number.parseInt(this.initialSeed)).discard(useCount);
     }
 
     // FIXME: not an exact implementation [0,1) * N. How about some large number with same precisions?
@@ -13,58 +17,64 @@ export class Random {
         min: number = Number.MIN_SAFE_INTEGER,
         max: number = Number.MAX_SAFE_INTEGER
     ): number {
-        return this.rng.next() * (max - min) + min;
+        return real(min, max, true)(this.mt);
     }
 
     nextProb(): number {
-        return this.rng.next();
+        return real(0, 1, false)(this.mt);
     }
 
     //FIXME: find good reason for reliable min and max
-    nextLong(
-        min: number = -2147483648 * 1000000,
-        max: number = 2147483648 * 1000000
-    ): number {
-        return Math.floor(this.rng.next() * (max - min)) + min;
+    nextLong(): number {
+        return int53(this.mt)
     }
 
-    nextInt(min: number = -2147483648, max: number = 2147483647): number {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-        return Math.floor(this.rng.next() * (max - min)) + min;
+    nextInt(): number {
+        return int32(this.mt)
     }
 
     nextBoolean(trueProb: number = 0.5): boolean {
-        return this.inRange(0, 10000000000) < 10000000000 * trueProb;
+        return bool(trueProb)(this.mt)
     }
 
     interval(min: number, max: number): number {
-        return min + (Math.abs(this.nextLong()) % (max + 1 - min));
+        // return integer(min, max)(this.mt)
+        return this._interval(int53(this.mt), -0x20000000000000, 0x1fffffffffffff, min, max)
     }
 
     inRange(fromInclusive: number, toExclusive: number): number {
-        return (
-            fromInclusive +
-            (Math.abs(this.nextLong()) % (toExclusive - fromInclusive))
-        );
+        return this.interval(fromInclusive, toExclusive-1)
     }
 
     intInterval(min: number, max: number): number {
-        return min + (Math.abs(this.nextInt()) % (max + 1 - min));
+        return this._interval(int32(this.mt), -0x80000000, 0x7fffffff, min, max)
     }
 
     intInRange(fromInclusive: number, toExclusive: number): number {
-        return (
-            fromInclusive +
-            (Math.abs(this.nextInt()) % (toExclusive - fromInclusive))
-        );
+        return this.intInterval(fromInclusive, toExclusive-1)
     }
 
     clone():Random {
-        let newRand = new Rand(this.seed)
-        newRand = Object.assign(newRand, JSON.parse(JSON.stringify(this.rng)) as Random)
-        const newRandom = new Random(this.seed)
-        newRandom.rng = newRand
-        return this
+        return new Random(this.initialSeed, this.mt.getUseCount())
+    }
+
+    _interval(genNum: number, genMin: number, genMax: number, min: number, max: number): number {
+        if(genNum < genMin)
+            throw new RangeError("genMin(" + genMin + ") greater than num(" + genNum + ")")
+        if(genNum > genMax)
+            throw new RangeError("num(" + genNum + ") greater than genMax(" + genMax + ")")
+        if(genMin >= genMax)
+            throw new RangeError("genMin(" + genMin + ") greater or equal to genMax(" + genMax + ")")
+
+        if(min > max)
+            throw new RangeError("min(" + min + ") greater or equal to max(" + max + ")")
+
+        // min: 2 max: 3 num: 2 or 3
+        // (2-2) / (3-2) = 0 / 1 = 0
+        // (3-2) / (3-2) = 1 / 1 = 1
+        // min: 2 max: 2 num: 2
+        // (2-2) / (2-2) = 0/0
+        const frac = (genNum - genMin) / (genMax - genMin)
+        return Math.round(frac * (max - min) + min)
     }
 }

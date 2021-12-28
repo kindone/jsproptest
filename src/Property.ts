@@ -62,7 +62,7 @@ export class Property<ARGS extends unknown[]> {
 
                 if(this.onCleanup)
                     this.onCleanup()
-            } catch(e) {
+            } catch(e:any) {
                 result = e
             }
             // failed
@@ -194,7 +194,7 @@ export class Property<ARGS extends unknown[]> {
             if(this.onCleanup)
                 this.onCleanup()
             return true
-        } catch(e) {
+        } catch(e:any) {
             return e
         }
     }

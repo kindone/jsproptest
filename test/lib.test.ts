@@ -1,4 +1,5 @@
 import Rand from 'rand-seed';
+import assert from 'assert'
 
 describe('random', () => {
     it('next', () => {
@@ -13,7 +14,7 @@ describe('jest', () => {
         try {
             expect(5 === a).toBe(true)
         }
-        catch(e) {
+        catch(e:any) {
             console.log('expect error1:', e.matcherResult.message())
             console.log('expect error2:', e.toString())
             console.log('expect error3:', e)
@@ -29,8 +30,10 @@ describe('jest', () => {
 })
 
 
-class Error1 implements Error {
+class Error1 extends Error {
     constructor(readonly name:string) {
+        super(name)
+        Object.setPrototypeOf(this, Error1.prototype)
     }
 
     message = "Error1"
@@ -39,6 +42,7 @@ class Error1 implements Error {
 class Error2 extends Error1 {
     constructor(readonly name:string) {
         super(name)
+        Object.setPrototypeOf(this, Error2.prototype)
     }
 
     message = "Error2"
@@ -61,5 +65,35 @@ describe('Error', () => {
             expect(e).toBeInstanceOf(Error1)
             expect(e).toBeInstanceOf(Error2)
         }
+    })
+})
+
+describe('expect failure', () => {
+    it('expect exception type', () => {
+        // try {
+        //     expect(true).toBe(false)
+        // }
+        // catch(e:any) {
+        //     console.log(e)
+        // }
+
+        try {
+            const a:{x:number}[] = [{x:5}]
+            expect(a[0].x).toBe(6)
+            console.log(a[2].x)
+        }
+        catch(e:any) {
+            if(e instanceof assert.AssertionError)
+                console.log("AssertionError!", e)
+            if(e instanceof Error)
+                console.log("Error", e.name, e)
+            else
+                console.log("Not an Error")
+        }
+
+        console.log("done")
+
+        // const x = 3 /0  // -> Infinity error
+        // console.log(x)
     })
 })

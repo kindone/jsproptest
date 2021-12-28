@@ -7,9 +7,9 @@ import { ActionGenFactory, SimpleActionGenFactory } from "./actionof";
 import { Action, EmptyModel } from "./statefulbase"
 
 class ShrinkResult {
-    readonly isSucessful:boolean
+    readonly isSuccessful:boolean
     constructor(readonly initialObj:unknown, readonly actions:unknown[], readonly error?:object) {
-        this.isSucessful = (typeof error !== 'undefined')
+        this.isSuccessful = (typeof error !== 'undefined')
     }
 }
 
@@ -87,17 +87,23 @@ export class StatefulProperty<ObjectType, ModelType> {
             // generate initial object and model
             const obj = this.initialGen.generate(rand).value
             const model = this.modelFactory(obj)
-            const actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[] = [] // actions executed so far
+
+            // actions executed so far
+            const actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[] = []
+            const randomArr:Random[] = []
             const numActions = rand.interval(this.minActions, this.maxActions)
             let numConsecutiveFailures = 0
             for(let j = 0; j < numActions;) {
                 // one by one, generate action by calling actionGenFactory with current state
                 let actionShr:Shrinkable<Action<ObjectType, ModelType>>
                 try {
+                    const randCopy = rand.clone()
                     actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    randomArr.push(randCopy)
                     actionShrArr.push(actionShr)
                 }
-                catch(e) {
+                // tolerate generation failures
+                catch(e:any) {
                     // exception while generating action can happen: ignore and retry unless limit is reached
                     console.info('discarded action: ' + e.message)
                     numConsecutiveFailures++
@@ -118,8 +124,9 @@ export class StatefulProperty<ObjectType, ModelType> {
                 }
                 catch(e) {
                     // shrink based on actionShrArr
-                    const shrinkResult = this.shrink(savedRand, actionShrArr)
-                    throw this.processFailureAsError(e, shrinkResult)
+                    const originalActions = actionShrArr.map(actionShr => actionShr.value)
+                    const shrinkResult = this.shrink(savedRand, randomArr, actionShrArr)
+                    throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
             if(this.postCheck)
@@ -130,7 +137,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
     }
 
-    shrink(rand:Random, actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[]):ShrinkResult {
+    shrink(initialRand:Random, _:Random[], actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[]):ShrinkResult {
         let foundActions = actionShrArr.map(shr => shr.value)
         // shrinkArrayLength: shrink only the rear
         let nextActionArrayShr = shrinkArrayLength(actionShrArr.concat(), this.minActions).map(arr => arr.map(shr => shr.value))
@@ -142,7 +149,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             let shrinkFound = false
             while(iter.hasNext()) {
                 nextActionArrayShr = iter.next()
-                const testResult:boolean|object = this.test(rand.clone(), nextActionArrayShr.value)
+                const testResult:boolean|object = this.test(initialRand.clone(), nextActionArrayShr.value)
                 // found a shrink
                 if(typeof testResult !== 'boolean' || !testResult) {
                     result = testResult
@@ -157,7 +164,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                 break
         }
 
-        const initialObj = this.initialGen.generate(rand.clone()).value
+        // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
+        const initialObj = this.initialGen.generate(initialRand.clone()).value
         // shrinking done
         if(shrunk) {
             // if error was an exception object
@@ -181,8 +189,12 @@ export class StatefulProperty<ObjectType, ModelType> {
             if(this.onStartup)
                 this.onStartup()
 
-            const obj = this.initialGen.generate(rand).value
-            const model = this.modelFactory(obj)
+            let obj:ObjectType
+            let model:ModelType
+
+            obj = this.initialGen.generate(rand).value
+            model = this.modelFactory(obj)
+
             for(const action of actions) {
                 action.call(obj, model)
             }
@@ -193,20 +205,23 @@ export class StatefulProperty<ObjectType, ModelType> {
             return true
         }
         catch(e) {
-            return e
+            return e as Error
         }
     }
 
-    processFailureAsError(error:object, shrinkResult:ShrinkResult) {
+    processFailureAsError(originalError:Error, originalActions: Action<ObjectType,ModelType>[], shrinkResult:ShrinkResult) {
         // shrink
-        if(shrinkResult.isSucessful)
+        if(shrinkResult.isSuccessful)
         {
-            const newError = new Error("stateful property failed (simplest args found by shrinking): "
+            const newError = new Error("stateful property failed (args found by shrinking): "
              + JSONStringify(shrinkResult.initialObj) + ", "
              + JSONStringify(shrinkResult.actions))
-            const error =  (shrinkResult.error as Error)
-            newError.message += "\n  "// + error.message
-            newError.stack = error.stack
+            const shrinkError =  (shrinkResult.error as Error)
+            newError.message += "\n  shrink error: " + shrinkError.message
+            newError.stack = "\n" + shrinkError.stack
+            newError.message += "\n  original args: "  + JSONStringify(shrinkResult.initialObj) + ", " + JSONStringify(originalActions)
+            newError.message += "\n  original error: " + originalError.message
+            newError.message += "\n  original error stack: " + originalError.stack
             return newError
         }
         // not shrunk
@@ -214,8 +229,8 @@ export class StatefulProperty<ObjectType, ModelType> {
             const newError = new Error("stateful property failed (args found): "
              + JSONStringify(shrinkResult.initialObj) + ", "
              + JSONStringify(shrinkResult.actions))
-            newError.message += "\n  "// + error.message
-            newError.stack = (error as Error).stack
+            newError.message += "\n  error: " + originalError.message
+            newError.stack = "\n" + originalError.stack
             return newError
         }
     }
