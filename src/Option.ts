@@ -29,9 +29,7 @@ export class Option<T>
 	}
 
 	filter(fn:(t:T) => boolean):Option<T> {
-		if(this.isEmpty())
-			return None()
-		else if(fn(this.value!))
+		if(!this.isEmpty() && fn(this.value!))
 			return new Option(this.value!)
 		else
 			return None()
