@@ -1,5 +1,7 @@
 import Rand from 'rand-seed';
 import assert from 'assert'
+import {Option, Some, None} from '../src/Option'
+import {Either, Left, Right} from '../src/Either'
 
 describe('random', () => {
     it('next', () => {
@@ -96,4 +98,31 @@ describe('expect failure', () => {
         // const x = 3 /0  // -> Infinity error
         // console.log(x)
     })
+})
+
+describe('Option, Either, and Try', () => {
+	it('Option', () => {
+		const x:Option<number> = Some(5)
+		const y = None<number>()
+
+		expect(x.isEmpty()).toBe(false)
+		expect(y.isEmpty()).toBe(true)
+	})
+
+	it('Either', () => {
+		const x:Either<Error, number> = Right(5)
+		const y:Either<Error, number> = Left(new Error('y'))
+		expect(x.isLeft()).toBe(false)
+		expect(y.isLeft()).toBe(true)
+	
+	})
+	/*
+    it('either', () => {
+		const x = "5.5"
+		const result = E.tryCatch(() => {
+			return Number.parseInt(x)
+		}, e => E.toError(e))
+		expect(E.map(result, v => v + 5).right()).toBe(10.5)
+    })
+	*/
 })
