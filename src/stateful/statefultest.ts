@@ -1,7 +1,8 @@
 import { Generator } from "../Generator";
 import { Random } from "../Random";
 import { Shrinkable } from "../Shrinkable";
-import { shrinkArrayLength } from "../shrinker/array";
+import { shrinkableArray } from "../shrinker/array";
+import { GenerationError } from "../util/error";
 import { JSONStringify } from "../util/JSON";
 import { ActionGenFactory, SimpleActionGenFactory } from "./actionof";
 import { Action, EmptyModel } from "./statefulbase"
@@ -10,6 +11,11 @@ class ShrinkResult {
     readonly isSuccessful:boolean
     constructor(readonly initialObj:unknown, readonly actions:unknown[], readonly error?:object) {
         this.isSuccessful = (typeof error !== 'undefined')
+    }
+}
+
+class TestResult {
+    constructor(readonly actions:Shrinkable<unknown>[], readonly randoms:Random[], readonly error:object) {
     }
 }
 
@@ -125,7 +131,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 catch(e) {
                     // shrink based on actionShrArr
                     const originalActions = actionShrArr.map(actionShr => actionShr.value)
-                    const shrinkResult = this.shrink(savedRand, randomArr, actionShrArr)
+                    const shrinkResult = this.shrink(originalActions, savedRand, randomArr)
                     throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
@@ -137,25 +143,62 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
     }
 
-    shrink(initialRand:Random, _:Random[], actionShrArr:Shrinkable<Action<ObjectType,ModelType>>[]):ShrinkResult {
-        let foundActions = actionShrArr.map(shr => shr.value)
-        // shrinkArrayLength: shrink only the rear
-        let nextActionArrayShr = shrinkArrayLength(actionShrArr.concat(), this.minActions).map(arr => arr.map(shr => shr.value))
+
+    private shrink(originalActions: Action<ObjectType, ModelType>[], initialRand:Random, randomArr:Random[]):ShrinkResult {
+        if(originalActions.length != randomArr.length)
+            throw new Error('action and random arrays have different sizes')
+
+        let {shrunk, result} = this.shrinkRandomwise(initialRand, randomArr)
+        if(shrunk) {
+            result = this.shrinkActionwise(initialRand, result!)
+            result = this.shrinkInitialObject(result)
+        }
+
+        // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
+        // (initial object is recreated in each test run)
+        const initialObj = this.initialGen.generate(initialRand.clone()).value
+        // shrinking done
+        if(shrunk) {
+            // if error was an exception object
+            if(result instanceof TestResult) {
+                const testResult:TestResult = result
+                return new ShrinkResult(initialObj, testResult.actions, result)
+            }
+            // or it was a false
+            else {
+                const error = new Error('  action returned false\n')
+                Error.captureStackTrace(error, this.go)
+                return new ShrinkResult(initialObj, originalActions, error)
+            }
+        }
+        // unable to shrink -> return originally failed combination
+        else
+            return new ShrinkResult(initialObj, originalActions)
+    }
+
+    private shrinkRandomwise(initialRand:Random, randomArr:Random[]):{shrunk:boolean, result?:TestResult} {
+        const randomShrinkables:Shrinkable<Random>[] = randomArr.map(rand => new Shrinkable(rand))
+        let nextArrayShr = shrinkableArray(randomShrinkables, 0)
+        let shrinks = nextArrayShr.shrinks()
         let shrunk = false
-        let result:boolean|object = true
-        let shrinks = nextActionArrayShr.shrinks()
+        let result:TestResult|undefined
         while(!shrinks.isEmpty()) {
             let iter = shrinks.iterator()
             let shrinkFound = false
             while(iter.hasNext()) {
-                nextActionArrayShr = iter.next()
-                const testResult:boolean|object = this.test(initialRand.clone(), nextActionArrayShr.value)
-                // found a shrink
-                if(typeof testResult !== 'boolean' || !testResult) {
+                nextArrayShr = iter.next()
+                const testResult:boolean|TestResult = this.testWithRandoms(initialRand.clone(), nextArrayShr.value)
+                // found a shrink (a non-generation error occurred)
+                if(testResult instanceof TestResult) {
                     result = testResult
-                    shrinks = nextActionArrayShr.shrinks()
-                    foundActions = nextActionArrayShr.value
+                    shrinks = nextArrayShr.shrinks()
                     shrinkFound = true
+                }
+                else if(testResult) {
+                    // test succeeded
+                }
+                else {
+                    // generation error
                 }
             }
             if(shrinkFound)
@@ -164,27 +207,49 @@ export class StatefulProperty<ObjectType, ModelType> {
                 break
         }
 
-        // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
-        const initialObj = this.initialGen.generate(initialRand.clone()).value
-        // shrinking done
-        if(shrunk) {
-            // if error was an exception object
-            if(typeof result === 'object') {
-                return new ShrinkResult(initialObj, foundActions, result)
-            }
-            // or it was a false
-            else {
-                const error = new Error('  action returned false\n')
-                Error.captureStackTrace(error, this.go)
-                return new ShrinkResult(initialObj, foundActions, error)
-            }
-        }
-        // unable to shrink -> return originally failed combination
-        else
-            return new ShrinkResult(initialObj, foundActions)
+        return {shrunk, result}
     }
 
-    private test(rand:Random, actions:Action<ObjectType,ModelType>[]):boolean|object {
+    private shrinkActionwise(initialRand:Random, prevTestResult:TestResult):TestResult {
+        let nextArrayShr = shrinkableArray(prevTestResult.actions, 0)
+        let shrinks = nextArrayShr.shrinks()
+        let result:TestResult = prevTestResult
+        while(!shrinks.isEmpty()) {
+            let iter = shrinks.iterator()
+            let shrinkFound = false
+            while(iter.hasNext()) {
+                nextArrayShr = iter.next()
+                const testResult:boolean|TestResult = this.testWithActions(initialRand.clone(), nextArrayShr.value as Action<ObjectType,ModelType>[])
+                // found a shrink (a non-generation error occurred)
+                if(testResult instanceof TestResult) {
+                    result = testResult
+                    shrinks = nextArrayShr.shrinks()
+                    shrinkFound = true
+                }
+                else if(testResult) {
+                    // test succeeded
+                }
+                else {
+                    // generation error
+                }
+            }
+            if(!shrinkFound)
+                break
+        }
+
+        return result as TestResult
+    }
+
+    private shrinkInitialObject(prevTestResult:TestResult):TestResult {
+        // TODO
+        return prevTestResult
+    }
+
+    /** test a action squence:
+     * @return true iff action sequence is ok, false iff a generation error occurred, error iff a non-generation error occurred
+    */
+    private testWithRandoms(initialRand:Random, randoms:Random[]):boolean|TestResult {
+        let actionShrs:Shrinkable<Action<ObjectType,ModelType>>[] = []
         try {
             if(this.onStartup)
                 this.onStartup()
@@ -192,34 +257,91 @@ export class StatefulProperty<ObjectType, ModelType> {
             let obj:ObjectType
             let model:ModelType
 
-            obj = this.initialGen.generate(rand).value
-            model = this.modelFactory(obj)
+            try {
+                obj = this.initialGen.generate(initialRand.clone()).value
+                model = this.modelFactory(obj)
+            } catch(e:any) {
+                if(this.verbose)
+                    console.info("failure in initialization during shrinking: " + e.toString())
+                throw new GenerationError("failure in initialization during shrinking")
+            }
 
-            for(const action of actions) {
+            for(const rand of randoms) {
+                let action:Action<ObjectType,ModelType>
+                try {
+                    let actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    actionShrs.push(actionShr)
+                    action = actionShr.value
+                }
+                catch(e:any) {
+                    if(this.verbose)
+                        console.info("failure in action generation during shrinking: " + e.toString())
+                    throw new GenerationError("failure in action generation during shrinking")
+                }
                 action.call(obj, model)
             }
+
             if(this.postCheck)
                 this.postCheck(obj, model)
             if(this.onCleanup)
                 this.onCleanup()
             return true
         }
-        catch(e) {
-            return e as Error
+        catch(e:any) {
+            if(e instanceof GenerationError)
+                return false
+
+            return new TestResult(actionShrs, randoms, e as Error)
         }
     }
 
-    processFailureAsError(originalError:Error, originalActions: Action<ObjectType,ModelType>[], shrinkResult:ShrinkResult) {
+    private testWithActions(initialRand:Random, actions:Action<ObjectType,ModelType>[]):boolean|TestResult {
+        let actionShrs:Shrinkable<Action<ObjectType,ModelType>>[] = []
+        try {
+            if(this.onStartup)
+                this.onStartup()
+
+            let obj:ObjectType
+            let model:ModelType
+
+            try {
+                obj = this.initialGen.generate(initialRand.clone()).value
+                model = this.modelFactory(obj)
+            } catch(e:any) {
+                if(this.verbose)
+                    console.info("failure in initialization during shrinking: " + e.toString())
+                throw new GenerationError("failure in initialization during shrinking")
+            }
+
+            for(const action of actions) {
+                action.call(obj, model)
+            }
+
+            if(this.postCheck)
+                this.postCheck(obj, model)
+            if(this.onCleanup)
+                this.onCleanup()
+            return true
+        }
+        catch(e:any) {
+            if(e instanceof GenerationError)
+                return false
+
+            return new TestResult(actionShrs, [], e as Error)
+        }
+    }
+
+    private processFailureAsError(originalError:Error, originalActions: Action<ObjectType,ModelType>[], shrinkResult:ShrinkResult) {
         // shrink
         if(shrinkResult.isSuccessful)
         {
             const newError = new Error("stateful property failed (args found by shrinking): "
              + JSONStringify(shrinkResult.initialObj) + ", "
-             + JSONStringify(shrinkResult.actions))
+             + JSONStringify(shrinkResult.actions.map(shr => (shr as Shrinkable<{name:string}>).value.name)))
             const shrinkError =  (shrinkResult.error as Error)
             newError.message += "\n  shrink error: " + shrinkError.message
             newError.stack = "\n" + shrinkError.stack
-            newError.message += "\n  original args: "  + JSONStringify(shrinkResult.initialObj) + ", " + JSONStringify(originalActions)
+            newError.message += "\n  original args: "  + JSONStringify(shrinkResult.initialObj) + ", " + JSONStringify(originalActions.map(action => action.name))
             newError.message += "\n  original error: " + originalError.message
             newError.message += "\n  original error stack: " + originalError.stack
             return newError
