@@ -149,10 +149,12 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (originalActions.length != randomArr.length) throw new Error('action and random arrays have different sizes')
 
         let { shrunk, result } = this.shrinkRandomwise(initialRand, randomArr)
+        /*
         if (shrunk) {
+            result = this.shrinkInitialObject(initialRand, result!)
             result = this.shrinkActionwise(initialRand, result!)
-            result = this.shrinkInitialObject(result)
         }
+        */
 
         // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
         // (initial object is recreated in each test run)
@@ -235,7 +237,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         return result as TestResult
     }
 
-    private shrinkInitialObject(prevTestResult: TestResult): TestResult {
+    private shrinkInitialObject(initialRand:Random, prevTestResult: TestResult): TestResult {
         // TODO
         return prevTestResult
     }

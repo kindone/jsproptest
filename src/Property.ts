@@ -181,7 +181,7 @@ export class Property<ARGS extends unknown[]> {
             if (this.onCleanup) this.onCleanup()
             return true
         } catch (e) {
-            return e
+            return e as Error
         }
     }
 
