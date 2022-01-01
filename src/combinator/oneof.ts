@@ -1,11 +1,10 @@
-import { Generator,Arbitrary } from "../Generator";
-import { Random } from "../Random";
-import { Shrinkable } from "../Shrinkable";
+import { Generator, Arbitrary } from '../Generator'
+import { Random } from '../Random'
+import { Shrinkable } from '../Shrinkable'
 class Weighted<T> implements Generator<T> {
-    constructor(readonly gen:Generator<T>, readonly weight:number) {
-    }
+    constructor(readonly gen: Generator<T>, readonly weight: number) {}
 
-    generate(rand:Random):Shrinkable<T> {
+    generate(rand: Random): Shrinkable<T> {
         return this.gen.generate(rand)
     }
 
@@ -21,15 +20,15 @@ class Weighted<T> implements Generator<T> {
         return this.gen.chain(gen2gen)
     }
 
-    chainAsTuple<Ts extends unknown[], U>(genFactory:(arg:Ts) => Generator<U>):Generator<[...Ts,U]>  {
+    chainAsTuple<Ts extends unknown[], U>(genFactory: (arg: Ts) => Generator<U>): Generator<[...Ts, U]> {
         return this.gen.chainAsTuple(genFactory)
     }
 
-    aggregate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<T> {
+    aggregate(gen2gen: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<T> {
         return this.gen.aggregate(gen2gen, minSize, maxSize)
     }
 
-    accumulate(gen2gen:(arg:T) => Generator<T>, minSize:number, maxSize:number):Generator<Array<T>> {
+    accumulate(gen2gen: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<Array<T>> {
         return this.gen.accumulate(gen2gen, minSize, maxSize)
     }
 
@@ -39,44 +38,40 @@ class Weighted<T> implements Generator<T> {
 }
 
 function isWeighted<T>(gen: Weighted<T> | Generator<T>): gen is Weighted<T> {
-    return (gen as Weighted<T>).weight !== undefined;
+    return (gen as Weighted<T>).weight !== undefined
 }
 
-export function weightedGen<T>(gen:Generator<T>, weight:number) {
+export function weightedGen<T>(gen: Generator<T>, weight: number) {
     return new Weighted(gen, weight)
 }
 
-export function oneOf<T>(...generators:Generator<T>[]):Generator<T> {
+export function oneOf<T>(...generators: Generator<T>[]): Generator<T> {
     let sum = 0.0
     let numUnassigned = 0
     let weightedGenerators = generators.map(generator => {
-        if(isWeighted(generator)) {
+        if (isWeighted(generator)) {
             sum += generator.weight
             return generator
-        }
-        else {
-            numUnassigned ++
+        } else {
+            numUnassigned++
             return new Weighted(generator, 0.0)
         }
     })
 
-    if(sum < 0.0 || sum >= 1.0)
-        throw Error('invalid weights')
+    if (sum < 0.0 || sum >= 1.0) throw Error('invalid weights')
 
-    if(numUnassigned > 0) {
+    if (numUnassigned > 0) {
         let rest = 1.0 - sum
         const perUnassigned = rest / numUnassigned
         weightedGenerators = weightedGenerators.map(weightedGenerator => {
-            if(weightedGenerator.weight == 0.0)
-                return new Weighted(weightedGenerator.gen, perUnassigned)
-            else
-                return weightedGenerator
+            if (weightedGenerator.weight == 0.0) return new Weighted(weightedGenerator.gen, perUnassigned)
+            else return weightedGenerator
         })
     }
-    return new Arbitrary<T>((rand:Random) => {
-        while(true) {
+    return new Arbitrary<T>((rand: Random) => {
+        while (true) {
             const dice = rand.inRange(0, weightedGenerators.length)
-            if(rand.nextBoolean(weightedGenerators[dice].weight)) {
+            if (rand.nextBoolean(weightedGenerators[dice].weight)) {
                 return weightedGenerators[dice].gen.generate(rand)
             }
         }

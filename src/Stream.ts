@@ -1,112 +1,105 @@
-import { JSONStringify } from "./util/JSON";
+import { JSONStringify } from './util/JSON'
 
 class Iterator<T> {
     constructor(public stream: Stream<T>) {}
 
     hasNext(): boolean {
-        return !this.stream.isEmpty();
+        return !this.stream.isEmpty()
     }
 
     next(): T {
-        if (!this.hasNext()) throw new Error('iterator has no more next');
-        const value = this.stream.getHead();
-        this.stream = this.stream.getTail();
-        return value;
+        if (!this.hasNext()) throw new Error('iterator has no more next')
+        const value = this.stream.getHead()
+        this.stream = this.stream.getTail()
+        return value
     }
 }
 
 export class Stream<T> {
-    constructor(
-        readonly head?: T,
-        readonly tailGen: () => Stream<T> = () => new Stream<T>()
-    ) {}
+    constructor(readonly head?: T, readonly tailGen: () => Stream<T> = () => new Stream<T>()) {}
 
     isEmpty(): boolean {
-        return this.head === undefined;
+        return this.head === undefined
     }
 
     getHead(): T {
-        return this.head!;
+        return this.head!
     }
 
     getTail(): Stream<T> {
-        if (this.isEmpty()) return Stream.empty<T>();
-        else return this.tailGen();
+        if (this.isEmpty()) return Stream.empty<T>()
+        else return this.tailGen()
     }
 
     iterator() {
-        return new Iterator<T>(this);
+        return new Iterator<T>(this)
     }
 
     transform<U>(transformer: (_: T) => U): Stream<U> {
-        if (this.isEmpty()) return Stream.empty<U>();
+        if (this.isEmpty()) return Stream.empty<U>()
         else {
-            return new Stream<U>(transformer(this.getHead()), () =>
-                this.tailGen().transform(transformer)
-            );
+            return new Stream<U>(transformer(this.getHead()), () => this.tailGen().transform(transformer))
         }
     }
 
     filter(criteria: (_: T) => boolean): Stream<T> {
-        if (this.isEmpty()) return Stream.empty<T>();
+        if (this.isEmpty()) return Stream.empty<T>()
         else {
             for (var itr = this.iterator(); itr.hasNext(); ) {
-                const value = itr.next();
+                const value = itr.next()
                 if (criteria(value)) {
-                    const stream = itr.stream;
-                    return new Stream<T>(value, () => stream.filter(criteria));
+                    const stream = itr.stream
+                    return new Stream<T>(value, () => stream.filter(criteria))
                 }
             }
-            return Stream.empty<T>();
+            return Stream.empty<T>()
         }
     }
 
     concat(other: Stream<T>): Stream<T> {
-        if (this.isEmpty()) return other;
+        if (this.isEmpty()) return other
         // TODO: is clone() at tailGen() needed?
-        else
-            return new Stream<T>(this.head, () => this.tailGen().concat(other));
+        else return new Stream<T>(this.head, () => this.tailGen().concat(other))
     }
 
     take(n: number): Stream<T> {
-        if (this.isEmpty() || n === 0) return Stream.empty<T>();
+        if (this.isEmpty() || n === 0) return Stream.empty<T>()
         else {
-            return new Stream(this.head, () => this.tailGen().take(n - 1));
+            return new Stream(this.head, () => this.tailGen().take(n - 1))
         }
     }
 
     clone() {
-        return new Stream<T>(this.head, this.tailGen);
+        return new Stream<T>(this.head, this.tailGen)
     }
 
-    toString(n:number = 100) {
-        let str = "Stream(";
+    toString(n: number = 100) {
+        let str = 'Stream('
         const first = this.iterator()
-        if(first.hasNext() && n > 0)
-            str += JSONStringify(first.next())
+        if (first.hasNext() && n > 0) str += JSONStringify(first.next())
 
         let i = 1
-        for(let itr = first; itr.hasNext();i++) {
-            if(i >= n) {
-                str += ", ..."
+        for (let itr = first; itr.hasNext(); i++) {
+            if (i >= n) {
+                str += ', ...'
                 break
             }
             const value = itr.next()
-            str += ", " + JSONStringify(value)
+            str += ', ' + JSONStringify(value)
         }
-        str += ")"
+        str += ')'
         return str
     }
 
     static empty<T>(): Stream<T> {
-        return new Stream<T>();
+        return new Stream<T>()
     }
 
     static one<T>(value: T) {
-        return new Stream<T>(value);
+        return new Stream<T>(value)
     }
 
     static two<T>(value1: T, value2: T) {
-        return new Stream(value1, () => new Stream(value2));
+        return new Stream(value1, () => new Stream(value2))
     }
 }

@@ -1,10 +1,10 @@
-import { Generator } from './Generator';
-import { Random } from './Random';
-import { Shrinkable } from './Shrinkable';
-import { JSONStringify } from './util/JSON';
+import { Generator } from './Generator'
+import { Random } from './Random'
+import { Shrinkable } from './Shrinkable'
+import { JSONStringify } from './util/JSON'
 
-type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean;
-type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
+type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
+type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
 // type Generatible<T> = { generate:Generator<T> }
 // type Constructible<T, ARGS extends readonly unknown[]> = { new(_args:ARGS):T }
 // type TupleElement<ARGS extends readonly unknown[], N extends number> = ARGS[N]
@@ -15,36 +15,33 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void;
 // }
 
 class ShrinkResult {
-    readonly isSucessful:boolean
-    constructor(readonly args:any[], readonly error?:object) {
-        this.isSucessful = (typeof error !== 'undefined')
+    readonly isSucessful: boolean
+    constructor(readonly args: any[], readonly error?: object) {
+        this.isSucessful = typeof error !== 'undefined'
     }
 }
 
 export class Property<ARGS extends unknown[]> {
     private static defaultNumRuns = 100
 
-    private onStartup?:() => void
-    private onCleanup?:() => void
-    private seed:string = ''
+    private onStartup?: () => void
+    private onCleanup?: () => void
+    private seed: string = ''
     private numRuns = Property.defaultNumRuns
 
-    constructor(readonly func: PropertyFunction<ARGS>|PropertyFunctionVoid<ARGS>) {}
+    constructor(readonly func: PropertyFunction<ARGS> | PropertyFunctionVoid<ARGS>) {}
 
     forAll<GENS extends Generator<unknown>[]>(...gens: GENS): boolean {
-        var random = this.seed === '' ? new Random() : new Random(this.seed);
+        var random = this.seed === '' ? new Random() : new Random(this.seed)
         // console.log("func", this.func.length)
         // console.log("gens", gens)
-        var result:boolean | object = true;
+        var result: boolean | object = true
         for (let i = 0; i < this.numRuns; i++) {
             var savedRandom = random.clone()
-            if(this.onStartup)
-                this.onStartup()
-            const shrinkables = gens.map((gen: Generator<unknown>) =>
-                gen.generate(random)
-            );
+            if (this.onStartup) this.onStartup()
+            const shrinkables = gens.map((gen: Generator<unknown>) => gen.generate(random))
             // console.log("shrinkables", shrinkables)
-            var args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value);
+            var args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
             if (this.func.length !== args.length)
                 throw new Error(
                     'forAll(): number of function parameters (' +
@@ -52,21 +49,19 @@ export class Property<ARGS extends unknown[]> {
                         ') != number of generators given (' +
                         args.length +
                         ')'
-                );
+                )
 
             try {
                 const func = this.func as PropertyFunction<ARGS>
                 const maybe_result = func(...(args as ARGS))
-                if(typeof maybe_result !== 'undefined')
-                    result = maybe_result;
+                if (typeof maybe_result !== 'undefined') result = maybe_result
 
-                if(this.onCleanup)
-                    this.onCleanup()
-            } catch(e:any) {
+                if (this.onCleanup) this.onCleanup()
+            } catch (e) {
                 result = e
             }
             // failed
-            if(typeof(result) === 'object' || !result) {
+            if (typeof result === 'object' || !result) {
                 const shrinkResult = this.shrink(savedRandom, ...gens)
                 throw this.processFailureAsError(result, shrinkResult)
             }
@@ -87,56 +82,55 @@ export class Property<ARGS extends unknown[]> {
         try {
             const func = this.func as PropertyFunction<ARGS>
             const maybe_result = func(...(args as ARGS))
-            if(typeof maybe_result !== 'undefined')
-                return maybe_result;
-            else
-                return true
-        } catch(e) {
+            if (typeof maybe_result !== 'undefined') return maybe_result
+            else return true
+        } catch (e) {
             return false
         }
     }
 
-    setSeed(seed:string) {
+    setSeed(seed: string) {
         this.seed = seed
         return this
     }
 
-    setNumRuns(numRuns:number) {
+    setNumRuns(numRuns: number) {
         this.numRuns = numRuns
         return this
     }
 
-    setOnStartup(onStartup:() => void) {
+    setOnStartup(onStartup: () => void) {
         this.onStartup = onStartup
         return this
     }
 
-    setOnCleanup(onCleanup:() => void) {
+    setOnCleanup(onCleanup: () => void) {
         this.onCleanup = onCleanup
         return this
     }
 
-    static setDefaultNumRuns(numRuns:number) {
+    static setDefaultNumRuns(numRuns: number) {
         this.defaultNumRuns = numRuns
     }
 
-    private shrink<GENS extends Generator<unknown>[]>(savedRandom:Random, ...gens: GENS):ShrinkResult {
-        var shrinkables = gens.map((gen: Generator<unknown>) =>
-            gen.generate(savedRandom)
-        ).map((shr: Shrinkable<unknown>) => shr).concat()
+    private shrink<GENS extends Generator<unknown>[]>(savedRandom: Random, ...gens: GENS): ShrinkResult {
+        var shrinkables = gens
+            .map((gen: Generator<unknown>) => gen.generate(savedRandom))
+            .map((shr: Shrinkable<unknown>) => shr)
+            .concat()
 
         const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
-        let result:boolean|object = true
-        for(let n = 0; n < shrinkables.length; n++) {
+        let result: boolean | object = true
+        for (let n = 0; n < shrinkables.length; n++) {
             let shrinks = shrinkables[n].shrinks()
-            while(!shrinks.isEmpty()) {
+            while (!shrinks.isEmpty()) {
                 let iter = shrinks.iterator()
                 let shrinkFound = false
-                while(iter.hasNext()) {
+                while (iter.hasNext()) {
                     const next = iter.next()
-                    const testResult:boolean | object = this.testWithReplace(args, n, next.value)
-                    if(typeof testResult !== 'boolean' || !testResult) {
+                    const testResult: boolean | object = this.testWithReplace(args, n, next.value)
+                    if (typeof testResult !== 'boolean' || !testResult) {
                         result = testResult
                         shrinks = next.shrinks()
                         args[n] = next.value
@@ -145,34 +139,29 @@ export class Property<ARGS extends unknown[]> {
                         break
                     }
                 }
-                if(shrinkFound) {
+                if (shrinkFound) {
                     shrunk = true
-                }
-                else
-                    break
+                } else break
             }
         }
-        if(shrunk) {
-            if(typeof result === 'object') {
+        if (shrunk) {
+            if (typeof result === 'object') {
                 // console.log('test_result.stack:')
                 return new ShrinkResult(args, result)
-            }
-            else {
+            } else {
                 const error = new Error('  property returned false\n')
                 Error.captureStackTrace(error, this.forAll)
                 return new ShrinkResult(args, error)
             }
-        }
-        else
-            return new ShrinkResult(args)
+        } else return new ShrinkResult(args)
     }
 
-    private testWithReplace(args:unknown[], n:number, replace:unknown):boolean | object {
-        const newArgs = [...args.slice(0, n), replace, ...args.slice(n+1)]
+    private testWithReplace(args: unknown[], n: number, replace: unknown): boolean | object {
+        const newArgs = [...args.slice(0, n), replace, ...args.slice(n + 1)]
         return this.test(newArgs)
     }
 
-    private test(args:unknown[]):boolean | object {
+    private test(args: unknown[]): boolean | object {
         if (this.func.length !== args.length)
             throw new Error(
                 'forAll(): number of function parameters (' +
@@ -180,46 +169,43 @@ export class Property<ARGS extends unknown[]> {
                     ') != number of generators given (' +
                     args.length +
                     ')'
-            );
+            )
 
         try {
-            if(this.onStartup)
-                this.onStartup()
+            if (this.onStartup) this.onStartup()
 
             const func = this.func as PropertyFunction<ARGS>
             const maybe_result = func(...(args as ARGS))
-            if(typeof maybe_result !== 'undefined')
-                return maybe_result
+            if (typeof maybe_result !== 'undefined') return maybe_result
 
-            if(this.onCleanup)
-                this.onCleanup()
+            if (this.onCleanup) this.onCleanup()
             return true
-        } catch(e:any) {
+        } catch (e) {
             return e
         }
     }
 
-    private processFailureAsError(result:object|boolean, shrinkResult:ShrinkResult):Error {
+    private processFailureAsError(result: object | boolean, shrinkResult: ShrinkResult): Error {
         // shrink
-        if(shrinkResult.isSucessful)
-        {
-            const newError = new Error("property failed (simplest args found by shrinking): " + JSONStringify(shrinkResult.args))
-            const error =  (shrinkResult.error as Error)
-            newError.message += "\n  "// + error.message
+        if (shrinkResult.isSucessful) {
+            const newError = new Error(
+                'property failed (simplest args found by shrinking): ' + JSONStringify(shrinkResult.args)
+            )
+            const error = shrinkResult.error as Error
+            newError.message += '\n  ' // + error.message
             newError.stack = error.stack
             return newError
         }
         // not shrunk
         else {
-            const newError = new Error("property failed (args found): " + JSONStringify(shrinkResult.args))
-            if(typeof result === 'object') {
-                const error =  (result as Error)
-                newError.message += "\n  "// + error.message
+            const newError = new Error('property failed (args found): ' + JSONStringify(shrinkResult.args))
+            if (typeof result === 'object') {
+                const error = result as Error
+                newError.message += '\n  ' // + error.message
                 newError.stack = error.stack
                 return newError
-            }
-            else {
-                newError.message += "\n" + "property returned false\n"
+            } else {
+                newError.message += '\n' + 'property returned false\n'
                 Error.captureStackTrace(newError, this.forAll)
                 return newError
             }
@@ -227,9 +213,9 @@ export class Property<ARGS extends unknown[]> {
     }
 }
 
-export function forAll<
-    ARGS extends unknown[],
-    GENS extends Generator<unknown>[]
->(func: PropertyFunction<ARGS>|PropertyFunctionVoid<ARGS>, ...gens: GENS): boolean {
-    return new Property<ARGS>(func).forAll(...gens);
+export function forAll<ARGS extends unknown[], GENS extends Generator<unknown>[]>(
+    func: PropertyFunction<ARGS> | PropertyFunctionVoid<ARGS>,
+    ...gens: GENS
+): boolean {
+    return new Property<ARGS>(func).forAll(...gens)
 }

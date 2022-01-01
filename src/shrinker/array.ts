@@ -10,7 +10,7 @@ function shrinkBulk<T>(
     const genStream = (
         ancestor: Shrinkable<Array<Shrinkable<T>>>,
         power: number,
-        offset: number, 
+        offset: number,
         parent: Shrinkable<Array<Shrinkable<T>>>,
         fromPos: number,
         toPos: number,
@@ -96,7 +96,7 @@ export function shrinkElementwise<T>(
 }
 
 // shrink array by removing elements at rear
-export function shrinkArrayLength<T>(shrinkableElems:Shrinkable<T>[], minSize: number):Shrinkable<Shrinkable<T>[]> {
+export function shrinkArrayLength<T>(shrinkableElems: Shrinkable<T>[], minSize: number): Shrinkable<Shrinkable<T>[]> {
     const size = shrinkableElems.length
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
     return rangeShrinkable.map(newSize => {
@@ -105,61 +105,78 @@ export function shrinkArrayLength<T>(shrinkableElems:Shrinkable<T>[], minSize: n
     })
 }
 
-
-function shrinkFrontAndThenMid<T>(shrinkableElems:Shrinkable<T>[], minSize:number, rearSize:number):Shrinkable<Shrinkable<T>[]> {
+function shrinkFrontAndThenMid<T>(
+    shrinkableElems: Shrinkable<T>[],
+    minSize: number,
+    rearSize: number
+): Shrinkable<Shrinkable<T>[]> {
     // remove front, fixing rear
     const minFrontSize = Math.max(minSize - rearSize, 0) // rear size already occupies some elements
     const maxFrontSize = shrinkableElems.length - rearSize
     // front size within [min,max]
     const rangeShrinkable = binarySearchShrinkable(maxFrontSize - minFrontSize).map(s => s + minFrontSize)
-    return rangeShrinkable.map(frontSize => {
-        // concat front and rear
-        return shrinkableElems.slice(0, frontSize).concat(shrinkableElems.slice(maxFrontSize, shrinkableElems.length))
-    }).concat(parent => {
-        // increase rear size
-        const parentSize = parent.value.length
-        // no further shrinking possible
-        if(parentSize <= minSize || parentSize <= rearSize) {
-            if(minSize < parentSize && rearSize+1 < parentSize)
-                return shrinkMid(parent.value, minSize, 1, rearSize + 1).shrinks()
-            else
-                return Stream.empty()
-        }
-        // shrink front further by fixing last element in front to rear
-        // [[1,2,3,4]]
-        // [[1,2,3],[4]] → [[]|[1]|[1,2]|, [4]]
-        return shrinkFrontAndThenMid(parent.value, minSize, rearSize + 1).shrinks()
-    })
+    return rangeShrinkable
+        .map(frontSize => {
+            // concat front and rear
+            return shrinkableElems
+                .slice(0, frontSize)
+                .concat(shrinkableElems.slice(maxFrontSize, shrinkableElems.length))
+        })
+        .concat(parent => {
+            // increase rear size
+            const parentSize = parent.value.length
+            // no further shrinking possible
+            if (parentSize <= minSize || parentSize <= rearSize) {
+                if (minSize < parentSize && rearSize + 1 < parentSize)
+                    return shrinkMid(parent.value, minSize, 1, rearSize + 1).shrinks()
+                else return Stream.empty()
+            }
+            // shrink front further by fixing last element in front to rear
+            // [[1,2,3,4]]
+            // [[1,2,3],[4]] → [[]|[1]|[1,2]|, [4]]
+            return shrinkFrontAndThenMid(parent.value, minSize, rearSize + 1).shrinks()
+        })
 }
 
-function shrinkMid<T>(shrinkableElems:Shrinkable<T>[], minSize:number, frontSize:number, rearSize:number):Shrinkable<Shrinkable<T>[]> {
+function shrinkMid<T>(
+    shrinkableElems: Shrinkable<T>[],
+    minSize: number,
+    frontSize: number,
+    rearSize: number
+): Shrinkable<Shrinkable<T>[]> {
     const minRearSize = Math.max(minSize - frontSize, 0)
     const maxRearSize = shrinkableElems.length - frontSize
     // rear size within [min,max]
     const rangeShrinkable = binarySearchShrinkable(maxRearSize - minRearSize).map(s => s + minRearSize)
-    return rangeShrinkable.map(rearSize => {
-        // concat front and rear
-        return shrinkableElems.slice(0, frontSize).concat(shrinkableElems.slice(shrinkableElems.length-rearSize, shrinkableElems.length))
-    }).concat(parent => {
-        const parentSize = parent.value.length
-        // no further shrinking possible
-        if(parentSize <= minSize || parentSize <= frontSize)
-            return Stream.empty()
-        // shrink rear further by fixing last element in rear to front
-        // [[1,2,3,4]]
-        // [[1],[2,3,4]] → [1,[]|[2]|[2,3]]
-        return shrinkMid(parent.value, minSize, frontSize + 1, rearSize).shrinks()
-    })
+    return rangeShrinkable
+        .map(rearSize => {
+            // concat front and rear
+            return shrinkableElems
+                .slice(0, frontSize)
+                .concat(shrinkableElems.slice(shrinkableElems.length - rearSize, shrinkableElems.length))
+        })
+        .concat(parent => {
+            const parentSize = parent.value.length
+            // no further shrinking possible
+            if (parentSize <= minSize || parentSize <= frontSize) return Stream.empty()
+            // shrink rear further by fixing last element in rear to front
+            // [[1,2,3,4]]
+            // [[1],[2,3,4]] → [1,[]|[2]|[2,3]]
+            return shrinkMid(parent.value, minSize, frontSize + 1, rearSize).shrinks()
+        })
 }
 
-function shrinkMembershipwise<T>(shrinkableElems:Shrinkable<T>[], minSize:number):Shrinkable<Shrinkable<T>[]> {
+function shrinkMembershipwise<T>(shrinkableElems: Shrinkable<T>[], minSize: number): Shrinkable<Shrinkable<T>[]> {
     return shrinkFrontAndThenMid(shrinkableElems, minSize, 0)
 }
 
-export function shrinkableArray<T>(shrinkableElems: Array<Shrinkable<T>>, minSize: number, shrinkElementWise = false): Shrinkable<Array<T>> {
+export function shrinkableArray<T>(
+    shrinkableElems: Array<Shrinkable<T>>,
+    minSize: number,
+    shrinkElementWise = false
+): Shrinkable<Array<T>> {
     let shrinkableElemsShr = shrinkMembershipwise(shrinkableElems, minSize)
     // further shrink element-wise
-    if(shrinkElementWise)
-        shrinkableElemsShr = shrinkableElemsShr.andThen(parent => shrinkElementwise(parent, 0, 0))
+    if (shrinkElementWise) shrinkableElemsShr = shrinkableElemsShr.andThen(parent => shrinkElementwise(parent, 0, 0))
     return shrinkableElemsShr.map(theArr => theArr.map(shr => shr.value))
 }

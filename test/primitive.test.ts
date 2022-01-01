@@ -1,6 +1,6 @@
-import { Random } from "../src/Random"
-import { generateInteger } from "../src/shrinker/integer"
-import { exhaustive } from "./testutil"
+import { Random } from '../src/Random'
+import { generateInteger } from '../src/shrinker/integer'
+import { exhaustive } from './testutil'
 
 describe('primitive', () => {
     it('generateInteger', () => {

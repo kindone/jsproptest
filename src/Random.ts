@@ -1,27 +1,22 @@
 // import Rand from 'rand-seed'
-import {MersenneTwister19937, int32, int53, real, bool} from "random-js"
+import { MersenneTwister19937, int32, int53, real, bool } from 'random-js'
 
 export class Random {
-    private mt:MersenneTwister19937
+    private mt: MersenneTwister19937
 
-    constructor(readonly initialSeed: string = '', useCount:number = 0) {
+    constructor(readonly initialSeed: string = '', useCount: number = 0) {
         const autoSeed = MersenneTwister19937.autoSeed().next()
-        if(initialSeed == '')
-            this.mt = MersenneTwister19937.seed(autoSeed).discard(useCount);
-        else
-            this.mt = MersenneTwister19937.seed(Number.parseInt(this.initialSeed)).discard(useCount);
+        if (initialSeed == '') this.mt = MersenneTwister19937.seed(autoSeed).discard(useCount)
+        else this.mt = MersenneTwister19937.seed(Number.parseInt(this.initialSeed)).discard(useCount)
     }
 
     // FIXME: not an exact implementation [0,1) * N. How about some large number with same precisions?
-    nextNumber(
-        min: number = Number.MIN_SAFE_INTEGER,
-        max: number = Number.MAX_SAFE_INTEGER
-    ): number {
-        return real(min, max, true)(this.mt);
+    nextNumber(min: number = Number.MIN_SAFE_INTEGER, max: number = Number.MAX_SAFE_INTEGER): number {
+        return real(min, max, true)(this.mt)
     }
 
     nextProb(): number {
-        return real(0, 1, false)(this.mt);
+        return real(0, 1, false)(this.mt)
     }
 
     //FIXME: find good reason for reliable min and max
@@ -43,7 +38,7 @@ export class Random {
     }
 
     inRange(fromInclusive: number, toExclusive: number): number {
-        return this.interval(fromInclusive, toExclusive-1)
+        return this.interval(fromInclusive, toExclusive - 1)
     }
 
     intInterval(min: number, max: number): number {
@@ -51,23 +46,19 @@ export class Random {
     }
 
     intInRange(fromInclusive: number, toExclusive: number): number {
-        return this.intInterval(fromInclusive, toExclusive-1)
+        return this.intInterval(fromInclusive, toExclusive - 1)
     }
 
-    clone():Random {
+    clone(): Random {
         return new Random(this.initialSeed, this.mt.getUseCount())
     }
 
     _interval(genNum: number, genMin: number, genMax: number, min: number, max: number): number {
-        if(genNum < genMin)
-            throw new RangeError("genMin(" + genMin + ") greater than num(" + genNum + ")")
-        if(genNum > genMax)
-            throw new RangeError("num(" + genNum + ") greater than genMax(" + genMax + ")")
-        if(genMin >= genMax)
-            throw new RangeError("genMin(" + genMin + ") greater or equal to genMax(" + genMax + ")")
+        if (genNum < genMin) throw new RangeError('genMin(' + genMin + ') greater than num(' + genNum + ')')
+        if (genNum > genMax) throw new RangeError('num(' + genNum + ') greater than genMax(' + genMax + ')')
+        if (genMin >= genMax) throw new RangeError('genMin(' + genMin + ') greater or equal to genMax(' + genMax + ')')
 
-        if(min > max)
-            throw new RangeError("min(" + min + ") greater or equal to max(" + max + ")")
+        if (min > max) throw new RangeError('min(' + min + ') greater or equal to max(' + max + ')')
 
         // min: 2 max: 3 num: 2 or 3
         // (2-2) / (3-2) = 0 / 1 = 0
