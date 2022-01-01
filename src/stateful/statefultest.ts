@@ -237,7 +237,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         return result as TestResult
     }
 
-    private shrinkInitialObject(initialRand:Random, prevTestResult: TestResult): TestResult {
+    private shrinkInitialObject(initialRand: Random, prevTestResult: TestResult): TestResult {
         // TODO
         return prevTestResult
     }
@@ -268,7 +268,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
-                    if (this.verbose) console.info('failure in action generation during shrinking: ' + (e as Error).toString())
+                    if (this.verbose)
+                        console.info('failure in action generation during shrinking: ' + (e as Error).toString())
                     throw new GenerationError('failure in action generation during shrinking')
                 }
                 action.call(obj, model)

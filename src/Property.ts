@@ -58,7 +58,7 @@ export class Property<ARGS extends unknown[]> {
 
                 if (this.onCleanup) this.onCleanup()
             } catch (e) {
-                result = e
+                result = e as Error
             }
             // failed
             if (typeof result === 'object' || !result) {
