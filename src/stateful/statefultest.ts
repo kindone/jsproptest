@@ -109,7 +109,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 } catch (e) {
                     // tolerate generation failures
                     // exception while generating action can happen: ignore and retry unless limit is reached
-                    console.info('discarded action: ' + e.message)
+                    console.info('discarded action: ' + (e as Error).message)
                     numConsecutiveFailures++
                     if (numConsecutiveFailures >= this.maxAllowedConsecutiveGenerationFailures) {
                         console.warn(
@@ -255,7 +255,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 obj = this.initialGen.generate(initialRand.clone()).value
                 model = this.modelFactory(obj)
             } catch (e) {
-                if (this.verbose) console.info('failure in initialization during shrinking: ' + e.toString())
+                if (this.verbose) console.info('failure in initialization during shrinking: ' + (e as Error).toString())
                 throw new GenerationError('failure in initialization during shrinking')
             }
 
@@ -266,7 +266,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
-                    if (this.verbose) console.info('failure in action generation during shrinking: ' + e.toString())
+                    if (this.verbose) console.info('failure in action generation during shrinking: ' + (e as Error).toString())
                     throw new GenerationError('failure in action generation during shrinking')
                 }
                 action.call(obj, model)
@@ -294,7 +294,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 obj = this.initialGen.generate(initialRand.clone()).value
                 model = this.modelFactory(obj)
             } catch (e) {
-                if (this.verbose) console.info('failure in initialization during shrinking: ' + e.toString())
+                if (this.verbose) console.info('failure in initialization during shrinking: ' + (e as Error).toString())
                 throw new GenerationError('failure in initialization during shrinking')
             }
 

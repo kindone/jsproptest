@@ -17,8 +17,7 @@ describe('jest', () => {
         try {
             expect(5 === a).toBe(true)
         } catch (e) {
-            console.log('expect error1:', e.matcherResult.message())
-            console.log('expect error2:', e.toString())
+            console.log('expect error2:', (e as Error).toString())
             console.log('expect error3:', e)
             console.log(
                 'expect error:',
@@ -82,7 +81,7 @@ describe('expect failure', () => {
             console.log(a[2].x)
         } catch (e) {
             if (e instanceof assert.AssertionError) console.log('AssertionError!', e)
-            if (e instanceof Error) console.log('Error', e.name, e)
+            if (e instanceof Error) console.log('Error', (e as Error).name, e)
             else console.log('Not an Error')
         }
 
