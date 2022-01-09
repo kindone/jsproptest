@@ -17,6 +17,16 @@ export class TryResult<T> {
         return this.result.value!
     }
 
+    getOrThrow(mapper:(e:Error) => Error = (e:Error) => e) {
+        if (this.isSuccessful()) return this.result.get()
+        else throw mapper(this.error.get())
+    }
+
+    getError(): Error {
+        if (!this.isFailure()) throw new Error('no error occurred but attempted to get error')
+        return this.error.value!
+    }
+
     toOption(): Option<T> {
         return this.result
     }
@@ -30,11 +40,24 @@ export class TryResult<T> {
         else return Try<U>(() => fn(this.result.get()))
     }
 
+    mapError(fn: (e: Error) => Error): TryResult<T> {
+        if (this.error.isEmpty()) return new TryResult(this.result, None())
+        else return new TryResult(this.result, Some(fn(this.error.get())))
+    }
+
     flatMap<U>(fn: (t: T) => TryResult<U>): TryResult<U> {
         if (this.result.isEmpty()) {
             return new TryResult(None(), this.error)
         } else {
             return fn(this.result.get())
+        }
+    }
+
+    flatMapError(fn: (e: Error) => TryResult<T>): TryResult<T> {
+        if (this.error.isEmpty()) {
+            return new TryResult(this.result, None())
+        } else {
+            return fn(this.error.get())
         }
     }
 }

@@ -162,6 +162,6 @@ describe('stateful', () => {
         prop.setPostCheck((_: T, __: M) => {
             throw new Error('error')
         })
-        // expect(() => prop.setSeed('1').setNumRuns(10).setVerbosity(true).go()).toThrow()
+        expect(() => prop.setSeed('1').setNumRuns(10).setVerbosity(false).go()).toThrow()
     })
 })

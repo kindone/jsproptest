@@ -102,4 +102,8 @@ export class Stream<T> {
     static two<T>(value1: T, value2: T) {
         return new Stream(value1, () => new Stream(value2))
     }
+
+    static three<T>(value1: T, value2: T, value3: T) {
+        return new Stream(value1, () => new Stream(value2, () => new Stream(value3)))
+    }
 }
