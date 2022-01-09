@@ -2,6 +2,7 @@ import { Generator } from '../Generator'
 import { Random } from '../Random'
 import { Shrinkable } from '../Shrinkable'
 import { shrinkableArray } from '../shrinker/array'
+import { Try, TryResult } from '../Try'
 import { GenerationError } from '../util/error'
 import { JSONStringify } from '../util/JSON'
 import { ActionGenFactory, SimpleActionGenFactory } from './actionof'
@@ -90,8 +91,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             const savedRand = rand.clone()
             if (this.onStartup) this.onStartup()
             // generate initial object and model
-            const obj = this.initialGen.generate(rand).value
-            const model = this.modelFactory(obj)
+            const [obj, model] = this.generateInitial(rand).getOrThrow()
 
             // actions executed so far
             const actionShrArr: Shrinkable<Action<ObjectType, ModelType>>[] = []
@@ -103,7 +103,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 let actionShr: Shrinkable<Action<ObjectType, ModelType>>
                 try {
                     const randCopy = rand.clone()
-                    actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    actionShr = this.actionGenFactory(obj.value, model).generate(rand)
                     randomArr.push(randCopy)
                     actionShrArr.push(actionShr)
                 } catch (e) {
@@ -125,7 +125,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 // execute the action to update obj and model
                 try {
                     const action = actionShr.value
-                    action.call(obj, model)
+                    action.call(obj.value, model)
                     if (this.verbose) console.info('action generated. run: ', i, 'action: ', j)
                     j++
                 } catch (e) {
@@ -135,7 +135,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                     throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
-            if (this.postCheck) this.postCheck(obj, model)
+            if (this.postCheck) this.postCheck(obj.value, model)
 
             if (this.onCleanup) this.onCleanup()
         }
@@ -149,12 +149,10 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (originalActions.length != randomArr.length) throw new Error('action and random arrays have different sizes')
 
         let { shrunk, result } = this.shrinkRandomwise(initialRand, randomArr)
-        /*
         if (shrunk) {
             result = this.shrinkInitialObject(initialRand, result!)
-            result = this.shrinkActionwise(initialRand, result!)
+            //result = this.shrinkActionwise(initialRand, result!)
         }
-        */
 
         // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
         // (initial object is recreated in each test run)
@@ -207,6 +205,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         return { shrunk, result }
     }
 
+    /*
     private shrinkActionwise(initialRand: Random, prevTestResult: TestResult): TestResult {
         let nextArrayShr = shrinkableArray(prevTestResult.actions, 0)
         let shrinks = nextArrayShr.shrinks()
@@ -237,8 +236,10 @@ export class StatefulProperty<ObjectType, ModelType> {
         return result as TestResult
     }
 
+    */
+
     private shrinkInitialObject(initialRand: Random, prevTestResult: TestResult): TestResult {
-        // TODO
+        const [obj, model] = this.generateInitial(initialRand.clone()).getOrThrow()
         return prevTestResult
     }
 
@@ -250,21 +251,12 @@ export class StatefulProperty<ObjectType, ModelType> {
         try {
             if (this.onStartup) this.onStartup()
 
-            let obj: ObjectType
-            let model: ModelType
-
-            try {
-                obj = this.initialGen.generate(initialRand.clone()).value
-                model = this.modelFactory(obj)
-            } catch (e) {
-                if (this.verbose) console.info('failure in initialization during shrinking: ' + (e as Error).toString())
-                throw new GenerationError('failure in initialization during shrinking')
-            }
+            const [obj, model] = this.generateInitial(initialRand.clone()).getOrThrow()
 
             for (const rand of randoms) {
                 let action: Action<ObjectType, ModelType>
                 try {
-                    let actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    let actionShr = this.actionGenFactory(obj.value, model).generate(rand)
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
@@ -272,10 +264,10 @@ export class StatefulProperty<ObjectType, ModelType> {
                         console.info('failure in action generation during shrinking: ' + (e as Error).toString())
                     throw new GenerationError('failure in action generation during shrinking')
                 }
-                action.call(obj, model)
+                action.call(obj.value, model)
             }
 
-            if (this.postCheck) this.postCheck(obj, model)
+            if (this.postCheck) this.postCheck(obj.value, model)
             if (this.onCleanup) this.onCleanup()
             return true
         } catch (e) {
@@ -290,22 +282,13 @@ export class StatefulProperty<ObjectType, ModelType> {
         try {
             if (this.onStartup) this.onStartup()
 
-            let obj: ObjectType
-            let model: ModelType
-
-            try {
-                obj = this.initialGen.generate(initialRand.clone()).value
-                model = this.modelFactory(obj)
-            } catch (e) {
-                if (this.verbose) console.info('failure in initialization during shrinking: ' + (e as Error).toString())
-                throw new GenerationError('failure in initialization during shrinking')
-            }
+            const [obj, model] = this.generateInitial(initialRand.clone()).getOrThrow()
 
             for (const action of actions) {
-                action.call(obj, model)
+                action.call(obj.value, model)
             }
 
-            if (this.postCheck) this.postCheck(obj, model)
+            if (this.postCheck) this.postCheck(obj.value, model)
             if (this.onCleanup) this.onCleanup()
             return true
         } catch (e) {
@@ -352,6 +335,17 @@ export class StatefulProperty<ObjectType, ModelType> {
             newError.stack = '\n' + originalError.stack
             return newError
         }
+    }
+
+    private generateInitial(initialRand: Random): TryResult<[Shrinkable<ObjectType>, ModelType]> {
+        return Try<[Shrinkable<ObjectType>, ModelType]>(() => {
+            const obj = this.initialGen.generate(initialRand.clone())
+            const model = this.modelFactory(obj.value)
+            return [obj, model]
+        }).mapError(e => {
+            if (this.verbose) console.info('failure in initialization: ' + (e as Error).toString())
+            return new GenerationError('failure in initialization: ' + (e as Error).toString())
+        })
     }
 }
 
