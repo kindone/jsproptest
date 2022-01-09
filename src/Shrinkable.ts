@@ -72,23 +72,23 @@ export class Shrinkable<T> {
         return this.with(() => this.shrinksGen().take(n))
     }
 
-    getNthChild(n:number):Shrinkable<T> {
+    getNthChild(n: number): Shrinkable<T> {
         const shrinks = this.shrinks()
         let i = 0
-        for(const iter = shrinks.iterator(); iter.hasNext(); i++) {
-            if(i == n)
-                return iter.next()
-            else
-                iter.next()
+        for (const iter = shrinks.iterator(); iter.hasNext(); i++) {
+            if (i == n) return iter.next()
+            else iter.next()
         }
-        throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + " >= " + i)
+        throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + ' >= ' + i)
     }
 
     // returns self if steps is empty
-    retrieve(steps:number[]):Shrinkable<T> {
-        let shr:Shrinkable<T> = this
-        for(let i = 0; i < steps.length; i++) {
-            shr = Try(() => shr.getNthChild(steps[i])).getOrThrow(e => new Error('Shrinkable retrieval failed at step ' + i + ": " + e.toString()))
+    retrieve(steps: number[]): Shrinkable<T> {
+        let shr: Shrinkable<T> = this
+        for (let i = 0; i < steps.length; i++) {
+            shr = Try(() => shr.getNthChild(steps[i])).getOrThrow(
+                e => new Error('Shrinkable retrieval failed at step ' + i + ': ' + e.toString())
+            )
         }
         return shr
     }

@@ -10,13 +10,18 @@ import { Action, EmptyModel } from './statefulbase'
 
 class ShrinkResult {
     readonly isSuccessful: boolean
-    constructor(readonly initialObj: unknown, readonly actions: unknown[], readonly error?:Error) {
+    constructor(readonly initialObj: unknown, readonly actions: unknown[], readonly error?: Error) {
         this.isSuccessful = typeof error !== 'undefined'
     }
 }
 
 class TestResult {
-    constructor(readonly initialSteps:number[], readonly actions: Shrinkable<unknown>[], readonly randoms: Random[], readonly error: Error) {}
+    constructor(
+        readonly initialSteps: number[],
+        readonly actions: Shrinkable<unknown>[],
+        readonly randoms: Random[],
+        readonly error: Error
+    ) {}
 }
 
 export class StatefulProperty<ObjectType, ModelType> {
@@ -91,7 +96,11 @@ export class StatefulProperty<ObjectType, ModelType> {
             const savedRand = rand.clone()
             if (this.onStartup) this.onStartup()
             // generate initial object and model
-            const {obj, model} = this.generateInitial(rand).map(shr => { return {obj: shr.value.obj, model: shr.value.model} }).getOrThrow()
+            const { obj, model } = this.generateInitial(rand)
+                .map(shr => {
+                    return { obj: shr.value.obj, model: shr.value.model }
+                })
+                .getOrThrow()
 
             // actions executed so far
             const actionShrArr: Shrinkable<Action<ObjectType, ModelType>>[] = []
@@ -160,7 +169,11 @@ export class StatefulProperty<ObjectType, ModelType> {
         // shrinking done
         if (shrunk) {
             const testResult: TestResult = result as TestResult
-            return new ShrinkResult(initialObj.retrieve(testResult.initialSteps), testResult.actions, testResult.error as Error)
+            return new ShrinkResult(
+                initialObj.retrieve(testResult.initialSteps),
+                testResult.actions,
+                testResult.error as Error
+            )
         }
         // unable to shrink -> return originally failed combination
         else return new ShrinkResult(initialObj.value, originalActions)
@@ -197,7 +210,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         let shr = this.generateInitial(initialRand.clone()).getOrThrow()
         let shrinks = shr.shrinks()
         let result: TestResult = prevTestResult
-        const steps:number[] = []
+        const steps: number[] = []
         while (!shrinks.isEmpty()) {
             let iter = shrinks.iterator()
             let step = 0
@@ -206,7 +219,11 @@ export class StatefulProperty<ObjectType, ModelType> {
                 shr = iter.next()
                 const testSteps = steps.concat()
                 testSteps.push(step)
-                const testResult: boolean | TestResult = this.testWithInitial(initialRand.clone(), testSteps, prevTestResult.randoms)
+                const testResult: boolean | TestResult = this.testWithInitial(
+                    initialRand.clone(),
+                    testSteps,
+                    prevTestResult.randoms
+                )
                 // found a shrink (a non-generation error occurred)
                 if (testResult instanceof TestResult) {
                     result = testResult
@@ -215,22 +232,26 @@ export class StatefulProperty<ObjectType, ModelType> {
                     shrinkFound = true
                     break
                 }
-                step ++
+                step++
             }
-            if (!shrinkFound)
-                break
+            if (!shrinkFound) break
         }
 
         return result
     }
 
-    private testWithInitial(initialRand:Random, steps:number[], randoms:Random[]): boolean | TestResult {
+    private testWithInitial(initialRand: Random, steps: number[], randoms: Random[]): boolean | TestResult {
         let actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
         try {
             if (this.onStartup) this.onStartup()
 
             // retrieve initial state by shrink steps chosen
-            const {obj, model} = this.generateInitial(initialRand.clone()).map(shr => shr.retrieve(steps)).map(shr => { return {obj: shr.value.obj, model: shr.value.model} }).getOrThrow()
+            const { obj, model } = this.generateInitial(initialRand.clone())
+                .map(shr => shr.retrieve(steps))
+                .map(shr => {
+                    return { obj: shr.value.obj, model: shr.value.model }
+                })
+                .getOrThrow()
 
             for (const rand of randoms) {
                 let action: Action<ObjectType, ModelType>
@@ -264,7 +285,11 @@ export class StatefulProperty<ObjectType, ModelType> {
         try {
             if (this.onStartup) this.onStartup()
 
-            const {obj, model} = this.generateInitial(initialRand.clone()).map(shr => { return {obj: shr.value.obj, model: shr.value.model} }).getOrThrow()
+            const { obj, model } = this.generateInitial(initialRand.clone())
+                .map(shr => {
+                    return { obj: shr.value.obj, model: shr.value.model }
+                })
+                .getOrThrow()
 
             for (const rand of randoms) {
                 let action: Action<ObjectType, ModelType>
@@ -329,11 +354,11 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
     }
 
-    private generateInitial(initialRand: Random): TryResult<Shrinkable<{obj: ObjectType, model:ModelType}>> {
-        return Try<Shrinkable<{obj: ObjectType, model:ModelType}>>(() => {
+    private generateInitial(initialRand: Random): TryResult<Shrinkable<{ obj: ObjectType; model: ModelType }>> {
+        return Try<Shrinkable<{ obj: ObjectType; model: ModelType }>>(() => {
             const obj = this.initialGen.generate(initialRand.clone())
             return obj.map(o => {
-                return {obj: o, model: this.modelFactory(o)}
+                return { obj: o, model: this.modelFactory(o) }
             })
         }).mapError(e => {
             if (this.verbose) console.info('failure in initialization: ' + (e as Error).toString())

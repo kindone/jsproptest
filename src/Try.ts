@@ -17,7 +17,7 @@ export class TryResult<T> {
         return this.result.value!
     }
 
-    getOrThrow(mapper:(e:Error) => Error = (e:Error) => e) {
+    getOrThrow(mapper: (e: Error) => Error = (e: Error) => e) {
         if (this.isSuccessful()) return this.result.get()
         else throw mapper(this.error.get())
     }

@@ -37,28 +37,34 @@ describe('shrinkable', () => {
     })
 
     it('getNthChild', () => {
-        const shr = new Shrinkable(4).with(() => Stream.three(
-            new Shrinkable(0),
-            new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
-            new Shrinkable(3)))
+        const shr = new Shrinkable(4).with(() =>
+            Stream.three(
+                new Shrinkable(0),
+                new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
+                new Shrinkable(3)
+            )
+        )
         exhaustive(shr.getNthChild(0))
         exhaustive(shr.getNthChild(1))
         exhaustive(shr.getNthChild(2))
         expect(() => shr.getNthChild(3)).toThrow()
     })
     it('retrieve', () => {
-        const shr = new Shrinkable(4).with(() => Stream.three(
-            new Shrinkable(0),
-            new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
-            new Shrinkable(3)))
+        const shr = new Shrinkable(4).with(() =>
+            Stream.three(
+                new Shrinkable(0),
+                new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
+                new Shrinkable(3)
+            )
+        )
         exhaustive(shr.retrieve([]))
         exhaustive(shr.retrieve([0]))
         exhaustive(shr.retrieve([1]))
         exhaustive(shr.retrieve([2]))
         expect(() => shr.retrieve([3])).toThrow()
-        expect(() => shr.retrieve([2,0])).toThrow()
-        expect(() => shr.retrieve([3,0])).toThrow()
-        exhaustive(shr.retrieve([1,0]))
-        expect(() => shr.retrieve([1,1])).toThrow()
+        expect(() => shr.retrieve([2, 0])).toThrow()
+        expect(() => shr.retrieve([3, 0])).toThrow()
+        exhaustive(shr.retrieve([1, 0]))
+        expect(() => shr.retrieve([1, 1])).toThrow()
     })
 })
