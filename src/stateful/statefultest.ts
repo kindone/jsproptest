@@ -140,7 +140,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 } catch (e) {
                     // shrink based on actionShrArr
                     const originalActions = actionShrArr.map(actionShr => actionShr.value)
-                    const shrinkResult = this.shrink(originalActions, savedRand, randomArr)
+                    const shrinkResult = this.shrink(originalActions, savedRand, randomArr, e as Error)
                     throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
@@ -153,7 +153,8 @@ export class StatefulProperty<ObjectType, ModelType> {
     private shrink(
         originalActions: Action<ObjectType, ModelType>[],
         initialRand: Random,
-        randomArr: Random[]
+        randomArr: Random[],
+        originalError: Error
     ): ShrinkResult {
         if (originalActions.length != randomArr.length) throw new Error('action and random arrays have different sizes')
 
@@ -161,6 +162,9 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (shrunk) {
             result = this.shrinkInitialObject(initialRand, result!)
             //result = this.shrinkActionwise(initialRand, result!)
+        }
+        else {
+            result = this.shrinkInitialObject(initialRand, new TestResult([], originalActions.map(action => new Shrinkable(action)), randomArr, originalError))
         }
 
         // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
