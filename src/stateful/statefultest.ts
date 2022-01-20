@@ -162,9 +162,16 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (shrunk) {
             result = this.shrinkInitialObject(initialRand, result!)
             //result = this.shrinkActionwise(initialRand, result!)
-        }
-        else {
-            result = this.shrinkInitialObject(initialRand, new TestResult([], originalActions.map(action => new Shrinkable(action)), randomArr, originalError))
+        } else {
+            result = this.shrinkInitialObject(
+                initialRand,
+                new TestResult(
+                    [],
+                    originalActions.map(action => new Shrinkable(action)),
+                    randomArr,
+                    originalError
+                )
+            )
         }
 
         // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object

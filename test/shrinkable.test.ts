@@ -18,6 +18,19 @@ describe('shrinkable', () => {
         exhaustive(interval(0, 7).generate(new Random('3')))
     })
 
+    it('Shrinkable::map', () => {
+        const shr = new Shrinkable(4).with(() =>
+            Stream.three(
+                new Shrinkable(0),
+                new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
+                new Shrinkable(3)
+            )
+        )
+
+        const shr2 = shr.map(i => [i, i +2])
+        exhaustive(shr2)
+    })
+
     it('flatMap', () => {
         const numGen1 = interval(0, 4)
         const numGen2 = interval(-8, -4)
