@@ -185,7 +185,13 @@ describe('generator', () => {
         console.log(JSONStringify(gen.generate(new Random('0')).value))
     })
 
-    it('flatMap', () => {
+    it('Generator::filter', () => {
+        const numGen = interval(0, 3)
+        const tupleGen = numGen.filter(n => n == 3)
+        for (let i = 0; i < 3; i++) exhaustive(tupleGen.generate(rand))
+    })
+
+    it('Generator::flatMap', () => {
         const numGen = interval(0, 3)
         const tupleGen = numGen.flatMap(n =>
             TupleGen(
@@ -196,7 +202,7 @@ describe('generator', () => {
         for (let i = 0; i < 3; i++) exhaustive(tupleGen.generate(rand))
     })
 
-    it('dependent sequence with array', () => {
+    it('Generator::flatMap dependent sequence with array', () => {
         const gengen = (n: number) => interval(n, n + 1)
         let gen1 = gengen(0) //.map(num => [num])
 
@@ -205,7 +211,7 @@ describe('generator', () => {
         print(rand, gen1)
     })
 
-    it('aggregate', () => {
+    it('Generator::aggregate', () => {
         // const gengen = (n:number) => interval(n, n+1)
         let gen1 = interval(0, 1).map(num => [num])
 
@@ -221,7 +227,7 @@ describe('generator', () => {
         exhaustive(gen.generate(rand))
     })
 
-    it('accumulate', () => {
+    it('Generator::accumulate', () => {
         let gen1: Generator<number> = interval(0, 0 + 2)
 
         const gen: Generator<number[]> = gen1.accumulate(num => interval(num, num + 2), 2, 4)
@@ -229,7 +235,7 @@ describe('generator', () => {
         for (let i = 0; i < 10; i++) exhaustive(gen.generate(rand))
     })
 
-    it('accumulate many', () => {
+    it('Generator::accumulate many', () => {
         let gen1: Generator<number> = interval(0, 0 + 2)
 
         const gen: Generator<number[]> = gen1.accumulate(num => interval(num, num + 2), 2, 4)
