@@ -126,10 +126,9 @@ export class Arbitrary<T> implements Generator<T> {
     filter(filterer: (value: T) => boolean): Generator<T> {
         const self = this
         return new Arbitrary<T>((rand: Random) => {
-            while(true) {
+            while (true) {
                 const shr = self.generate(rand)
-                if(filterer(shr.value))
-                    return shr.filter(filterer)
+                if (filterer(shr.value)) return shr.filter(filterer)
             }
         })
     }
@@ -270,13 +269,16 @@ export class ArbiContainer<T> implements Generator<T> {
 
     filter(filterer: (value: T) => boolean): Generator<T> {
         const self = this
-        return new ArbiContainer<T>((rand: Random) => {
-            while(true) {
-                const shr = self.generate(rand)
-                if(filterer(shr.value))
-                    return self.generate(rand).filter(filterer)
-            }
-        }, this.minSize, this.maxSize)
+        return new ArbiContainer<T>(
+            (rand: Random) => {
+                while (true) {
+                    const shr = self.generate(rand)
+                    if (filterer(shr.value)) return self.generate(rand).filter(filterer)
+                }
+            },
+            this.minSize,
+            this.maxSize
+        )
     }
 
     setSize(min: number, max: number) {

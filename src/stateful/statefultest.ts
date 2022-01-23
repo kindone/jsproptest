@@ -118,7 +118,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                 } catch (e) {
                     // tolerate generation failures
                     // exception while generating action can happen: ignore and retry unless limit is reached
-                    console.info('discarded action: ' + (e as Error).message)
+                    if(this.verbose)
+                        console.info('discarded action: ' + (e as Error).message)
                     numConsecutiveFailures++
                     if (numConsecutiveFailures >= this.maxAllowedConsecutiveGenerationFailures) {
                         console.warn(
