@@ -18,8 +18,8 @@ describe('shrinkable', () => {
         exhaustive(interval(0, 7).generate(new Random('3')))
     })
 
-    it('Shrinkable::map', () => {
-        const shr = new Shrinkable(4).with(() =>
+    const genShrinkable40213 = () =>
+        new Shrinkable(4).with(() =>
             Stream.three(
                 new Shrinkable(0),
                 new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
@@ -27,11 +27,19 @@ describe('shrinkable', () => {
             )
         )
 
-        const shr2 = shr.map(i => [i, i +2])
+    it('Shrinkable::map', () => {
+        const shr = genShrinkable40213()
+        const shr2 = shr.map(i => [i, i + 2])
         exhaustive(shr2)
     })
 
-    it('flatMap', () => {
+    it('Shrinkable::filter', () => {
+        const shr = genShrinkable40213()
+        const shr2 = shr.filter(i => i % 2 == 0)
+        exhaustive(shr2)
+    })
+
+    it('Shrinkable::flatMap', () => {
         const numGen1 = interval(0, 4)
         const numGen2 = interval(-8, -4)
         const tupleGen = numGen1.flatMap(num => TupleGen(just(num), numGen2))
@@ -49,27 +57,15 @@ describe('shrinkable', () => {
         exhaustive(justGen2.generate(new Random('3')))
     })
 
-    it('getNthChild', () => {
-        const shr = new Shrinkable(4).with(() =>
-            Stream.three(
-                new Shrinkable(0),
-                new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
-                new Shrinkable(3)
-            )
-        )
+    it('Shrinkable::getNthChild', () => {
+        const shr = genShrinkable40213()
         exhaustive(shr.getNthChild(0))
         exhaustive(shr.getNthChild(1))
         exhaustive(shr.getNthChild(2))
         expect(() => shr.getNthChild(3)).toThrow()
     })
-    it('retrieve', () => {
-        const shr = new Shrinkable(4).with(() =>
-            Stream.three(
-                new Shrinkable(0),
-                new Shrinkable(2).with(() => Stream.one(new Shrinkable(1))),
-                new Shrinkable(3)
-            )
-        )
+    it('Shrinkable::retrieve', () => {
+        const shr = genShrinkable40213()
         exhaustive(shr.retrieve([]))
         exhaustive(shr.retrieve([0]))
         exhaustive(shr.retrieve([1]))

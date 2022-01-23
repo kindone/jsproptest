@@ -28,4 +28,16 @@ describe('stream', () => {
             console.log('stream: ' + itr.next())
         }
     })
+
+    it('Stream::filter', () => {
+        let stream = Stream.empty<number>()
+        for (let i = 0; i < 10; i++) {
+            const str = Stream.one<number>(i)
+            stream = stream.concat(str)
+        }
+        stream = stream.filter(n => n % 2 == 0)
+        for (let itr = stream.iterator(); itr.hasNext(); ) {
+            console.log('stream: ' + itr.next())
+        }
+    })
 })

@@ -65,7 +65,12 @@ export class Shrinkable<T> {
     }
 
     filter(criteria: (_: T) => boolean): Shrinkable<T> {
-        return this.with(() => this.shrinksGen().filter(shr => criteria(shr.value)))
+        if (!criteria(this.value)) throw new Error('cannot apply criteria')
+        return this.with(() =>
+            this.shrinksGen()
+                .filter(shr => criteria(shr.value))
+                .transform(shr => shr.filter(criteria))
+        )
     }
 
     take(n: number) {

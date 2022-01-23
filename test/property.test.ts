@@ -13,7 +13,7 @@ describe('property', () => {
             return a < 10 || b.length > 3
         })
 
-        expect(() => prop.forAll(interval(0, 10), stringGen(0, 10))).toThrow()
+        expect(() => prop.setNumRuns(1000).forAll(interval(0, 10), stringGen(0, 10))).toThrow()
     })
 
     it('basic with return', () => {
