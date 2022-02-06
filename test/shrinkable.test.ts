@@ -37,8 +37,7 @@ describe('shrinkable', () => {
         const shr = genShrinkable40213()
         const shr2 = shr.filter(i => i % 2 == 0)
         exhaustive(shr2)
-        const shr3 = shr.filter(i => i > 10)
-        expect(exhaustive(shr3)).toThrow() // self cannot be filtered out
+        expect(() => shr.filter(i => i > 10)).toThrow() // self cannot be filtered out
     })
 
     it('Shrinkable::flatMap', () => {

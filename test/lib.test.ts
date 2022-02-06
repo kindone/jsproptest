@@ -17,8 +17,10 @@ describe('jest', () => {
         try {
             expect(5 === a).toBe(true)
         } catch (e) {
+            expect((e as Object).constructor.name).toBe('JestAssertionError')
             console.log('expect error2:', (e as Error).toString())
-            console.log('expect error3:', e)
+            console.log('expect error3:', (e as Object).toString())
+            console.log('expect error5:', e)
             console.log(
                 'expect error:',
                 JSON.stringify(e, (_, value) => {
@@ -55,6 +57,7 @@ describe('Error', () => {
             throw new Error1('hello')
         } catch (e) {
             expect(e).toBeInstanceOf(Error1)
+            expect((e as Object).constructor.name).toBe('Error1')
         }
 
         try {
@@ -62,6 +65,36 @@ describe('Error', () => {
         } catch (e) {
             expect(e).toBeInstanceOf(Error1)
             expect(e).toBeInstanceOf(Error2)
+            expect((e as Object).constructor.name).toBe('Error2')
+        }
+    })
+})
+
+class Error3 extends Error {
+    constructor(message?: string) {
+        super(message)
+    }
+}
+
+class Error4 extends Error3 {}
+
+describe('Error with no setPrototypeOf', () => {
+    // no inheritance information is  passed if tsconfig::target == ES5. ES6 works fine
+    it('error type', () => {
+        try {
+            throw new Error3('hello')
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error)
+            expect(e).toBeInstanceOf(Error3)
+            expect((e as Object).constructor.name).toBe('Error3')
+        }
+
+        try {
+            throw new Error4('hello')
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error)
+            expect(e).toBeInstanceOf(Error4)
+            expect((e as Object).constructor.name).toBe('Error4')
         }
     })
 })

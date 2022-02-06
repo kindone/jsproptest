@@ -1,6 +1,7 @@
 import { Generator } from './Generator'
 import { Random } from './Random'
 import { Shrinkable } from './Shrinkable'
+import { PreconditionError } from './util/error'
 import { JSONStringify } from './util/JSON'
 
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
@@ -35,6 +36,7 @@ export class Property<ARGS extends unknown[]> {
         var random = this.seed === '' ? new Random() : new Random(this.seed)
         // console.log("func", this.func.length)
         // console.log("gens", gens)
+        var numPrecondFailures = 0
         var result: boolean | object = true
         for (let i = 0; i < this.numRuns; i++) {
             var savedRandom = random.clone()
@@ -59,9 +61,13 @@ export class Property<ARGS extends unknown[]> {
                 if (this.onCleanup) this.onCleanup()
             } catch (e) {
                 result = e as Error
+                if (result instanceof PreconditionError) numPrecondFailures++
+
+                if (numPrecondFailures % this.numRuns == 0)
+                    console.info('Number of precondition failure exceeding ' + numPrecondFailures)
             }
             // failed
-            if (typeof result === 'object' || !result) {
+            if ((typeof result === 'object' && !(result instanceof PreconditionError)) || !result) {
                 const shrinkResult = this.shrink(savedRandom, ...gens)
                 throw this.processFailureAsError(result, shrinkResult)
             }

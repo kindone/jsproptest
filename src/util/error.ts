@@ -1,21 +1,5 @@
-class SomeUnexportedClass {
-    constructor() {}
-}
+export class PreconditionError extends Error {}
 
-export class GenerationError extends Error {
-    constructor(message: string) {
-        super(message)
-        Object.setPrototypeOf(this, GenerationError.prototype)
-    }
+export class GenerationError extends Error {}
 
-    getC() {
-        return new SomeUnexportedClass()
-    }
-}
-
-export class AssertionError extends Error {
-    constructor(message: string) {
-        super(message)
-        Object.setPrototypeOf(this, AssertionError.prototype)
-    }
-}
+export class AssertionError extends Error {}
