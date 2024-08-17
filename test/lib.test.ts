@@ -70,11 +70,7 @@ describe('Error', () => {
     })
 })
 
-class Error3 extends Error {
-    constructor(message?: string) {
-        super(message)
-    }
-}
+class Error3 extends Error {}
 
 class Error4 extends Error3 {}
 

@@ -19,7 +19,7 @@ export function shrinkableDictionary<T>(dict: Dictionary<Shrinkable<T>>, minSize
     const size = Object.keys(dict).length
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
     let shrinkableArr: Shrinkable<Array<[string, Shrinkable<T>]>> = rangeShrinkable.map(newSize => {
-        if (newSize == 0) return []
+        if (newSize === 0) return []
         else {
             const arr: Array<[string, Shrinkable<T>]> = []
             let i = 0

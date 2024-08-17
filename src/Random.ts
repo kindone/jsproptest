@@ -2,11 +2,25 @@
 import { MersenneTwister19937, int32, int53, real, bool } from 'random-js'
 
 export class Random {
+    static readonly LONG_BOUNDS = [
+        0,
+        -128,
+        127,
+        -32768,
+        32767,
+        -2147483648,
+        2147483647,
+        -9223372036854775808,
+        9223372036854775807,
+        Number.MIN_SAFE_INTEGER,
+        Number.MAX_SAFE_INTEGER,
+    ]
+    static readonly INT_BOUNDS = [0, -128, 127, -32768, 32767, -2147483648, 2147483647]
     private mt: MersenneTwister19937
 
     constructor(readonly initialSeed: string = '', useCount: number = 0) {
         const autoSeed = MersenneTwister19937.autoSeed().next()
-        if (initialSeed == '') this.mt = MersenneTwister19937.seed(autoSeed).discard(useCount)
+        if (initialSeed === '') this.mt = MersenneTwister19937.seed(autoSeed).discard(useCount)
         else this.mt = MersenneTwister19937.seed(Number.parseInt(this.initialSeed)).discard(useCount)
     }
 
@@ -20,12 +34,19 @@ export class Random {
     }
 
     //FIXME: find good reason for reliable min and max
-    nextLong(): number {
+    nextLong(boundProb = 0.2): number {
+        // add boundary number generation with some probability
+        if (this.nextBoolean(boundProb)) {
+            return Random.LONG_BOUNDS[this.interval(0, Random.LONG_BOUNDS.length - 1)]
+        }
         return int53(this.mt)
     }
 
-    nextInt(): number {
-        return int32(this.mt)
+    nextInt(boundProb = 0.2): number {
+        // add integer boundary number generation with some probability
+        if (this.nextBoolean(boundProb)) {
+            return Random.INT_BOUNDS[this.interval(0, Random.INT_BOUNDS.length - 1)]
+        } else return int32(this.mt)
     }
 
     nextBoolean(trueProb: number = 0.5): boolean {

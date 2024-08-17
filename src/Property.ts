@@ -6,14 +6,6 @@ import { JSONStringify } from './util/JSON'
 
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
 type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
-// type Generatible<T> = { generate:Generator<T> }
-// type Constructible<T, ARGS extends readonly unknown[]> = { new(_args:ARGS):T }
-// type TupleElement<ARGS extends readonly unknown[], N extends number> = ARGS[N]
-// type WithGenerate<T> = { generate(rand:Random):Shrinkable<number> }
-
-// class PropertyFailedError extends Error{
-//     constructor()
-// }
 
 class ShrinkResult {
     readonly isSucessful: boolean
@@ -63,7 +55,7 @@ export class Property<ARGS extends unknown[]> {
                 result = e as Error
                 if (result instanceof PreconditionError) numPrecondFailures++
 
-                if (numPrecondFailures % this.numRuns == 0)
+                if (numPrecondFailures % this.numRuns === 0)
                     console.info('Number of precondition failure exceeding ' + numPrecondFailures)
             }
             // failed
@@ -141,7 +133,6 @@ export class Property<ARGS extends unknown[]> {
                         shrinks = next.shrinks()
                         args[n] = next.value
                         shrinkFound = true
-                        // console.log('shrink found:', args)
                         break
                     }
                 }
@@ -152,7 +143,6 @@ export class Property<ARGS extends unknown[]> {
         }
         if (shrunk) {
             if (typeof result === 'object') {
-                // console.log('test_result.stack:')
                 return new ShrinkResult(args, result)
             } else {
                 const error = new Error('  property returned false\n')
@@ -211,7 +201,7 @@ export class Property<ARGS extends unknown[]> {
                 newError.stack = error.stack
                 return newError
             } else {
-                newError.message += '\n' + 'property returned false\n'
+                newError.message += '\nproperty returned false\n'
                 Error.captureStackTrace(newError, this.forAll)
                 return newError
             }

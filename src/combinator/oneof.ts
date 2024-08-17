@@ -64,7 +64,7 @@ export function oneOf<T>(...generators: Generator<T>[]): Generator<T> {
         let rest = 1.0 - sum
         const perUnassigned = rest / numUnassigned
         weightedGenerators = weightedGenerators.map(weightedGenerator => {
-            if (weightedGenerator.weight == 0.0) return new Weighted(weightedGenerator.gen, perUnassigned)
+            if (weightedGenerator.weight === 0.0) return new Weighted(weightedGenerator.gen, perUnassigned)
             else return weightedGenerator
         })
     }

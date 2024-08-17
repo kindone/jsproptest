@@ -23,6 +23,6 @@ export function UniqueArrayGen<T>(elemGen: Generator<T>, minSize: number, maxSiz
         set.forEach(function(item) {
             arr.push(item)
         })
-        return arr.sort((a, b) => (a > b ? 1 : a == b ? 0 : -1))
+        return arr.sort((a, b) => (a > b ? 1 : a === b ? 0 : -1))
     })
 }

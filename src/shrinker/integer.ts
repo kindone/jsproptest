@@ -33,17 +33,4 @@ export function generateInteger(random: Random, min: number, max: number): Shrin
     else return binarySearchShrinkable(value)
 }
 
-// export function exhaustive<T>(shrinkable:Shrinkable<T>, level:number = 0, print = true):void {
-//     if(print) {
-//         for(let i = 0; i < level; i++) {
-//             console.log("  ")
-//         }
-//         console.log(`Shrinkable: ${shrinkable}`)
-//     }
-
-//     const shrinks = shrinkable.shrinks()
-//     for(const itr = shrinks.iterator(); itr.hasNext();) {
-//         const shr = itr.next()
-//         exhaustive(shr, level + 1, print)
-//     }
-// }
+// TODO: shrinkIntegral

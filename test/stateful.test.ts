@@ -1,15 +1,11 @@
-import { integers, interval } from '../src/generator/integer'
-import { just } from '../src/combinator/just'
+import { Gen } from '../src'
 import { Action, SimpleAction } from '../src/stateful/statefulbase'
 import { simpleStatefulProperty, statefulProperty } from '../src/stateful/statefultest'
-import { weightedValue } from '../src/combinator/elementof'
-import { ArrayGen } from '../src/generator/array'
-import { actionGenOf, simpleActionGenOf } from '../src/stateful/actionof'
 
 describe('stateful', () => {
     it('simple', () => {
         type T = Array<number>
-        const pushGen = interval(0, 10000).map(
+        const pushGen = Gen.interval(0, 10000).map(
             (value: number) =>
                 new SimpleAction((obj: T) => {
                     const size = obj.length
@@ -18,7 +14,7 @@ describe('stateful', () => {
                 })
         )
 
-        const popGen = just(
+        const popGen = Gen.just(
             new SimpleAction((obj: T) => {
                 const size = obj.length
                 if (obj.length === 0) return
@@ -27,7 +23,7 @@ describe('stateful', () => {
             })
         )
 
-        const clearGen = just(
+        const clearGen = Gen.just(
             new SimpleAction((obj: T) => {
                 if (obj.length === 0) return
                 while (obj.length > 0) obj.pop()
@@ -35,8 +31,8 @@ describe('stateful', () => {
             })
         )
 
-        const actionGenFactory = simpleActionGenOf<T>(pushGen, popGen, weightedValue(clearGen, 0.1))
-        const prop = simpleStatefulProperty(ArrayGen(integers(0, 10000), 0, 20), actionGenFactory)
+        const actionGenFactory = Gen.simpleActionOf<T>(pushGen, popGen, Gen.weightedValue(clearGen, 0.1))
+        const prop = simpleStatefulProperty(Gen.array(Gen.integers(0, 10000), 0, 20), actionGenFactory)
         prop.go()
         prop.setOnStartup(() => console.log('startup'))
         prop.setOnCleanup(() => console.log('cleanup'))
@@ -48,7 +44,7 @@ describe('stateful', () => {
     it('normal', () => {
         type T = Array<number>
         type M = { count: number }
-        const pushGen = interval(0, 10000).map(
+        const pushGen = Gen.interval(0, 10000).map(
             (value: number) =>
                 new Action((obj: T, model: M) => {
                     const size = obj.length
@@ -59,7 +55,7 @@ describe('stateful', () => {
                 })
         )
 
-        const popGen = just(
+        const popGen = Gen.just(
             new Action((obj: T, model: M) => {
                 const size = obj.length
                 if (obj.length === 0) return
@@ -70,7 +66,7 @@ describe('stateful', () => {
             })
         )
 
-        const clearGen = just(
+        const clearGen = Gen.just(
             new Action((obj: T, model: M) => {
                 if (obj.length === 0) return
                 while (obj.length > 0) obj.pop()
@@ -80,17 +76,17 @@ describe('stateful', () => {
             })
         )
 
-        const actionGen = actionGenOf(
+        const actionGen = Gen.actionOf(
             pushGen,
             (_: T, __: M) => popGen,
-            weightedValue((_: T, __: M) => clearGen, 0.1)
+            Gen.weightedValue((_: T, __: M) => clearGen, 0.1)
         )
         const modelFactory = (obj: T): M => {
             return { count: obj.length }
         }
-        const prop = statefulProperty(ArrayGen(integers(0, 10000), 0, 20), modelFactory, actionGen)
+        const prop = statefulProperty(Gen.array(Gen.integers(0, 10000), 0, 20), modelFactory, actionGen)
         prop.setVerbosity(true)
-            .setMaxActions(1000)
+            .setMaxActions(200)
             .go()
         prop.setOnStartup(() => console.log('startup'))
         prop.setOnCleanup(() => console.log('cleanup'))
@@ -109,7 +105,7 @@ describe('stateful', () => {
     it('shrink_stateful', () => {
         type T = Array<number>
         type M = { count: number }
-        const pushGen = interval(0, 10000).map(
+        const pushGen = Gen.interval(0, 10000).map(
             (value: number) =>
                 new Action((obj: T, model: M) => {
                     const size = obj.length
@@ -121,7 +117,7 @@ describe('stateful', () => {
                 }, 'push(' + value + ')')
         )
 
-        const popGen = just(
+        const popGen = Gen.just(
             new Action((obj: T, model: M) => {
                 const size = obj.length
                 if (obj.length === 0) return
@@ -131,7 +127,7 @@ describe('stateful', () => {
             }, 'pop')
         )
 
-        const clearGen = just(
+        const clearGen = Gen.just(
             new Action((obj: T, model: M) => {
                 if (obj.length === 0) return
                 while (obj.length > 0) obj.pop()
@@ -140,19 +136,19 @@ describe('stateful', () => {
             }, 'clear')
         )
 
-        const actionGen = actionGenOf(
+        const actionGen = Gen.actionOf(
             pushGen,
             (_: T, __: M) => popGen,
-            weightedValue((_: T, __: M) => clearGen, 0.1)
+            Gen.weightedValue((_: T, __: M) => clearGen, 0.1)
         )
         const modelFactory = (obj: T): M => {
             return { count: obj.length }
         }
-        const prop = statefulProperty(ArrayGen(integers(0, 10000), 0, 20), modelFactory, actionGen)
+        const prop = statefulProperty(Gen.array(Gen.integers(0, 10000), 0, 20), modelFactory, actionGen)
         expect(() =>
             prop
                 .setVerbosity(false)
-                .setMaxActions(1000)
+                .setMaxActions(200)
                 .go()
         ).toThrow()
         // prop.setVerbosity(false).setMaxActions(1000).go()

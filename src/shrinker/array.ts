@@ -19,13 +19,13 @@ function shrinkBulk<T>(
         const size = toPos - fromPos
         if (size === 0) return Stream.empty()
 
-        if (elemStreams.length != size) throw new Error(`element streams size error ${elemStreams.length} != ${size}`)
+        if (elemStreams.length !== size) throw new Error(`element streams size error ${elemStreams.length} != ${size}`)
 
         const newElemStreams: Array<Stream<Shrinkable<T>>> = []
         const newArray = parent.value.concat()
         const ancestorArray = ancestor.value
 
-        if (newArray.length != ancestorArray.length)
+        if (newArray.length !== ancestorArray.length)
             throw new Error(`list size error: ${newArray.length} != ${ancestorArray.length}`)
 
         let nothingToDo = true
@@ -166,7 +166,10 @@ function shrinkMid<T>(
         })
 }
 
-function shrinkMembershipwise<T>(shrinkableElems: Shrinkable<T>[], minSize: number): Shrinkable<Shrinkable<T>[]> {
+export function shrinkMembershipwise<T>(
+    shrinkableElems: Shrinkable<T>[],
+    minSize: number
+): Shrinkable<Shrinkable<T>[]> {
     return shrinkFrontAndThenMid(shrinkableElems, minSize, 0)
 }
 

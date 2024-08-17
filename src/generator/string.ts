@@ -9,7 +9,7 @@ export const UnicodeCharGen = interval(1, 0xd7ff + (0x10ffff - 0xe000 + 1)).map(
     code < 0xd800 ? code : code + (0xe000 - 0xd800)
 )
 
-export function stringGen(
+export function StringGen(
     minSize: number,
     maxSize: number,
     charGen: Generator<number> = ASCIICharGen
@@ -28,13 +28,13 @@ export function stringGen(
 }
 
 export function ASCIIStringGen(minSize: number, maxSize: number): Generator<string> {
-    return stringGen(minSize, maxSize)
+    return StringGen(minSize, maxSize)
 }
 
 export function UnicodeStringGen(minSize: number, maxSize: number): Generator<string> {
-    return stringGen(minSize, maxSize, UnicodeCharGen)
+    return StringGen(minSize, maxSize, UnicodeCharGen)
 }
 
 export function PrintableASCIIStringGen(minSize: number, maxSize: number): Generator<string> {
-    return stringGen(minSize, maxSize, PrintableASCIICharGen)
+    return StringGen(minSize, maxSize, PrintableASCIICharGen)
 }

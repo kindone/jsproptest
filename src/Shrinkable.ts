@@ -19,6 +19,12 @@ export class Shrinkable<T> {
         return new Shrinkable(this.value, shrinksGen)
     }
 
+    /**
+     * Concatenates the given stream to the horizontal dead-ends of shrinkable tree. Does not alter this shrinkable.
+     * Adds additional candidates to the tree with fixed stream.
+     * @param then the stream to concatenate
+     * @returns a new shrinkable with the concatenation of each stream in shrinkable tree and the given stream
+     */
     concatStatic(then: () => Stream<Shrinkable<T>>): Shrinkable<T> {
         return this.with(() =>
             this.shrinks()
@@ -27,6 +33,12 @@ export class Shrinkable<T> {
         )
     }
 
+    /**
+     * Concatenates the stream generated with given stream generator to the horizontal dead-ends of shrinkable tree. Does not alter this shrinkable.
+     * Adds additional candidates to the tree, represented as stream generated based on the parent shrinkable of the horizontal dead-end.
+     * @param then the stream generator to generate stream for concatenation. the function takes parent shrinkable as input.
+     * @returns a new shrinkable with the concatenation of each stream in shrinkable tree and the given stream
+     */
     concat(then: (_: Shrinkable<T>) => Stream<Shrinkable<T>>): Shrinkable<T> {
         const self = this
         return this.with(() =>
@@ -36,6 +48,11 @@ export class Shrinkable<T> {
         )
     }
 
+    /**
+     * Inserts the given stream to the vertical dead-ends of shrinkable tree. Does not alter this shrinkable.
+     * @param then the stream to insert at the vertical dead-ends
+     * @returns a new shrinkable with the insertion of the given stream at the vertical dead-ends
+     */
     andThenStatic(then: () => Stream<Shrinkable<T>>): Shrinkable<T> {
         if (this.shrinks().isEmpty()) {
             return this.with(then)
@@ -44,6 +61,13 @@ export class Shrinkable<T> {
         }
     }
 
+    /**
+     * Inserts the stream generated with given stream generator to the vertical dead-ends of shrinkable tree. Does not alter this shrinkable.
+     * Adds additional candidates to the tree, represented as stream generated based on the parent shrinkable of the vertical dead-end.
+     * This effectively appends new shrinking strategy to the shrinkable
+     * @param then the stream generator to generate stream for insertion. the function takes parent shrinkable as input.
+     * @returns a new shrinkable with the insertion of the given stream at the vertical dead-ends
+     */
     andThen(then: (_: Shrinkable<T>) => Stream<Shrinkable<T>>): Shrinkable<T> {
         if (this.shrinks().isEmpty()) {
             // filter: remove duplicates
@@ -77,17 +101,30 @@ export class Shrinkable<T> {
         return this.with(() => this.shrinksGen().take(n))
     }
 
+    /*
+     * Returns the nth child of this shrinkable.
+     * @throws Error if n is out of bound
+     * @param n the index of the child
+     * @return the nth child
+     * */
     getNthChild(n: number): Shrinkable<T> {
+        if (n < 0) throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + ' < 0')
+
         const shrinks = this.shrinks()
         let i = 0
         for (const iter = shrinks.iterator(); iter.hasNext(); i++) {
-            if (i == n) return iter.next()
+            if (i === n) return iter.next()
             else iter.next()
         }
         throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + ' >= ' + i)
     }
 
-    // returns self if steps is empty
+    /*
+     * Returns the child shrinkable at the given steps, traversing the tree of children.
+     * @throws Error if any step is out of bound
+     * @param steps the indices of the children
+     * @return the child shrinkable at the given steps
+     * */
     retrieve(steps: number[]): Shrinkable<T> {
         let shr: Shrinkable<T> = this
         for (let i = 0; i < steps.length; i++) {

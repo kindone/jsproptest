@@ -7,7 +7,19 @@ export function shrinkableString(codepoints: Array<Shrinkable<number>>, minSize:
     const rangeShrinkable = binarySearchShrinkable(size - minSize).map(s => s + minSize)
     let shrinkableArr = rangeShrinkable.map(newSize => {
         if (newSize === 0) return []
-        else return codepoints.slice(0, newSize)
+        else {
+            let curSize = 0
+            let i = 0
+            // a codepoint can be maximum 2 bytes long
+            for (; i < codepoints.length && curSize < newSize; i++) {
+                if (codepoints[i].value >= 0x10000) {
+                    curSize += 2
+                } else {
+                    curSize += 1
+                }
+            }
+            return codepoints.slice(0, curSize <= newSize ? i : i - 1)
+        }
     })
 
     // TODO: shrink elementwise

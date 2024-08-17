@@ -91,7 +91,7 @@ export class StatefulPropertyDeprecated<ObjectType, ModelType> {
             const actions = statefulArgs.actions
             const model = this.modelFactory(obj)
             actions.map(action => {
-                action.call(obj, model)
+                return action.call(obj, model)
             })
             if (this.postCheck) this.postCheck(obj, model)
             return true
@@ -103,7 +103,7 @@ export class StatefulPropertyDeprecated<ObjectType, ModelType> {
 
         if (this.seed !== '') prop.setSeed(this.seed)
 
-        if (this.numRuns != 0) prop.setNumRuns(this.numRuns)
+        if (this.numRuns !== 0) prop.setNumRuns(this.numRuns)
 
         prop.forAll(tupleGen)
     }

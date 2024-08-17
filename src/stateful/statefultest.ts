@@ -156,7 +156,8 @@ export class StatefulProperty<ObjectType, ModelType> {
         randomArr: Random[],
         originalError: Error
     ): ShrinkResult {
-        if (originalActions.length != randomArr.length) throw new Error('action and random arrays have different sizes')
+        if (originalActions.length !== randomArr.length)
+            throw new Error('action and random arrays have different sizes')
 
         let { shrunk, result } = this.shrinkRandomwise(initialRand, randomArr)
         if (shrunk) {

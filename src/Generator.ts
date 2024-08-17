@@ -43,7 +43,7 @@ export class Arbitrary<T> implements Generator<T> {
         const self = this
         return new Arbitrary<Array<T>>((rand: Random) => {
             const size = rand.interval(minSize, maxSize)
-            if (size == 0) return new Shrinkable([])
+            if (size === 0) return new Shrinkable([])
 
             let shr = self.generate(rand)
             const shrArr = [shr]
@@ -54,7 +54,7 @@ export class Arbitrary<T> implements Generator<T> {
             return shrinkArrayLength(shrArr, minSize)
                 .andThen(parent => {
                     const shrArr = parent.value
-                    if (shrArr.length == 0) return new Stream()
+                    if (shrArr.length === 0) return new Stream()
                     const lastElemShr = shrArr[shrArr.length - 1]
                     const elemShrinks = lastElemShr.shrinks()
                     if (elemShrinks.isEmpty()) return new Stream()
@@ -239,7 +239,7 @@ export class ArbiContainer<T> implements Generator<T> {
         return new ArbiContainer<Array<T>>(
             (rand: Random) => {
                 const size = rand.interval(minSize, maxSize)
-                if (size == 0) return new Shrinkable([])
+                if (size === 0) return new Shrinkable([])
 
                 let shr = self.generate(rand)
                 const shrArr = [shr]
@@ -250,7 +250,7 @@ export class ArbiContainer<T> implements Generator<T> {
                 return shrinkArrayLength(shrArr, minSize)
                     .andThen(parent => {
                         const shrArr = parent.value
-                        if (shrArr.length == 0) return new Stream()
+                        if (shrArr.length === 0) return new Stream()
                         const lastElemShr = shrArr[shrArr.length - 1]
                         const elemShrinks = lastElemShr.shrinks()
                         if (elemShrinks.isEmpty()) return new Stream()

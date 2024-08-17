@@ -1,8 +1,5 @@
 import { Arbitrary } from '../src/Generator'
-import { interval } from '../src/generator/integer'
-import { stringGen } from '../src/generator/string'
-import { TupleGen } from '../src/generator/tuple'
-import { just } from '../src/combinator/just'
+import { Gen } from '../src'
 import { Property, forAll } from '../src/Property'
 import { Random } from '../src/Random'
 import { Shrinkable } from '../src/Shrinkable'
@@ -13,7 +10,7 @@ describe('property', () => {
             return a < 10 || b.length > 3
         })
 
-        expect(() => prop.setNumRuns(1000).forAll(interval(0, 10), stringGen(0, 10))).toThrow()
+        expect(() => prop.setNumRuns(1000).forAll(Gen.interval(0, 10), Gen.string(0, 10))).toThrow()
     })
 
     it('basic with return', () => {
@@ -50,7 +47,7 @@ describe('property', () => {
     })
 
     it('shrink', () => {
-        const numGen = interval(0, 1000)
+        const numGen = Gen.interval(0, 1000)
         const prop = new Property((a: number, b: number) => {
             return a > 80 || b < 40
         })
@@ -59,7 +56,7 @@ describe('property', () => {
     })
 
     it('shrink2', () => {
-        const numGen = interval(0, 1000)
+        const numGen = Gen.interval(0, 1000)
         const prop = new Property((a: number, b: number) => {
             expect(a > 80 || b < 40).toBe(true)
         })
@@ -69,8 +66,8 @@ describe('property', () => {
 
     it('shrink3', () => {
         const prop = new Property((arg: [number, number]) => arg[1] - arg[0] <= 5)
-        const numGen = interval(-1000000, 1000000)
-        const tupleGen = numGen.flatMap(num => TupleGen(numGen, just(num)))
+        const numGen = Gen.interval(-1000000, 1000000)
+        const tupleGen = numGen.flatMap(num => Gen.tuple(numGen, Gen.just(num)))
         expect(() => prop.forAll(tupleGen)).toThrow()
     })
 
@@ -79,8 +76,8 @@ describe('property', () => {
             forAll((a: number) => {
                 forAll((a: number) => {
                     return a > 80
-                }, just(a))
-            }, interval(0, 1000))
+                }, Gen.just(a))
+            }, Gen.interval(0, 1000))
         ).toThrow()
     })
 
@@ -89,8 +86,8 @@ describe('property', () => {
             forAll((a: number) => {
                 forAll((_: number) => {
                     throw new Error('error!')
-                }, just(a))
-            }, interval(0, 1000))
+                }, Gen.just(a))
+            }, Gen.interval(0, 1000))
         ).toThrow()
     })
 })
