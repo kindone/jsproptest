@@ -6,7 +6,7 @@ export function construct<T, Gens extends Generator<unknown>[]>(
     Type: { new (...args: GenValueTypes<Gens>): T },
     ...gens: Gens
 ): Generator<T> {
-    const tupleGen = TupleGen(...gens).map(tuple => new Type(...(tuple as any)))
+    const tupleGen = TupleGen(...gens).map(tuple => new Type(...tuple))
     return new Arbitrary<T>((rand: Random) => {
         return tupleGen.generate(rand)
     })

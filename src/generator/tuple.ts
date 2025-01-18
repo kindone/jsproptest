@@ -17,7 +17,7 @@ type ShrsFromGens<Gens> = {
 export function TupleGen<Gens extends Generator<unknown>[]>(...elemGens: Gens): Generator<GenValueTypes<Gens>> {
     type Ts = GenValueTypes<Gens>
     return new Arbitrary<Ts>((rand: Random) => {
-        const shrinkables: any[] = elemGens.map(elemGen => elemGen.generate(rand)) as ShrsFromGens<Gens>
+        const shrinkables: Shrinkable<unknown>[] = elemGens.map(elemGen => elemGen.generate(rand)) as ShrsFromGens<Gens>
         return shrinkableTuple(...shrinkables) as Shrinkable<GenValueTypes<Gens>>
     })
 }

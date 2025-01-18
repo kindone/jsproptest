@@ -23,16 +23,14 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     map<U>(transformer: (arg: T) => U): Generator<U> {
-        const self = this
-        return new Arbitrary<U>((rand: Random) => self.generate(rand).map(transformer))
+        return new Arbitrary<U>((rand: Random) => this.generate(rand).map(transformer))
     }
 
     aggregate(genFactory: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<T> {
-        const self = this
         return interval(minSize, maxSize).flatMap(
             size =>
                 new Arbitrary<T>((rand: Random) => {
-                    let shr = self.generate(rand)
+                    let shr = this.generate(rand)
                     for (let i = 1; i < size; i++) shr = genFactory(shr.value).generate(rand)
                     return shr
                 })
@@ -40,12 +38,11 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     accumulate(genFactory: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<Array<T>> {
-        const self = this
         return new Arbitrary<Array<T>>((rand: Random) => {
             const size = rand.interval(minSize, maxSize)
             if (size === 0) return new Shrinkable([])
 
-            let shr = self.generate(rand)
+            let shr = this.generate(rand)
             const shrArr = [shr]
             for (let i = 1; i < size; i++) {
                 shr = genFactory(shr.value).generate(rand)
@@ -69,9 +66,8 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     flatMap<U>(genFactory: (arg: T) => Generator<U>): Generator<U> {
-        const self = this
         return new Arbitrary<U>((rand: Random) => {
-            const intermediate: Shrinkable<Shrinkable<U>> = self
+            const intermediate: Shrinkable<Shrinkable<U>> = this
                 .generate(rand)
                 .map(value => genFactory(value).generate(rand))
             return intermediate
@@ -83,9 +79,8 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     chain<U>(genFactory: (arg: T) => Generator<U>): Generator<[T, U]> {
-        const self = this
         return new Arbitrary<[T, U]>((rand: Random) => {
-            const intermediate: Shrinkable<[T, Shrinkable<U>]> = self
+            const intermediate: Shrinkable<[T, Shrinkable<U>]> = this
                 .generate(rand)
                 .map(value => [value, genFactory(value).generate(rand)])
             return intermediate
@@ -101,9 +96,8 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     chainAsTuple<Ts extends unknown[], U>(genFactory: (arg: Ts) => Generator<U>): Generator<[...Ts, U]> {
-        const self = this
         return new Arbitrary<[...Ts, U]>((rand: Random) => {
-            const intermediate: Shrinkable<[...Ts, Shrinkable<U>]> = self.generate(rand).map(value => {
+            const intermediate: Shrinkable<[...Ts, Shrinkable<U>]> = this.generate(rand).map(value => {
                 if (!Array.isArray(value)) throw new Error('method unsupported for the type')
                 const tuple = (value as unknown) as Ts
                 return [...tuple, genFactory(tuple).generate(rand)]
@@ -124,10 +118,9 @@ export class Arbitrary<T> implements Generator<T> {
     }
 
     filter(filterer: (value: T) => boolean): Generator<T> {
-        const self = this
         return new Arbitrary<T>((rand: Random) => {
             while (true) {
-                const shr = self.generate(rand)
+                const shr = this.generate(rand)
                 if (filterer(shr.value)) return shr.filter(filterer)
             }
         })
@@ -149,15 +142,13 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     map<U>(transformer: (arg: T) => U): Generator<U> {
-        const self = this
-        return new ArbiContainer<U>((rand: Random) => self.generate(rand).map(transformer), this.minSize, this.maxSize)
+        return new ArbiContainer<U>((rand: Random) => this.generate(rand).map(transformer), this.minSize, this.maxSize)
     }
 
     flatMap<U>(genFactory: (arg: T) => Generator<U>): Generator<U> {
-        const self = this
         return new ArbiContainer<U>(
             (rand: Random) => {
-                const intermediate: Shrinkable<Shrinkable<U>> = self
+                const intermediate: Shrinkable<Shrinkable<U>> = this
                     .generate(rand)
                     .map(value => genFactory(value).generate(rand))
                 return intermediate
@@ -174,10 +165,9 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     chain<U>(genFactory: (arg: T) => Generator<U>): Generator<[T, U]> {
-        const self = this
         return new ArbiContainer<[T, U]>(
             (rand: Random) => {
-                const intermediate: Shrinkable<[T, Shrinkable<U>]> = self
+                const intermediate: Shrinkable<[T, Shrinkable<U>]> = this
                     .generate(rand)
                     .map(value => [value, genFactory(value).generate(rand)])
                 return intermediate
@@ -196,9 +186,8 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     chainAsTuple<Ts extends unknown[], U>(genFactory: (arg: Ts) => Generator<U>): Generator<[...Ts, U]> {
-        const self = this
         return new Arbitrary<[...Ts, U]>((rand: Random) => {
-            const intermediate: Shrinkable<[...Ts, Shrinkable<U>]> = self.generate(rand).map(value => {
+            const intermediate: Shrinkable<[...Ts, Shrinkable<U>]> = this.generate(rand).map(value => {
                 if (!Array.isArray(value)) throw new Error('method unsupported for the type')
                 const tuple = (value as unknown) as Ts
                 return [...tuple, genFactory(tuple).generate(rand)]
@@ -219,12 +208,11 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     aggregate(genFactory: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<T> {
-        const self = this
         return interval(minSize, maxSize).flatMap(
             size =>
                 new ArbiContainer<T>(
                     (rand: Random) => {
-                        let shr = self.generate(rand)
+                        let shr = this.generate(rand)
                         for (let i = 1; i < size; i++) shr = genFactory(shr.value).generate(rand)
                         return shr
                     },
@@ -235,13 +223,12 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     accumulate(genFactory: (arg: T) => Generator<T>, minSize: number, maxSize: number): Generator<Array<T>> {
-        const self = this
         return new ArbiContainer<Array<T>>(
             (rand: Random) => {
                 const size = rand.interval(minSize, maxSize)
                 if (size === 0) return new Shrinkable([])
 
-                let shr = self.generate(rand)
+                let shr = this.generate(rand)
                 const shrArr = [shr]
                 for (let i = 1; i < size; i++) {
                     shr = genFactory(shr.value).generate(rand)
@@ -268,12 +255,11 @@ export class ArbiContainer<T> implements Generator<T> {
     }
 
     filter(filterer: (value: T) => boolean): Generator<T> {
-        const self = this
         return new ArbiContainer<T>(
             (rand: Random) => {
                 while (true) {
-                    const shr = self.generate(rand)
-                    if (filterer(shr.value)) return self.generate(rand).filter(filterer)
+                    const shr = this.generate(rand)
+                    if (filterer(shr.value)) return this.generate(rand).filter(filterer)
                 }
             },
             this.minSize,

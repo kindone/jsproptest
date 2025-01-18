@@ -35,39 +35,39 @@ export { SimpleActionGenOrFactory, ActionGenOrFactory } from './stateful/actiono
 export { simpleStatefulProperty, statefulProperty } from './stateful/statefultest'
 export { precond } from './util/assert'
 
-export namespace Gen {
-    export const boolean = BooleanGen
-    export const inRange = InRange
-    export const integers = Integers
-    export const interval = Interval
-    export const float = FloatingGen
+export const Gen = {
+    boolean: BooleanGen,
+    inRange: InRange,
+    integers: Integers,
+    interval: Interval,
+    float: FloatingGen,
 
-    export const ascii = ASCIICharGen
-    export const unicode = UnicodeCharGen
-    export const printableAscii = PrintableASCIICharGen
+    ascii: ASCIICharGen,
+    unicode: UnicodeCharGen,
+    printableAscii: PrintableASCIICharGen,
 
-    export const string = StringGen
-    export const asciiString = ASCIIStringGen
-    export const unicodeString = UnicodeStringGen
-    export const printableAsciiString = PrintableASCIIStringGen
+    string: StringGen,
+    asciiString: ASCIIStringGen,
+    unicodeString: UnicodeStringGen,
+    printableAsciiString: PrintableASCIIStringGen,
 
-    export const array = ArrayGen
-    export const uniqueArray = UniqueArrayGen
-    export const set = SetGen
-    export const tuple = TupleGen
-    export const dictionary = DictionaryGen
+    array: ArrayGen,
+    uniqueArray: UniqueArrayGen,
+    set: SetGen,
+    tuple: TupleGen,
+    dictionary: DictionaryGen,
 
     // stateful
-    export const simpleActionOf = SimpleActionGenOf
-    export const actionOf = ActionGenOf
+    simpleActionOf: SimpleActionGenOf,
+    actionOf: ActionGenOf,
 
     // combinators
-    export const construct = Construct
-    export const elementOf = ElementOf
-    export const weightedValue = WeightedValue
-    export const oneOf = OneOf
-    export const weightedGen = WeightedGen
-    export const lazy = Lazy
-    export const just = Just
-    export const chainTuple = ChainTuple
+    construct: Construct,
+    elementOf: ElementOf,
+    weightedValue: WeightedValue,
+    oneOf: OneOf,
+    weightedGen: WeightedGen,
+    lazy: Lazy,
+    just: Just,
+    chainTuple: ChainTuple
 } // namespace Gen

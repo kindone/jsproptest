@@ -45,7 +45,7 @@ export class Stream<T> {
     filter(criteria: (_: T) => boolean): Stream<T> {
         if (this.isEmpty()) return Stream.empty<T>()
         else {
-            for (var itr = this.iterator(); itr.hasNext(); ) {
+            for (const itr = this.iterator(); itr.hasNext(); ) {
                 const value = itr.next()
                 if (criteria(value)) {
                     const stream = itr.stream

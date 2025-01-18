@@ -90,7 +90,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (this.minActions <= 0 || this.minActions > this.maxActions)
             throw new Error('invalid minSize or maxSize: ' + this.minActions + ', ' + this.maxActions)
 
-        var rand = this.seed === '' ? new Random() : new Random(this.seed)
+        const rand = this.seed === '' ? new Random() : new Random(this.seed)
 
         for (let i = 0; i < this.numRuns; i++) {
             const savedRand = rand.clone()
@@ -159,6 +159,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (originalActions.length !== randomArr.length)
             throw new Error('action and random arrays have different sizes')
 
+        /* eslint-disable-next-line prefer-const */
         let { shrunk, result } = this.shrinkRandomwise(initialRand, randomArr)
         if (shrunk) {
             result = this.shrinkInitialObject(initialRand, result!)
@@ -198,7 +199,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         let shrunk = false
         let result: TestResult | undefined
         while (!shrinks.isEmpty()) {
-            let iter = shrinks.iterator()
+            const iter = shrinks.iterator()
             let shrinkFound = false
             while (iter.hasNext()) {
                 nextArrayShr = iter.next()
@@ -224,7 +225,7 @@ export class StatefulProperty<ObjectType, ModelType> {
         let result: TestResult = prevTestResult
         const steps: number[] = []
         while (!shrinks.isEmpty()) {
-            let iter = shrinks.iterator()
+            const iter = shrinks.iterator()
             let step = 0
             let shrinkFound = false
             while (iter.hasNext()) {
@@ -253,7 +254,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     private testWithInitial(initialRand: Random, steps: number[], randoms: Random[]): boolean | TestResult {
-        let actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
+        const actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
         try {
             if (this.onStartup) this.onStartup()
 
@@ -268,7 +269,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             for (const rand of randoms) {
                 let action: Action<ObjectType, ModelType>
                 try {
-                    let actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    const actionShr = this.actionGenFactory(obj, model).generate(rand)
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
@@ -293,7 +294,7 @@ export class StatefulProperty<ObjectType, ModelType> {
      * @return true iff action sequence is ok, false iff a generation error occurred, error iff a non-generation error occurred
      */
     private testWithRandoms(initialRand: Random, randoms: Random[]): boolean | TestResult {
-        let actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
+        const actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
         try {
             if (this.onStartup) this.onStartup()
 
@@ -306,7 +307,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             for (const rand of randoms) {
                 let action: Action<ObjectType, ModelType>
                 try {
-                    let actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    const actionShr = this.actionGenFactory(obj, model).generate(rand)
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {

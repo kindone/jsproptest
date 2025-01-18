@@ -2,7 +2,7 @@ import { Arbitrary, Generator } from '../Generator'
 import { Random } from '../Random'
 import { Shrinkable } from '../Shrinkable'
 
-export function chainTuple<Ts extends any[], U>(
+export function chainTuple<Ts extends unknown[], U>(
     tupleGen: Generator<Ts>,
     genFactory: (arg: Ts) => Generator<U>
 ): Generator<[...Ts, U]> {
@@ -20,7 +20,7 @@ export function chainTuple<Ts extends any[], U>(
             })
             .map(tupleWithShrU => [
                 ...(tupleWithShrU.slice(0, tupleWithShrU.length - 1) as Ts),
-                tupleWithShrU[tupleWithShrU.length - 1].value as U,
+                (tupleWithShrU[tupleWithShrU.length - 1] as Shrinkable<U>).value as U,
             ])
     })
 }

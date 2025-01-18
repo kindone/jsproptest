@@ -17,11 +17,11 @@ function getMantissa(value: number) {
 function shrinkableFloatStream(value: number): Stream<Shrinkable<number>> {
     if (value === 0.0) {
         return Stream.empty<Shrinkable<number>>()
-    } else if (value === Number.NaN) {
+    } else if (Number.isNaN(value)) {
         return Stream.one(new Shrinkable<number>(0.0))
     } else {
-        var fraction = 0.0
-        var exponent = 0
+        let fraction = 0.0
+        let exponent = 0
         if (value === Number.POSITIVE_INFINITY) {
             const max = Number.MAX_VALUE
             exponent = getExponent(max)
@@ -36,7 +36,7 @@ function shrinkableFloatStream(value: number): Stream<Shrinkable<number>> {
         }
 
         const expShrinkable = binarySearchShrinkable(exponent)
-        var doubleShrinkable = expShrinkable.map(exp => fraction * Math.pow(2.0, exp))
+        let doubleShrinkable = expShrinkable.map(exp => fraction * Math.pow(2.0, exp))
         // prepend 0.0
         doubleShrinkable = doubleShrinkable.with(() => {
             const zero = Stream.one(new Shrinkable(0.0))

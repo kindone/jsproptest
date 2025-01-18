@@ -30,7 +30,7 @@ export function normalizeWeightedValues<T>(arr: Array<T | WeightedValue<T>>): We
     if (sum < 0.0 || sum >= 1.0) throw Error('invalid weights')
 
     if (numUnassigned > 0) {
-        let rest = 1.0 - sum
+        const rest = 1.0 - sum
         const perUnassigned = rest / numUnassigned
         weightedValues = weightedValues.map(weightedGenerator => {
             if (weightedGenerator.weight === 0.0) return new WeightedValue(weightedGenerator.value, perUnassigned)

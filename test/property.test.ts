@@ -92,19 +92,27 @@ describe('property', () => {
     })
 
     it('fastcheck shrink scenario 1', () => {
-
         expect(() =>
-            forAll((tup:[number, number]) => {
-                return tup[1] - tup[0] <= 5
-            }, Gen.tuple(Gen.interval(0, 100000), Gen.interval(0, 100000)).map(([v1, v2]) => ([v1 < v2 ? v1 : v2, v1 < v2 ? v2 : v1])))
+            forAll(
+                (tup: [number, number]) => {
+                    return tup[1] - tup[0] <= 5
+                },
+                Gen.tuple(Gen.interval(0, 100000), Gen.interval(0, 100000)).map(([v1, v2]) => [
+                    v1 < v2 ? v1 : v2,
+                    v1 < v2 ? v2 : v1,
+                ])
+            )
         ).toThrow()
     })
 
     it('fastcheck shrink scenario 2', () => {
         expect(() =>
-            forAll((tup:[number, number]) => {
-                return tup[1] - tup[0] <= 5
-            }, Gen.interval(0, 100000).flatMap((a:number) => Gen.tuple(Gen.interval(0, a), Gen.just(a))))
+            forAll(
+                (tup: [number, number]) => {
+                    return tup[1] - tup[0] <= 5
+                },
+                Gen.interval(0, 100000).flatMap((a: number) => Gen.tuple(Gen.interval(0, a), Gen.just(a)))
+            )
         ).toThrow()
     })
 })

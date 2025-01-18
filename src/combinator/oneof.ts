@@ -61,7 +61,7 @@ export function oneOf<T>(...generators: Generator<T>[]): Generator<T> {
     if (sum < 0.0 || sum >= 1.0) throw Error('invalid weights')
 
     if (numUnassigned > 0) {
-        let rest = 1.0 - sum
+        const rest = 1.0 - sum
         const perUnassigned = rest / numUnassigned
         weightedGenerators = weightedGenerators.map(weightedGenerator => {
             if (weightedGenerator.weight === 0.0) return new Weighted(weightedGenerator.gen, perUnassigned)

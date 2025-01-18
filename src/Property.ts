@@ -9,7 +9,7 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
 
 class ShrinkResult {
     readonly isSucessful: boolean
-    constructor(readonly args: any[], readonly error?: object, readonly failedArgs?: [number, string][]) {
+    constructor(readonly args: unknown[], readonly error?: object, readonly failedArgs?: [number, string][]) {
         this.isSucessful = typeof error !== 'undefined'
     }
 }
@@ -25,17 +25,17 @@ export class Property<ARGS extends unknown[]> {
     constructor(readonly func: PropertyFunction<ARGS> | PropertyFunctionVoid<ARGS>) {}
 
     forAll<GENS extends Generator<unknown>[]>(...gens: GENS): boolean {
-        var random = this.seed === '' ? new Random() : new Random(this.seed)
+        const random = this.seed === '' ? new Random() : new Random(this.seed)
         // console.log("func", this.func.length)
         // console.log("gens", gens)
-        var numPrecondFailures = 0
-        var result: boolean | object = true
+        let numPrecondFailures = 0
+        let result: boolean | object = true
         for (let i = 0; i < this.numRuns; i++) {
-            var savedRandom = random.clone()
+            const savedRandom = random.clone()
             if (this.onStartup) this.onStartup()
             const shrinkables = gens.map((gen: Generator<unknown>) => gen.generate(random))
             // console.log("shrinkables", shrinkables)
-            var args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
+            const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
             if (this.func.length !== args.length)
                 throw new Error(
                     'forAll(): number of function parameters (' +
@@ -82,7 +82,7 @@ export class Property<ARGS extends unknown[]> {
             const maybe_result = func(...(args as ARGS))
             if (typeof maybe_result !== 'undefined') return maybe_result
             else return true
-        } catch (e) {
+        } catch {
             return false
         }
     }
@@ -112,12 +112,12 @@ export class Property<ARGS extends unknown[]> {
     }
 
     private shrink<GENS extends Generator<unknown>[]>(savedRandom: Random, ...gens: GENS): ShrinkResult {
-        var shrinkables = gens
+        const shrinkables = gens
             .map((gen: Generator<unknown>) => gen.generate(savedRandom))
             .map((shr: Shrinkable<unknown>) => shr)
             .concat()
 
-        const failedArgs:[number, string][] = []
+        const failedArgs: [number, string][] = []
 
         const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
@@ -125,7 +125,7 @@ export class Property<ARGS extends unknown[]> {
         for (let n = 0; n < shrinkables.length; n++) {
             let shrinks = shrinkables[n].shrinks()
             while (!shrinks.isEmpty()) {
-                let iter = shrinks.iterator()
+                const iter = shrinks.iterator()
                 let shrinkFound = false
                 while (iter.hasNext()) {
                     const next = iter.next()
@@ -188,12 +188,16 @@ export class Property<ARGS extends unknown[]> {
     private processFailureAsError(result: object | boolean, shrinkResult: ShrinkResult): Error {
         // shrink
         if (shrinkResult.isSucessful) {
-            const shrinkLines = shrinkResult.failedArgs?.map(([n, args]) => {
-                return `  shrinking found simpler failing arg ${n}: ${args}`;
-            }) || [];
+            const shrinkLines =
+                shrinkResult.failedArgs?.map(([n, args]) => {
+                    return `  shrinking found simpler failing arg ${n}: ${args}`
+                }) || []
 
             const newError = new Error(
-                'property failed (simplest args found by shrinking): ' + JSONStringify(shrinkResult.args) + '\n' + shrinkLines.join('\n')
+                'property failed (simplest args found by shrinking): ' +
+                    JSONStringify(shrinkResult.args) +
+                    '\n' +
+                    shrinkLines.join('\n')
             )
             const error = shrinkResult.error as Error
             newError.message += '\n  ' // + error.message

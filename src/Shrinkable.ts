@@ -40,11 +40,10 @@ export class Shrinkable<T> {
      * @returns a new shrinkable with the concatenation of each stream in shrinkable tree and the given stream
      */
     concat(then: (_: Shrinkable<T>) => Stream<Shrinkable<T>>): Shrinkable<T> {
-        const self = this
         return this.with(() =>
             this.shrinks()
                 .transform(shr => shr.concat(then))
-                .concat(then(self))
+                .concat(then(this))
         )
     }
 
@@ -126,7 +125,7 @@ export class Shrinkable<T> {
      * @return the child shrinkable at the given steps
      * */
     retrieve(steps: number[]): Shrinkable<T> {
-        let shr: Shrinkable<T> = this
+        let shr: Shrinkable<T> = this // eslint-disable-line @typescript-eslint/no-this-alias
         for (let i = 0; i < steps.length; i++) {
             shr = Try(() => shr.getNthChild(steps[i])).getOrThrow(
                 e => new Error('Shrinkable retrieval failed at step ' + i + ': ' + e.toString())

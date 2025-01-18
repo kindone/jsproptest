@@ -34,7 +34,7 @@ export class Action<ObjectType, ModelType> {
 export type SimpleActionGen<ObjectType> = Generator<SimpleAction<ObjectType>>
 export type ActionGen<ObjectType, ModelType> = Generator<Action<ObjectType, ModelType>>
 
-export type EmptyModel = {}
+export type EmptyModel = {} // eslint-disable-line @typescript-eslint/no-empty-object-type
 
 export class StatefulPropertyDeprecated<ObjectType, ModelType> {
     private seed: string = ''
@@ -90,9 +90,7 @@ export class StatefulPropertyDeprecated<ObjectType, ModelType> {
             const obj = statefulArgs.initial
             const actions = statefulArgs.actions
             const model = this.modelFactory(obj)
-            actions.map(action => {
-                return action.call(obj, model)
-            })
+            actions.map(action => action.call(obj, model))
             if (this.postCheck) this.postCheck(obj, model)
             return true
         })

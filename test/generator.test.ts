@@ -42,12 +42,12 @@ describe('generator', () => {
         }
 
         // Check that the generated values cover a reasonable range
-        const minValue = Math.min(...generatedValues);
-        const maxValue = Math.max(...generatedValues);
+        const minValue = Math.min(...generatedValues)
+        const maxValue = Math.max(...generatedValues)
 
         // Assert that the minimum and maximum values are within a reasonable range
-        expect(minValue).toBeGreaterThanOrEqual(-Number.MAX_VALUE);
-        expect(maxValue).toBeLessThanOrEqual(Number.MAX_VALUE);
+        expect(minValue).toBeGreaterThanOrEqual(-Number.MAX_VALUE)
+        expect(maxValue).toBeLessThanOrEqual(Number.MAX_VALUE)
 
         // Define regions for checking distribution
         const regions = [
@@ -58,22 +58,22 @@ describe('generator', () => {
             { range: [10, 100], count: 0 },
             { range: [100, 1000], count: 0 },
             { range: [1000, Number.MAX_VALUE], count: 0 },
-        ];
+        ]
 
         // Count the number of generated values in each region
         generatedValues.forEach(value => {
             for (const region of regions) {
                 if (value > region.range[0] && value <= region.range[1]) {
-                    region.count++;
-                    break;
+                    region.count++
+                    break
                 }
             }
-        });
+        })
         // Check that the upper regions have more values than lower regions
-        expect(regions[6].count).toBeGreaterThanOrEqual(regions[5].count); // More in (1000, MAX_VALUE] than in [100, 1000]
-        expect(regions[5].count).toBeGreaterThanOrEqual(regions[4].count); // More in (100, 1000] than in [10, 100]
-        expect(regions[4].count).toBeGreaterThanOrEqual(regions[3].count); // More in (10, 100] than in [1, 10]
-        expect(regions[3].count).toBeGreaterThanOrEqual(regions[2].count); // More in (1, 10] than in [0, 1]
+        expect(regions[6].count).toBeGreaterThanOrEqual(regions[5].count) // More in (1000, MAX_VALUE] than in [100, 1000]
+        expect(regions[5].count).toBeGreaterThanOrEqual(regions[4].count) // More in (100, 1000] than in [10, 100]
+        expect(regions[4].count).toBeGreaterThanOrEqual(regions[3].count) // More in (10, 100] than in [1, 10]
+        expect(regions[3].count).toBeGreaterThanOrEqual(regions[2].count) // More in (1, 10] than in [0, 1]
     })
 
     it('integer small', () => {
@@ -166,9 +166,9 @@ describe('generator', () => {
 
         // Use forAll to ensure the generated set meets the size requirements
         forAll((set: Set<number>) => {
-            expect(set.size).toBeGreaterThanOrEqual(4);
-            expect(set.size).toBeLessThanOrEqual(8);
-            expect(Array.from(set).every(num => num >= 0 && num <= 8)).toBe(true); // Check element constraints
+            expect(set.size).toBeGreaterThanOrEqual(4)
+            expect(set.size).toBeLessThanOrEqual(8)
+            expect(Array.from(set).every(num => num >= 0 && num <= 8)).toBe(true) // Check element constraints
         }, gen)
     })
 
@@ -178,10 +178,10 @@ describe('generator', () => {
 
         // Use forAll to ensure the generated dictionary meets the size requirements
         forAll((dict: Record<string, number>) => {
-            const size = Object.keys(dict).length;
-            expect(size).toBeGreaterThanOrEqual(4);
-            expect(size).toBeLessThanOrEqual(8);
-            expect(Object.values(dict).every(value => value >= 0 && value <= 4)).toBe(true); // Check value constraints
+            const size = Object.keys(dict).length
+            expect(size).toBeGreaterThanOrEqual(4)
+            expect(size).toBeLessThanOrEqual(8)
+            expect(Object.values(dict).every(value => value >= 0 && value <= 4)).toBe(true) // Check value constraints
         }, gen)
     })
 
@@ -191,9 +191,9 @@ describe('generator', () => {
         const gen = Gen.tuple(numGen, boolGen)
 
         forAll(([num, bool]: [number, boolean]) => {
-            expect(num).toBeGreaterThanOrEqual(0);
-            expect(num).toBeLessThanOrEqual(3);
-            expect(typeof bool).toBe('boolean');
+            expect(num).toBeGreaterThanOrEqual(0)
+            expect(num).toBeLessThanOrEqual(3)
+            expect(typeof bool).toBe('boolean')
         }, gen)
     })
 
@@ -204,11 +204,10 @@ describe('generator', () => {
         const gen = Gen.tuple(...gens)
 
         forAll((bigTuple: number[]) => {
-            expect(bigTuple.length).toBe(800);
-            expect(bigTuple.every(num => num >= 0 && num <= 3)).toBe(true); // Check element constraints
+            expect(bigTuple.length).toBe(800)
+            expect(bigTuple.every(num => num >= 0 && num <= 3)).toBe(true) // Check element constraints
         }, gen)
     })
-
 
     // Function to calculate the number of combinations of n items taken r at a time.
     // This is based on the combinatorial formula C(n, r) = n! / (r! * (n - r)!).
@@ -264,13 +263,13 @@ describe('generator', () => {
                     numTotal++
 
                     // Check that the shrunk value adheres to the original constraints
-                    expect(shrinkable.value.size).toBeGreaterThanOrEqual(minSize);
-                    expect(shrinkable.value.size).toBeLessThanOrEqual(maxSize);
-                    expect(Array.from(shrinkable.value).every(num => num >= 0 && num <= 99)).toBe(true); // Check element constraints
+                    expect(shrinkable.value.size).toBeGreaterThanOrEqual(minSize)
+                    expect(shrinkable.value.size).toBeLessThanOrEqual(maxSize)
+                    expect(Array.from(shrinkable.value).every(num => num >= 0 && num <= 99)).toBe(true) // Check element constraints
 
                     const str = JSONStringify(shrinkable.value)
                     if (set.has(str)) {
-                        throw new Error(str + ' already exists in the shrinks');
+                        throw new Error(str + ' already exists in the shrinks')
                     }
                     set.add(str)
                 })
@@ -287,7 +286,7 @@ describe('generator', () => {
         const tupleGen = numGen.filter(n => n === 3)
 
         forAll((value: number) => {
-            expect(value).toBe(3);
+            expect(value).toBe(3)
         }, tupleGen)
     })
 
@@ -301,9 +300,9 @@ describe('generator', () => {
         )
 
         forAll(([num, product]: [number, number]) => {
-            expect(num).toBeGreaterThanOrEqual(0);
-            expect(num).toBeLessThanOrEqual(3);
-            expect(product).toBe(num * 2);
+            expect(num).toBeGreaterThanOrEqual(0)
+            expect(num).toBeLessThanOrEqual(3)
+            expect(product).toBe(num * 2)
         }, tupleGen)
     })
 
@@ -316,8 +315,8 @@ describe('generator', () => {
         }
 
         forAll((value: number) => {
-            expect(value).toBeGreaterThanOrEqual(0);
-            expect(value).toBeLessThanOrEqual(20); // Adjust based on the expected range
+            expect(value).toBeGreaterThanOrEqual(0)
+            expect(value).toBeLessThanOrEqual(20) // Adjust based on the expected range
         }, gen1)
     })
 
@@ -333,9 +332,9 @@ describe('generator', () => {
         )
 
         forAll((generatedArray: number[]) => {
-            expect(generatedArray.length).toBeGreaterThanOrEqual(2);
-            expect(generatedArray.length).toBeLessThanOrEqual(4);
-            expect(generatedArray.every((num, index) => index === 0 || num >= generatedArray[index - 1])).toBe(true); // Ensure non-decreasing order
+            expect(generatedArray.length).toBeGreaterThanOrEqual(2)
+            expect(generatedArray.length).toBeLessThanOrEqual(4)
+            expect(generatedArray.every((num, index) => index === 0 || num >= generatedArray[index - 1])).toBe(true) // Ensure non-decreasing order
         }, gen)
     })
 
@@ -344,9 +343,9 @@ describe('generator', () => {
         const gen: Generator<number[]> = gen1.accumulate(num => Gen.interval(num, num + 2), 2, 4)
 
         forAll((generatedArray: number[]) => {
-            expect(generatedArray.length).toBeGreaterThanOrEqual(2);
-            expect(generatedArray.length).toBeLessThanOrEqual(4);
-            expect(generatedArray.every((num, index) => index === 0 || num >= generatedArray[index - 1])).toBe(true); // Ensure non-decreasing order
+            expect(generatedArray.length).toBeGreaterThanOrEqual(2)
+            expect(generatedArray.length).toBeLessThanOrEqual(4)
+            expect(generatedArray.every((num, index) => index === 0 || num >= generatedArray[index - 1])).toBe(true) // Ensure non-decreasing order
         }, gen)
     })
 
@@ -356,9 +355,9 @@ describe('generator', () => {
 
         // Use forAll to ensure the generated arrays meet the size requirements
         forAll((_nums: number[]): void => {
-            expect(_nums.length).toBeGreaterThanOrEqual(2);
-            expect(_nums.length).toBeLessThanOrEqual(4);
-            expect(_nums.every((num, index) => index === 0 || num >= _nums[index - 1])).toBe(true); // Ensure non-decreasing order
+            expect(_nums.length).toBeGreaterThanOrEqual(2)
+            expect(_nums.length).toBeLessThanOrEqual(4)
+            expect(_nums.every((num, index) => index === 0 || num >= _nums[index - 1])).toBe(true) // Ensure non-decreasing order
         }, gen)
     })
 })

@@ -10,8 +10,6 @@ export class Random {
         32767,
         -2147483648,
         2147483647,
-        -9223372036854775808,
-        9223372036854775807,
         Number.MIN_SAFE_INTEGER,
         Number.MAX_SAFE_INTEGER,
     ]
