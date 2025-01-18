@@ -4,7 +4,7 @@ import { shrinkableFloat } from '../shrinker/floating'
 
 export function FloatingGen(): Generator<number> {
     return new Arbitrary<number>((random: Random) => {
-        const value = random.nextProb() * random.nextInt()
+        const value = random.nextNumber()
         return shrinkableFloat(value)
     })
 }

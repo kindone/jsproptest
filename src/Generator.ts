@@ -33,7 +33,7 @@ export class Arbitrary<T> implements Generator<T> {
             size =>
                 new Arbitrary<T>((rand: Random) => {
                     let shr = self.generate(rand)
-                    for (let i = 0; i < size; i++) shr = genFactory(shr.value).generate(rand)
+                    for (let i = 1; i < size; i++) shr = genFactory(shr.value).generate(rand)
                     return shr
                 })
         )
@@ -225,7 +225,7 @@ export class ArbiContainer<T> implements Generator<T> {
                 new ArbiContainer<T>(
                     (rand: Random) => {
                         let shr = self.generate(rand)
-                        for (let i = 0; i < size; i++) shr = genFactory(shr.value).generate(rand)
+                        for (let i = 1; i < size; i++) shr = genFactory(shr.value).generate(rand)
                         return shr
                     },
                     minSize,

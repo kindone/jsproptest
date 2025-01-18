@@ -9,7 +9,7 @@ type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
 
 class ShrinkResult {
     readonly isSucessful: boolean
-    constructor(readonly args: any[], readonly error?: object) {
+    constructor(readonly args: any[], readonly error?: object, readonly failedArgs?: [number, string][]) {
         this.isSucessful = typeof error !== 'undefined'
     }
 }
@@ -55,7 +55,7 @@ export class Property<ARGS extends unknown[]> {
                 result = e as Error
                 if (result instanceof PreconditionError) numPrecondFailures++
 
-                if (numPrecondFailures % this.numRuns === 0)
+                if (numPrecondFailures > 0 && numPrecondFailures % this.numRuns === 0)
                     console.info('Number of precondition failure exceeding ' + numPrecondFailures)
             }
             // failed
@@ -117,6 +117,8 @@ export class Property<ARGS extends unknown[]> {
             .map((shr: Shrinkable<unknown>) => shr)
             .concat()
 
+        const failedArgs:[number, string][] = []
+
         const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false
         let result: boolean | object = true
@@ -137,17 +139,19 @@ export class Property<ARGS extends unknown[]> {
                     }
                 }
                 if (shrinkFound) {
+                    // console.log(`  shrinking found simpler failing arg ${n}: ${JSON.stringify(args)}`);
+                    failedArgs.push([n, JSONStringify(args)])
                     shrunk = true
                 } else break
             }
         }
         if (shrunk) {
             if (typeof result === 'object') {
-                return new ShrinkResult(args, result)
+                return new ShrinkResult(args, result, failedArgs)
             } else {
                 const error = new Error('  property returned false\n')
                 Error.captureStackTrace(error, this.forAll)
-                return new ShrinkResult(args, error)
+                return new ShrinkResult(args, error, failedArgs)
             }
         } else return new ShrinkResult(args)
     }
@@ -184,8 +188,12 @@ export class Property<ARGS extends unknown[]> {
     private processFailureAsError(result: object | boolean, shrinkResult: ShrinkResult): Error {
         // shrink
         if (shrinkResult.isSucessful) {
+            const shrinkLines = shrinkResult.failedArgs?.map(([n, args]) => {
+                return `  shrinking found simpler failing arg ${n}: ${args}`;
+            }) || [];
+
             const newError = new Error(
-                'property failed (simplest args found by shrinking): ' + JSONStringify(shrinkResult.args)
+                'property failed (simplest args found by shrinking): ' + JSONStringify(shrinkResult.args) + '\n' + shrinkLines.join('\n')
             )
             const error = shrinkResult.error as Error
             newError.message += '\n  ' // + error.message
