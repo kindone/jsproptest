@@ -85,7 +85,7 @@ describe('stateful', () => {
             return { count: obj.length }
         }
         const prop = statefulProperty(Gen.array(Gen.integers(0, 10000), 0, 20), modelFactory, actionGen)
-        prop.setVerbosity(true)
+        prop.setVerbosity(false)
             .setMaxActions(200)
             .go()
         prop.setOnStartup(() => console.log('startup'))

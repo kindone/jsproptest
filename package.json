@@ -1,6 +1,6 @@
 {
   "name": "jsproptest",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "description": "Javascript Property-based Testing",
   "author": "Won-Wook Hong",
   "license": "MIT",
@@ -9,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/kindone/tsproptest.git"
+    "url": "http://github.com/kindone/jsproptest.git"
   },
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

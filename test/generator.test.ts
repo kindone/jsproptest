@@ -6,14 +6,7 @@ import { JSONStringify } from '../src/util/JSON'
 import { exhaustive } from './testutil'
 import { Shrinkable } from '../src/Shrinkable'
 
-// function print<T>(rand: Random, generator: Generator<T>, num: number = 20) {
-//     const arr: string[] = []
-//     for (let i = 0; i < num; i++) arr.push('{' + JSONStringify(generator.generate(rand).value) + '}')
-
-//     console.log(arr.toString())
-// }
-
-describe('generator', () => {
+describe('primitive generators', () => {
     const rand = new Random()
 
     it('boolean', () => {
@@ -132,6 +125,10 @@ describe('generator', () => {
         }
         expect(set2.size).toBe(11)
     })
+})
+
+describe('container generators', () => {
+    const rand = new Random()
 
     it('array', () => {
         const elemGen = Gen.interval(0, 5)
@@ -208,6 +205,11 @@ describe('generator', () => {
             expect(bigTuple.every(num => num >= 0 && num <= 3)).toBe(true) // Check element constraints
         }, gen)
     })
+
+})
+
+describe('combinators', () => {
+    const rand = new Random()
 
     // Function to calculate the number of combinations of n items taken r at a time.
     // This is based on the combinatorial formula C(n, r) = n! / (r! * (n - r)!).

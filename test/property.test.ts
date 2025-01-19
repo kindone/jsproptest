@@ -24,10 +24,11 @@ describe('property', () => {
             return true
         })
 
-        prop.forAll(genNumber, genNumber)
         prop.example(6, 7)
+        expect(arr.length).toBe(1)
+        expect(arr[0]).toEqual([6, 7])
 
-        console.log(arr.toString())
+        prop.forAll(genNumber, genNumber)
     })
 
     it('basic without return', () => {
@@ -40,10 +41,12 @@ describe('property', () => {
             arr.push([a, b])
         })
 
-        prop.forAll(genNumber, genNumber)
         prop.example(6, 7)
+        expect(arr.length).toBe(1)
+        expect(arr[0]).toEqual([6, 7])
 
-        console.log(arr.toString())
+        prop.forAll(genNumber, genNumber)
+
     })
 
     it('shrink', () => {
