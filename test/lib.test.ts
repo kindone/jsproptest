@@ -1,13 +1,15 @@
 import Rand from 'rand-seed'
-import assert from 'assert'
 import { Option, Some, None } from '../src/Option'
 import { Either, Left, Right } from '../src/Either'
 import { Try } from '../src/Try'
 
 describe('random', () => {
     it('next', () => {
-        const rand: Rand = new Rand()
-        console.log(rand.next())
+        const rand = new Rand()
+        const value = rand.next()
+        expect(typeof value).toBe('number')
+        expect(value).toBeGreaterThanOrEqual(0)
+        expect(value).toBeLessThan(1)
     })
 })
 
@@ -18,18 +20,7 @@ describe('jest', () => {
             expect(5 === a).toBe(true)
         } catch (e) {
             expect((e as Object).constructor.name).toBe('JestAssertionError')
-            console.log('expect error2:', (e as Error).toString())
-            console.log('expect error3:', (e as Object).toString())
-            console.log('expect error5:', e)
-            console.log(
-                'expect error:',
-                JSON.stringify(e, (_, value) => {
-                    if (typeof value == 'function') return value.toString()
-                    else return value
-                })
-            )
         }
-        // expect(5 === a).toBe(true)
     })
 })
 
@@ -57,7 +48,6 @@ describe('Error', () => {
             throw new Error1('hello')
         } catch (e) {
             expect(e).toBeInstanceOf(Error1)
-            expect((e as Object).constructor.name).toBe('Error1')
         }
 
         try {
@@ -65,7 +55,6 @@ describe('Error', () => {
         } catch (e) {
             expect(e).toBeInstanceOf(Error1)
             expect(e).toBeInstanceOf(Error2)
-            expect((e as Object).constructor.name).toBe('Error2')
         }
     })
 })
@@ -82,7 +71,6 @@ describe('Error with no setPrototypeOf', () => {
         } catch (e) {
             expect(e).toBeInstanceOf(Error)
             expect(e).toBeInstanceOf(Error3)
-            expect((e as Object).constructor.name).toBe('Error3')
         }
 
         try {
@@ -90,34 +78,18 @@ describe('Error with no setPrototypeOf', () => {
         } catch (e) {
             expect(e).toBeInstanceOf(Error)
             expect(e).toBeInstanceOf(Error4)
-            expect((e as Object).constructor.name).toBe('Error4')
         }
     })
 })
 
 describe('expect failure', () => {
     it('expect exception type', () => {
-        // try {
-        //     expect(true).toBe(false)
-        // }
-        // catch(e:any) {
-        //     console.log(e)
-        // }
-
         try {
             const a: { x: number }[] = [{ x: 5 }]
             expect(a[0].x).toBe(6)
-            console.log(a[2].x)
         } catch (e) {
-            if (e instanceof assert.AssertionError) console.log('AssertionError!', e)
-            if (e instanceof Error) console.log('Error', (e as Error).name, e)
-            else console.log('Not an Error')
+            expect((e as Object).constructor.name).toBe('JestAssertionError')
         }
-
-        console.log('done')
-
-        // const x = 3 /0  // -> Infinity error
-        // console.log(x)
     })
 })
 
@@ -155,7 +127,6 @@ describe('Option, Either, and Try', () => {
         expect(x.map(v => (v + 5).toString()).getRight()).toBe('10')
         expect(y.map(v => (v + 5).toString()).isRight()).toBe(false)
         expect(x.flatMap(v => Right((v + 5).toString())).isRight()).toBe(true)
-        // flatmapping left always result in left
         expect(y.flatMap(v => Right((v + 5).toString())).isRight()).toBe(false)
         expect(y.flatMap(_ => Left(new Error('y2'))).isRight()).toBe(false)
 

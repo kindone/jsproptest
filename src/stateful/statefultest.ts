@@ -8,6 +8,10 @@ import { JSONStringify } from '../util/JSON'
 import { ActionGenFactory, SimpleActionGenFactory } from './actionof'
 import { Action, EmptyModel } from './statefulbase'
 
+/**
+ * Represents the result of a shrinking attempt, indicating whether shrinking
+ * successfully found a smaller failing case and holding the relevant data.
+ */
 class ShrinkResult {
     readonly isSuccessful: boolean
     constructor(readonly initialObj: unknown, readonly actions: unknown[], readonly error?: Error) {
@@ -15,6 +19,11 @@ class ShrinkResult {
     }
 }
 
+/**
+ * Holds the state of a specific test execution, including the steps to reproduce
+ * the initial state, the sequence of actions (potentially shrunk), the random seeds
+ * used for generation, and the error encountered. Used during the shrinking process.
+ */
 class TestResult {
     constructor(
         readonly initialSteps: number[],
@@ -24,6 +33,16 @@ class TestResult {
     ) {}
 }
 
+/**
+ * Orchestrates stateful property-based testing.
+ * It generates an initial state, then a sequence of actions based on the current state,
+ * executes these actions against both the real object and a model, and checks for discrepancies
+ * or errors. If a failure occurs, it attempts to shrink the sequence of actions and the initial
+ * state to find a minimal failing test case.
+ *
+ * @template ObjectType The type of the system under test.
+ * @template ModelType The type of the model used for checking correctness.
+ */
 export class StatefulProperty<ObjectType, ModelType> {
     private seed: string = ''
     private numRuns = 100
@@ -86,6 +105,16 @@ export class StatefulProperty<ObjectType, ModelType> {
         return this
     }
 
+    /**
+     * Executes the stateful property test suite.
+     * Runs `numRuns` test iterations. In each iteration:
+     * 1. Generates an initial object and model.
+     * 2. Generates a sequence of actions based on the evolving state.
+     * 3. Executes each action, updating the object and model.
+     * 4. If an action fails (throws an error), initiates the shrinking process.
+     * 5. Performs a final check (if `postCheck` is set) after all actions complete.
+     * 6. Calls cleanup hooks (`onCleanup`).
+     */
     go() {
         if (this.minActions <= 0 || this.minActions > this.maxActions)
             throw new Error('invalid minSize or maxSize: ' + this.minActions + ', ' + this.maxActions)
@@ -108,11 +137,13 @@ export class StatefulProperty<ObjectType, ModelType> {
             const numActions = rand.interval(this.minActions, this.maxActions)
             let numConsecutiveFailures = 0
             for (let j = 0; j < numActions; ) {
+                // Phase 1: Generate an action
                 // one by one, generate action by calling actionGenFactory with current state
                 let actionShr: Shrinkable<Action<ObjectType, ModelType>>
                 try {
                     const randCopy = rand.clone()
                     actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    // save the action and random generator state for shrinking on successful generation
                     randomArr.push(randCopy)
                     actionShrArr.push(actionShr)
                 } catch (e) {
@@ -131,7 +162,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                     continue
                 }
                 numConsecutiveFailures = 0
-                // execute the action to update obj and model
+
+                // Phase 2: Execute the action - execute the action to update obj and model
                 try {
                     const action = actionShr.value
                     action.call(obj, model)
@@ -150,6 +182,18 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
     }
 
+    /**
+     * Orchestrates the shrinking process when a test failure occurs.
+     * It attempts to find a smaller or simpler failing test case by:
+     * 1. Shrinking the sequence of random seeds used (`shrinkRandomwise`).
+     * 2. Shrinking the initial state generated (`shrinkInitialObject`).
+     *
+     * @param originalActions The sequence of actions that led to the failure.
+     * @param initialRand The initial random generator state for the failed run.
+     * @param randomArr The array of random generator states used for each action generation.
+     * @param originalError The error that triggered the shrinking.
+     * @returns A `ShrinkResult` containing the shrunk test case or the original failure if shrinking was unsuccessful.
+     */
     private shrink(
         originalActions: Action<ObjectType, ModelType>[],
         initialRand: Random,
@@ -159,11 +203,12 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (originalActions.length !== randomArr.length)
             throw new Error('action and random arrays have different sizes')
 
+        // phase 1: shrink random wise
         /* eslint-disable-next-line prefer-const */
-        let { shrunk, result } = this.shrinkRandomwise(initialRand, randomArr)
+        let { shrunk, result } = this.shrinkActionsRandomWise(initialRand, randomArr)
+        // phase 2: shrink initial object
         if (shrunk) {
             result = this.shrinkInitialObject(initialRand, result!)
-            //result = this.shrinkActionwise(initialRand, result!)
         } else {
             result = this.shrinkInitialObject(
                 initialRand,
@@ -176,7 +221,7 @@ export class StatefulProperty<ObjectType, ModelType> {
             )
         }
 
-        // initial object is the same regardless of shrinking, as current shrinking strategy does not alter initial object
+        // phase 3: return the shrink result (rebuild the initial object from the shrink result)
         // (initial object is recreated in each test run)
         const initialObj = this.initialGen.generate(initialRand.clone())
         // shrinking done
@@ -192,7 +237,16 @@ export class StatefulProperty<ObjectType, ModelType> {
         else return new ShrinkResult(initialObj.value, originalActions)
     }
 
-    private shrinkRandomwise(initialRand: Random, randomArr: Random[]): { shrunk: boolean; result?: TestResult } {
+    /**
+     * Attempts to shrink the failing test case by simplifying the sequence of random numbers
+     * used to generate the actions. It iteratively tries smaller sets of random seeds derived
+     * from the original sequence.
+     *
+     * @param initialRand The initial random generator state for the test run.
+     * @param randomArr The original sequence of random generator states for each action.
+     * @returns An object indicating if shrinking was successful and the resulting `TestResult` if it was.
+     */
+    private shrinkActionsRandomWise(initialRand: Random, randomArr: Random[]): { shrunk: boolean; result?: TestResult } {
         const randomShrinkables: Shrinkable<Random>[] = randomArr.map(rand => new Shrinkable(rand))
         let nextArrayShr = shrinkableArray(randomShrinkables, 0)
         let shrinks = nextArrayShr.shrinks()
@@ -219,6 +273,14 @@ export class StatefulProperty<ObjectType, ModelType> {
         return { shrunk, result }
     }
 
+    /**
+     * Attempts to shrink the failing test case by simplifying the initial generated object.
+     * It iteratively tries simpler versions of the initial object derived from its shrink tree.
+     *
+     * @param initialRand The initial random generator state for the test run.
+     * @param prevTestResult The best failing test result found so far (potentially after random-wise shrinking).
+     * @returns The TestResult corresponding to the smallest initial object found that still causes a failure.
+     */
     private shrinkInitialObject(initialRand: Random, prevTestResult: TestResult): TestResult {
         let shr = this.generateInitial(initialRand.clone()).getOrThrow()
         let shrinks = shr.shrinks()
@@ -253,45 +315,13 @@ export class StatefulProperty<ObjectType, ModelType> {
         return result
     }
 
-    private testWithInitial(initialRand: Random, steps: number[], randoms: Random[]): boolean | TestResult {
-        const actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
-        try {
-            if (this.onStartup) this.onStartup()
-
-            // retrieve initial state by shrink steps chosen
-            const { obj, model } = this.generateInitial(initialRand.clone())
-                .map(shr => shr.retrieve(steps))
-                .map(shr => {
-                    return { obj: shr.value.obj, model: shr.value.model }
-                })
-                .getOrThrow()
-
-            for (const rand of randoms) {
-                let action: Action<ObjectType, ModelType>
-                try {
-                    const actionShr = this.actionGenFactory(obj, model).generate(rand)
-                    actionShrs.push(actionShr)
-                    action = actionShr.value
-                } catch (e) {
-                    if (this.verbose)
-                        console.info('failure in action generation during shrinking: ' + (e as Error).toString())
-                    throw new GenerationError('failure in action generation during shrinking')
-                }
-                action.call(obj, model)
-            }
-
-            if (this.postCheck) this.postCheck(obj, model)
-            if (this.onCleanup) this.onCleanup()
-            return true
-        } catch (e) {
-            if (e instanceof GenerationError) return false
-
-            return new TestResult(steps, actionShrs, randoms, e as Error)
-        }
-    }
-
-    /** test a action squence:
-     * @return true iff action sequence is ok, false iff a generation error occurred, error iff a non-generation error occurred
+    /**
+     * Runs a test sequence using the default initial state generation and
+     * a given sequence of random generators for action generation. Used during random-wise shrinking.
+     *
+     * @param initialRand The random generator for the initial state.
+     * @param randoms The sequence of random generators to use for action generation.
+     * @returns `true` if the test passes, `false` if a generation error occurs, or a `TestResult` if a non-generation error occurs.
      */
     private testWithRandoms(initialRand: Random, randoms: Random[]): boolean | TestResult {
         const actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
@@ -328,6 +358,84 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
     }
 
+    /**
+     * Runs a test sequence using a specific initial state derived from shrink steps
+     * and a fixed sequence of random generators for action generation. Used during initial object shrinking.
+     *
+     * @param initialRand The base random generator for generating the initial state.
+     * @param steps The sequence of shrink steps to apply to the initial state generator.
+     * @param randoms The fixed sequence of random generators to use for action generation.
+     * @returns `true` if the test passes, `false` if a generation error occurs, or a `TestResult` if a non-generation error occurs.
+     */
+    private testWithInitial(initialRand: Random, steps: number[], randoms: Random[]): boolean | TestResult {
+        const actionShrs: Shrinkable<Action<ObjectType, ModelType>>[] = []
+        try {
+            if (this.onStartup) this.onStartup()
+
+            // Phase 1: Generate the initial object and model
+            // retrieve initial state by shrink steps chosen
+            const { obj, model } = this.generateInitial(initialRand.clone())
+                .map(shr => shr.retrieve(steps))
+                .map(shr => {
+                    return { obj: shr.value.obj, model: shr.value.model }
+                })
+                .getOrThrow()
+
+            // Phase 2: Generate actions with the initial object and model + stored randoms
+            for (const rand of randoms) {
+                let action: Action<ObjectType, ModelType>
+                try {
+                    const actionShr = this.actionGenFactory(obj, model).generate(rand)
+                    actionShrs.push(actionShr)
+                    action = actionShr.value
+                } catch (e) {
+                    if (this.verbose)
+                        console.info('failure in action generation during shrinking: ' + (e as Error).toString())
+                    throw new GenerationError('failure in action generation during shrinking')
+                }
+                action.call(obj, model)
+            }
+
+            if (this.postCheck) this.postCheck(obj, model)
+            if (this.onCleanup) this.onCleanup()
+            return true
+        } catch (e) {
+            if (e instanceof GenerationError) return false
+
+            return new TestResult(steps, actionShrs, randoms, e as Error)
+        }
+    }
+
+    /**
+     * Generates the initial object and its corresponding model using the provided
+     * initial generator and model factory. Wraps the generation in a `Try` to handle
+     * potential generation errors gracefully.
+     *
+     * @param initialRand The random generator to use for initial state generation.
+     * @returns A `TryResult` containing the shrinkable initial object/model pair or a `GenerationError`.
+     */
+    private generateInitial(initialRand: Random): TryResult<Shrinkable<{ obj: ObjectType; model: ModelType }>> {
+        return Try<Shrinkable<{ obj: ObjectType; model: ModelType }>>(() => {
+            const obj = this.initialGen.generate(initialRand.clone())
+            return obj.map(o => {
+                return { obj: o, model: this.modelFactory(o) }
+            })
+        }).mapError(e => {
+            if (this.verbose) console.info('failure in initialization: ' + (e as Error).toString())
+            return new GenerationError('failure in initialization: ' + (e as Error).toString())
+        })
+    }
+
+    /**
+     * Formats and enhances the error message after a failure, incorporating details
+     * from both the original failure and the shrunk failure (if shrinking was successful).
+     * Provides context about the initial object and action sequence that caused the error.
+     *
+     * @param originalError The error initially caught during the test run.
+     * @param originalActions The original sequence of actions that failed.
+     * @param shrinkResult The result of the shrinking process.
+     * @returns A new Error object with a detailed message.
+     */
     private processFailureAsError(
         originalError: Error,
         originalActions: Action<ObjectType, ModelType>[],
@@ -366,20 +474,18 @@ export class StatefulProperty<ObjectType, ModelType> {
             return newError
         }
     }
-
-    private generateInitial(initialRand: Random): TryResult<Shrinkable<{ obj: ObjectType; model: ModelType }>> {
-        return Try<Shrinkable<{ obj: ObjectType; model: ModelType }>>(() => {
-            const obj = this.initialGen.generate(initialRand.clone())
-            return obj.map(o => {
-                return { obj: o, model: this.modelFactory(o) }
-            })
-        }).mapError(e => {
-            if (this.verbose) console.info('failure in initialization: ' + (e as Error).toString())
-            return new GenerationError('failure in initialization: ' + (e as Error).toString())
-        })
-    }
 }
 
+/**
+ * Factory function to create a `StatefulProperty` instance.
+ *
+ * @template ObjectType The type of the system under test.
+ * @template ModelType The type of the model used for checking correctness.
+ * @param initialGen Generator for the initial state of the object under test.
+ * @param modelFactory Function to create the initial model state based on the initial object state.
+ * @param actionGenFactory Factory to generate actions based on the current object and model state.
+ * @returns A new `StatefulProperty` instance configured with the provided generators and factories.
+ */
 export function statefulProperty<ObjectType, ModelType>(
     initialGen: Generator<ObjectType>,
     modelFactory: (_: ObjectType) => ModelType,
@@ -388,6 +494,16 @@ export function statefulProperty<ObjectType, ModelType>(
     return new StatefulProperty(initialGen, modelFactory, actionGenFactory)
 }
 
+/**
+ * Factory function to create a `StatefulProperty` instance for cases where
+ * no explicit model is needed (using an `EmptyModel`). Simplifies setup when
+ * checks only involve the object under test or invariants.
+ *
+ * @template ObjectType The type of the system under test.
+ * @param initialGen Generator for the initial state of the object under test.
+ * @param simpleActionGenFactory Factory to generate actions based only on the current object state.
+ * @returns A new `StatefulProperty` instance configured for model-less stateful testing.
+ */
 export function simpleStatefulProperty<ObjectType>(
     initialGen: Generator<ObjectType>,
     simpleActionGenFactory: SimpleActionGenFactory<ObjectType>

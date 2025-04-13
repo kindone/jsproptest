@@ -49,7 +49,7 @@ describe('property', () => {
 
     })
 
-    it('shrink', () => {
+    it('shrink 1', () => {
         const numGen = Gen.interval(0, 1000)
         const prop = new Property((a: number, b: number) => {
             return a > 80 || b < 40
@@ -58,7 +58,7 @@ describe('property', () => {
         expect(() => prop.forAll(numGen, numGen)).toThrow()
     })
 
-    it('shrink2', () => {
+    it('shrink 2', () => {
         const numGen = Gen.interval(0, 1000)
         const prop = new Property((a: number, b: number) => {
             expect(a > 80 || b < 40).toBe(true)
@@ -67,7 +67,7 @@ describe('property', () => {
         expect(() => prop.forAll(numGen, numGen)).toThrow()
     })
 
-    it('shrink3', () => {
+    it('shrink 3', () => {
         const prop = new Property((arg: [number, number]) => arg[1] - arg[0] <= 5)
         const numGen = Gen.interval(-1000000, 1000000)
         const tupleGen = numGen.flatMap(num => Gen.tuple(numGen, Gen.just(num)))

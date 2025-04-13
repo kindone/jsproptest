@@ -1,6 +1,13 @@
 import { Stream } from './Stream'
 import { Try } from './Try'
 
+/**
+ * Represents a value along with its potential shrinks.
+ * In property-based testing, when a test fails, the Shrinkable is used
+ * to find a simpler counterexample by recursively exploring the shrinks.
+ *
+ * @template T The type of the value being shrunk.
+ */
 export class Shrinkable<T> {
     constructor(
         readonly value: T,
@@ -128,7 +135,7 @@ export class Shrinkable<T> {
         let shr: Shrinkable<T> = this // eslint-disable-line @typescript-eslint/no-this-alias
         for (let i = 0; i < steps.length; i++) {
             shr = Try(() => shr.getNthChild(steps[i])).getOrThrow(
-                e => new Error('Shrinkable retrieval failed at step ' + i + ': ' + e.toString())
+                e => new Error('Shrinkable retrieval failed at step ' + i + ': ' + e.toString() + ' for steps: ' + steps.join(','))
             )
         }
         return shr

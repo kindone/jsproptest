@@ -2,6 +2,17 @@ import { Shrinkable } from '../Shrinkable'
 import { Stream } from '../Stream'
 import { binarySearchShrinkable } from './integer'
 
+/**
+ * Helper function to shrink elements within a specific chunk of the array.
+ * The array is conceptually divided into 2^power chunks, and this function
+ * processes the chunk specified by the offset.
+ *
+ * @internal
+ * @param ancestor - The original Shrinkable array structure.
+ * @param power - Determines the number of chunks (2^power).
+ * @param offset - Specifies which chunk to process (0 <= offset < 2^power).
+ * @returns A Stream of shrunken arrays, focusing on the specified chunk.
+ */
 function shrinkBulk<T>(
     ancestor: Shrinkable<Array<Shrinkable<T>>>,
     power: number,
@@ -74,7 +85,18 @@ function shrinkBulk<T>(
     return genStream(ancestor, power, offset, ancestor, fromPos, toPos, elemStreams)
 }
 
-export function shrinkElementwise<T>(
+/**
+ * Shrinks an array by shrinking its individual elements.
+ * This strategy divides the array into chunks (controlled by `power` and `offset`)
+ * and shrinks elements within the targeted chunk. It's useful for applying
+ * element-specific shrinking logic in a structured way.
+ *
+ * @param shrinkableElemsShr - The Shrinkable containing the array of Shrinkable elements.
+ * @param power - Determines the number of chunks (2^power) the array is divided into for shrinking.
+ * @param offset - Specifies which chunk (0 <= offset < 2^power) of elements to shrink in this step.
+ * @returns A Stream of Shrinkable arrays, where elements in the specified chunk have been shrunk.
+ */
+export function shrinkElementWise<T>(
     shrinkableElemsShr: Shrinkable<Array<Shrinkable<T>>>,
     power: number,
     offset: number
@@ -95,6 +117,15 @@ export function shrinkElementwise<T>(
     return newShrinkableElemsShr.shrinks()
 }
 
+/**
+ * Shrinks an array by reducing its length from the rear.
+ * It attempts to produce arrays with lengths ranging from the original size down to `minSize`.
+ * Uses binary search internally for efficiency.
+ *
+ * @param shrinkableElems - The array of Shrinkable elements.
+ * @param minSize - The minimum allowed size for the shrunken array.
+ * @returns A Shrinkable representing arrays of potentially smaller lengths.
+ */
 // shrink array by removing elements at rear
 export function shrinkArrayLength<T>(shrinkableElems: Shrinkable<T>[], minSize: number): Shrinkable<Shrinkable<T>[]> {
     const size = shrinkableElems.length
@@ -105,6 +136,20 @@ export function shrinkArrayLength<T>(shrinkableElems: Shrinkable<T>[], minSize: 
     })
 }
 
+/**
+ * Implements a shrinking strategy prioritizing removal from the front, then recursively
+ * shrinking the middle part by increasing the number of fixed elements at the rear.
+ *
+ * Strategy:
+ * 1. Shrink by removing elements from the front (`slice(0, frontSize)`), keeping `rearSize` elements fixed at the end.
+ * 2. Recursively:
+ *    a. If further shrinking is possible, call `shrinkFrontAndThenMid` again with an increased `rearSize`.
+ *       This fixes more elements at the rear and allows further shrinking of the front/middle.
+ *    b. If front shrinking is exhausted but the array can still be shrunk towards `minSize`,
+ *       delegate to `shrinkMid` to try removing elements from the middle/rear while keeping the front fixed.
+ *
+ * @internal
+ */
 function shrinkFrontAndThenMid<T>(
     shrinkableElems: Shrinkable<T>[],
     minSize: number,
@@ -138,6 +183,18 @@ function shrinkFrontAndThenMid<T>(
         })
 }
 
+/**
+ * Implements a shrinking strategy focusing on removing elements from the middle/rear,
+ * keeping a fixed number of elements at the front.
+ *
+ * Strategy:
+ * 1. Shrink by removing elements from the middle/rear (`slice(shrinkableElems.length - rearSize, ...)`),
+ *    keeping `frontSize` elements fixed at the beginning.
+ * 2. Recursively call `shrinkMid` with an increased `frontSize` to fix more elements
+ *    at the front and allow further shrinking of the remaining middle/rear part.
+ *
+ * @internal
+ */
 function shrinkMid<T>(
     shrinkableElems: Shrinkable<T>[],
     minSize: number,
@@ -166,20 +223,56 @@ function shrinkMid<T>(
         })
 }
 
-export function shrinkMembershipwise<T>(
+/**
+ * Shrinks an array by removing elements (membership).
+ * It primarily uses the `shrinkFrontAndThenMid` strategy, starting with
+ * no fixed elements at the rear (`rearSize = 0`), effectively prioritizing
+ * removal of elements from the front initially.
+ *
+ * @param shrinkableElems - The array of Shrinkable elements.
+ * @param minSize - The minimum allowed size for the shrunken array.
+ * @returns A Shrinkable representing arrays with potentially fewer elements.
+ */
+export function shrinkMembershipWise<T>(
     shrinkableElems: Shrinkable<T>[],
     minSize: number
 ): Shrinkable<Shrinkable<T>[]> {
     return shrinkFrontAndThenMid(shrinkableElems, minSize, 0)
 }
 
+/**
+ * Creates a Shrinkable for an array, allowing shrinking by removing elements
+ * and optionally by shrinking the elements themselves.
+ *
+ * @param shrinkableElems - The initial array of Shrinkable elements.
+ * @param minSize - The minimum allowed length of the array after shrinking element membership.
+ * @param membershipWise - If true, allows shrinking by removing elements (membership). Defaults to true.
+ * @param elementWise - If true, applies element-wise shrinking *after* membership shrinking. Defaults to false.
+ * @returns A Shrinkable<Array<T>> that represents the original array and its potential shrunken versions.
+ */
 export function shrinkableArray<T>(
     shrinkableElems: Array<Shrinkable<T>>,
     minSize: number,
-    shrinkElementWise = false
+    membershipWise = true,
+    elementWise = false
 ): Shrinkable<Array<T>> {
-    let shrinkableElemsShr = shrinkMembershipwise(shrinkableElems, minSize)
-    // further shrink element-wise
-    if (shrinkElementWise) shrinkableElemsShr = shrinkableElemsShr.andThen(parent => shrinkElementwise(parent, 0, 0))
-    return shrinkableElemsShr.map(theArr => theArr.map(shr => shr.value))
+    // Base Shrinkable containing the initial structure Shrinkable<T>[]
+    let currentShrinkable: Shrinkable<Shrinkable<T>[]> = new Shrinkable(shrinkableElems);
+
+    // Chain membership shrinking if enabled
+    if (membershipWise) {
+        currentShrinkable = currentShrinkable.andThen(parent => {
+            return shrinkMembershipWise(parent.value, minSize).shrinks();
+        });
+    }
+
+    // Chain element-wise shrinking if enabled
+    if (elementWise) {
+        currentShrinkable = currentShrinkable.andThen(parent => {
+            return shrinkElementWise(parent, 0, 0);
+        });
+    }
+
+    // Map the final Shrinkable<Shrinkable<T>[]> to Shrinkable<Array<T>> by extracting the values.
+    return currentShrinkable.map(theArr => theArr.map(shr => shr.value))
 }
