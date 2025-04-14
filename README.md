@@ -1,28 +1,34 @@
 # jsproptest
 
-**Declare properties about your code, let `jsproptest` find the edge cases!**
+**Disclaimer:** This documentation is currently under development. Information may be incomplete or inaccurate.
 
-`jsproptest` is a property-based testing library for JavaScript and TypeScript inspired by libraries like Haskell's QuickCheck and Python's Hypothesis. Instead of writing individual examples for your tests, you define *properties* or *invariants* that should hold true for a wide range of inputs. `jsproptest` then intelligently generates hundreds of test cases to challenge these properties, automatically shrinking any failing inputs to the simplest possible counterexample.
+`jsproptest` is a property-based testing (PBT) framework for JavaScript and TypeScript, drawing inspiration from libraries such as Haskell's QuickCheck and Python's Hypothesis. Property-based testing shifts the focus from example-based verification to defining universal *properties* or *invariants* that must hold true across a wide spectrum of generated inputs.
 
-Imagine you want to test that reversing an array twice yields the original array. With `jsproptest`, you can express this directly:
+The core workflow involves:
+1.  **Defining a property:** A function that takes generated inputs and asserts an expected invariant.
+2.  **Specifying generators:** Mechanisms (`Gen`) for creating random data conforming to certain types or constraints, often built by composing simpler generators using **combinators**.
+3.  **Execution:** `jsproptest` automatically runs the property function against numerous generated inputs (typically 100+).
+4.  **Shrinking:** If a test case fails (the property returns `false` or throws), `jsproptest` attempts to find a minimal counterexample by simplifying the failing input.
+
+Consider verifying the property that reversing an array twice restores the original array:
 
 ```typescript
 import { forAll, Gen } from 'jsproptest'; // Assuming installation
 
 it('should return the original array after double reversal', () => {
-  // forAll takes a property function and generators for its arguments
+  // forAll executes a property check with generated inputs
   forAll(
     (arr: string[]) => {
-      // The property: this should hold true for any array 'arr'
+      // The property assertion: must hold for any generated 'arr'
       expect([...arr].reverse().reverse()).toEqual(arr);
     },
-    Gen.array(Gen.string()) // A generator for arrays of strings
+    Gen.array(Gen.string(0, 10), 0, 10) // Generator producing arrays of strings
   );
-  // That's it! jsproptest runs this check ~100 times with different arrays.
+  // jsproptest runs this property multiple times with diverse arrays.
 });
 ```
 
-This approach helps you uncover bugs and edge cases that traditional example-based testing might miss.
+This PBT approach facilitates the discovery of edge cases and intricate bugs that might be missed by traditional, example-driven testing methodologies.
 
 ## Core Concepts
 
@@ -57,6 +63,8 @@ Generators create the sample data used to test your properties.
 | `Gen.just(value)`         | Always generates the provided `value`.                          | `value`                                            | `Gen.just(null)`                                      |
 
 *(Defaults for length/size are typically 0 and 10, but check implementation for specifics)*
+
+Beyond the built-in generators, `jsproptest` offers powerful **combinators** that allow you to transform and combine existing generators, enabling the creation of highly specific and complex data structures for your tests.
 
 ## Combinators
 
@@ -112,6 +120,7 @@ Properties define the expected behavior of your code over a range of inputs.
     ```typescript
     const prop = new Property((a: number, b: number) => a > b);
     prop.example(5, 3); // Runs the predicate with a=5, b=3
+    prop.example(3, 5); // returns false
     ```
 
 ### Defining and Running Properties with `forAll(...)` (Standalone Function)
@@ -126,7 +135,7 @@ Properties define the expected behavior of your code over a range of inputs.
                 // Predicate using Jest assertions
                 expect([...arr].reverse().reverse()).toEqual(arr);
             },
-            Gen.array(Gen.string(0, 5)) // Generator for the 'arr' argument
+            Gen.array(Gen.string(0, 5), 0, 10) // Generator for the 'arr' argument
         ); // Runs the test immediately (default 100 times)
     });
 
@@ -202,7 +211,7 @@ it('fails and shrinks with standalone forAll', () => {
         )
     ).toThrow(
         // The error message will likely show a shrunk example,
-        // e.g., "Falsified after X tests. Counterexample: [0, 6]"
+        // e.g., "property failed (simplest args found by shrinking): ..."
     );
 });
 ```
