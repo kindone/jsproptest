@@ -52,15 +52,23 @@ Generators create the sample data used to test your properties.
 | `Gen.float()`             | Generates floating-point numbers (incl. `Infinity`, `NaN`).     | -                                                  | `Gen.float()`                                         |
 | `Gen.interval(min, max)`  | Generates integers in the range `[min, max]`.                   | `min`, `max`                                       | `Gen.interval(0, 10)`                                 |
 | `Gen.integers(min, max)`  | Alias for `Gen.interval`.                                       | `min`, `max`                                       | `Gen.integers(-5, 5)`                                 |
-| `Gen.string(minL, maxL)`  | Generates ASCII strings.                                        | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.string(0, 5)`                                    |
-| `Gen.unicodeString(...)`  | Generates Unicode strings.                                      | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.unicodeString(1, 8)`                             |
+| `Gen.ascii()`             | Generates single ASCII characters (code 0-127).                 | -                                                  | `Gen.ascii()`                                         |
+| `Gen.unicode()`           | Generates single Unicode characters.                            | -                                                  | `Gen.unicode()`                                       |
+| `Gen.printableAscii()`    | Generates single printable ASCII characters.                    | -                                                  | `Gen.printableAscii()`                                |
+| `Gen.string(minL, maxL)`  | Generates strings (defaults to ASCII).                          | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.string(0, 5)`                                    |
+| `Gen.asciiString(...)`    | Generates strings containing only ASCII chars (0-127).          | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.asciiString(1, 8)`                               |
+| `Gen.unicodeString(...)`  | Generates strings containing Unicode chars.                     | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.unicodeString(1, 8)`                             |
+| `Gen.printableAsciiString(...)` | Generates strings containing only printable ASCII chars.  | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.printableAsciiString(5, 5)`                      |
 | **Containers**            |                                                                 |                                                    |                                                       |
 | `Gen.array(elem, minL, maxL)` | Generates arrays with elements from `elem`.                   | `elementGen`, `minLength` (def: 0), `maxLength` (def: 10) | `Gen.array(Gen.boolean(), 2, 4)`                      |
+| `Gen.uniqueArray(elem, minL, maxL)` | Generates arrays with unique elements from `elem`.    | `elementGen`, `minLength` (def: 0), `maxLength` (def: 10) | `Gen.uniqueArray(Gen.interval(1, 10), 3, 3)`          |
 | `Gen.set(elem, minS, maxS)`   | Generates `Set` objects with elements from `elem`.            | `elementGen`, `minSize` (def: 0), `maxSize` (def: 10)   | `Gen.set(Gen.interval(1, 3), 1, 3)`                   |
 | `Gen.dictionary(val, minS, maxS)` | Generates objects with string keys and values from `val`. | `valueGen`, `minSize` (def: 0), `maxSize` (def: 10)   | `Gen.dictionary(Gen.string(1, 1), 2, 5)`              |
 | `Gen.tuple(...gens)`      | Generates fixed-size arrays (tuples) from `gens`.             | `...elementGens`                                   | `Gen.tuple(Gen.number(), Gen.string())`             |
 | **Special**               |                                                                 |                                                    |                                                       |
 | `Gen.just(value)`         | Always generates the provided `value`.                          | `value`                                            | `Gen.just(null)`                                      |
+| **Advanced**              |                                                                 |                                                    |                                                       |
+| `Gen.lazy(() => gen)`     | Defers creation of a generator until needed.                    | `generatorFactory`                                 | `Gen.lazy(() => Gen.interval(0, 5))`                  |
 
 *(Defaults for length/size are typically 0 and 10, but check implementation for specifics)*
 
@@ -96,9 +104,7 @@ Combinators modify or combine existing generators to create new ones.
 
 Properties define the expected behavior of your code over a range of inputs.
 
-### Defining Properties with `new Property(...)`
-
-*   **`new Property<TArgs extends any[]>(predicate: (...args: TArgs) => boolean | void)`**: Creates a property object explicitly. The `predicate` function receives arguments generated according to the generators passed to `forAll`.
+### Defining Properties with `new Property(...)`*   **`new Property<TArgs extends any[]>(predicate: (...args: TArgs) => boolean | void)`**: Creates a property object explicitly. The `predicate` function receives arguments generated according to the generators passed to `forAll`.
     *   If the predicate returns `false` or throws an error, the property fails.
     *   If the predicate returns `true` or `void` (implicitly returns `undefined`), the property passes for that input.
 
@@ -215,3 +221,5 @@ it('fails and shrinks with standalone forAll', () => {
     );
 });
 ```
+
+
