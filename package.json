@@ -24,15 +24,10 @@
     "build": "tsup src/index.ts --dts",
     "test": "jest --verbose",
     "lint": "eslint src",
-    "prepare": "yarn build",
+    "prepare": "husky",
     "size": "size-limit",
-    "analyze": "size-limit --why"
-  },
-  "peerDependencies": {},
-  "husky": {
-    "hooks": {
-      "pre-commit": "eslint src"
-    }
+    "analyze": "size-limit --why",
+    "lint-staged": "eslint --fix"
   },
   "prettier": {
     "tabWidth": 4,
@@ -54,25 +49,25 @@
     }
   ],
   "devDependencies": {
-    "@eslint/js": "^9.18.0",
+    "@eslint/js": "^9.25.0",
     "@jest/globals": "^29.7.0",
-    "@size-limit/preset-small-lib": "^4.9.1",
+    "@size-limit/preset-small-lib": "^11.2.0",
     "@types/jest": "^29.5.14",
-    "@typescript-eslint/eslint-plugin": "^8.20.0",
-    "@typescript-eslint/parser": "^8.20.0",
-    "eslint": "^9.18.0",
-    "husky": "^4.3.6",
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^9.25.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
-    "size-limit": "^4.9.1",
-    "ts-jest": "^29.2.5",
+    "size-limit": "^11.2.0",
+    "ts-jest": "^29.3.2",
     "tslib": "^2.8.1",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.30.1"
   },
   "dependencies": {
     "@types/random-js": "^2.0.0",
-    "rand-seed": "^1.0.0",
+    "rand-seed": "^2.1.7",
     "random-js": "^2.1.0"
   }
 }
