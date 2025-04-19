@@ -1,0 +1,15 @@
+<svg width="140" height="160" viewBox="0 0 140 180" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+
+  <!-- Background -->
+  <rect x="20" y="20" width="100" height="100" rx="15" fill="#f7ca4f" stroke="black" stroke-width="5"/>
+  
+  <!-- "js" Text -->
+  <text x="45" y="90" font-size="75" fill="black" font-weight="bold">js</text>
+
+  <!-- Check Circle -->
+  <circle cx="110" cy="110" r="18" fill="white" stroke="black" stroke-width="4"/>
+  <polyline points="102,110 108,116 118,104" fill="none" stroke="black" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Library Name -->
+  <text x="5" y="160" font-size="28" fill="black" font-weight="bold">jsproptest</text>
+</svg>

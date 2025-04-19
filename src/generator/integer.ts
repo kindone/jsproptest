@@ -5,12 +5,12 @@ import { generateInteger } from '../shrinker/integer'
 /**
  * Generates integers within the specified inclusive range [min, max].
  *
- * @param min The minimum value of the range (inclusive).
- * @param max The maximum value of the range (inclusive).
+ * @param min The minimum value of the range (inclusive). Defaults to `Number.MIN_SAFE_INTEGER`.
+ * @param max The maximum value of the range (inclusive). Defaults to `Number.MAX_SAFE_INTEGER`.
  * @returns A generator for integers within the specified range.
  * @throws If min is greater than max.
  */
-export function interval(min: number, max: number): Generator<number> {
+export function interval(min: number = Number.MIN_SAFE_INTEGER, max: number = Number.MAX_SAFE_INTEGER): Generator<number> {
     if (min > max) throw new Error(`invalid range: min (${min}) > max (${max})`)
     return new Arbitrary((random: Random) => {
         return generateInteger(random, min, max)
@@ -33,11 +33,19 @@ export function inRange(fromInclusive: number, toExclusive: number): Generator<n
 /**
  * Generates a sequence of `count` integers starting from `start`.
  * Equivalent to `inRange(start, start + count)`.
- *
+ * @deprecated Use `Gen.interval` or `Gen.inRange` instead.
  * @param start The starting integer (inclusive).
  * @param count The number of integers to generate.
  * @returns A generator for the sequence of integers.
  */
 export function integers(start: number, count: number): Generator<number> {
     return inRange(start, start + count)
+}
+
+/**
+ * Generates a random integer.
+ * @returns A generator for a random integer.
+ */
+export function integer(): Generator<number> {
+    return interval()
 }
