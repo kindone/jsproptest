@@ -13,6 +13,7 @@
 Instead of manually crafting test cases for specific inputs (e.g., testing an add function with `add(2, 3)`), PBT allows you to describe the *domain* of inputs your function expects (e.g., any two integers) and the *general characteristics* of the output (e.g., `add(a, b)` should always be greater than or equal to `a` and `b` if they are non-negative). `jsproptest` then generates hundreds or thousands of varied inputs, searching for edge cases or unexpected behaviors that violate your defined properties. This approach significantly increases test coverage and the likelihood of finding subtle bugs.
 
 The core workflow involves:
+
 1.  **Defining a property:** A function that takes generated inputs and asserts an expected invariant. See [Properties](./properties.md).
 2.  **Specifying generators:** Mechanisms (`Gen`) for creating random data conforming to certain types or constraints, often built by composing simpler generators using **combinators**. See [Generators](./generators.md) and [Combinators](./combinators.md).
 3.  **Execution:** `jsproptest` automatically runs the property function against numerous generated inputs (typically 100+).

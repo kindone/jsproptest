@@ -1,4 +1,4 @@
-# Generators (`Gen`)
+# Generators
 
 Generators are the foundation of property-based testing in `jsproptest`. They are responsible for creating the diverse range of random (or sometimes specific) input data that is fed into your properties during testing. By defining how data should be generated – its type, constraints, and structure – generators allow `jsproptest` to explore the input space of your functions effectively, searching for edge cases and potential bugs that manually chosen examples might miss. Generators can range from simple primitives like booleans and numbers to complex, nested data structures built by combining other generators.
 

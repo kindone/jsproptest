@@ -1,0 +1,62 @@
+site_name: 'jsproptest'
+site_description: 'JavaScript Property Testing'
+site_author: 'kindone'
+site_url: 'https://github.com/pages/kindone/jsproptest'
+
+repo_name: 'kindone/jsproptest'
+repo_url: 'https://github.com/kindone/jsproptest'
+edit_uri: 'edit/master/docs'
+
+theme:
+  name: material
+  font:
+    text: 'Inter'
+    code: 'Spline Sans Mono' # 'Inconsolata'
+  palette:
+    primary: teal
+    accent: light green
+  favicon: assets/favicon.ico
+  features:
+    - navigation.tracking
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.path
+    - toc.follow
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - navigation.expand
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.magiclink
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - attr_list
+  - meta
+  - footnotes
+  - tables
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - git-revision-date-localized
+  - kroki:
+      DownloadImages: true
+
+nav:
+  - 'Introduction': README.md
+  - properties.md
+  - 'Generating Inputs':
+    - generators.md
+    - combinators.md
+  - shrinking.md
+  - 'Stateful & Concurrency Testing': stateful-testing.md
