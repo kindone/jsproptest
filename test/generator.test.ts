@@ -205,7 +205,8 @@ describe('container generators', () => {
      */
     it('Gen.dictionary', () => {
         const elemGen = Gen.interval(0, 4)
-        const gen = Gen.dictionary(elemGen, 4, 8)
+        const keyGen = Gen.string(1, 2)
+        const gen = Gen.dictionary(keyGen, elemGen, 4, 8)
 
         // Use forAll to ensure the generated dictionary meets the size requirements
         forAll((dict: Record<string, number>) => {
@@ -213,6 +214,38 @@ describe('container generators', () => {
             expect(size).toBeGreaterThanOrEqual(4)
             expect(size).toBeLessThanOrEqual(8)
             expect(Object.values(dict).every(value => value >= 0 && value <= 4)).toBe(true) // Check value constraints
+        }, gen)
+    })
+
+    /**
+     * Tests Gen.dictionary() with float values for correct size and value types using forAll.
+     */
+    it('Gen.dictionary (int values)', () => {
+        const keyGen = Gen.string(1, 5) // Keys are strings of length 1 to 5
+        const elemGen = Gen.interval(0, 5)     // Values are floats
+        const gen = Gen.dictionary(keyGen, elemGen, 3, 7)
+
+        // Use forAll to ensure the generated dictionary meets the size and type requirements
+        forAll((dict: Record<string, number>) => {
+            const keys = Object.keys(dict)
+            const values = Object.values(dict)
+            const size = keys.length
+
+            expect(size).toBeGreaterThanOrEqual(3)
+            expect(size).toBeLessThanOrEqual(7)
+
+            // Check key types (should always be string by definition)
+            keys.forEach(key => {
+                expect(typeof key).toBe('string')
+                expect(key.length).toBeGreaterThanOrEqual(1)
+                expect(key.length).toBeLessThanOrEqual(5)
+            });
+
+            // Check value types (should be numbers/floats)
+            values.forEach(value => {
+                expect(value).toBeGreaterThanOrEqual(0)
+                expect(value).toBeLessThanOrEqual(5)
+            });
         }, gen)
     })
 
@@ -246,6 +279,75 @@ describe('container generators', () => {
         }, gen)
     })
 
+    /**
+     * Tests Gen.lazy() for deferring generator creation/computation.
+     */
+    it('Gen.lazy (deferred computation)', () => {
+        let computationDone = false;
+        const expensiveComputation = () => {
+            computationDone = true;
+            return 42; // Simulate an expensive result
+        };
+
+        // The computation shouldn't happen when the generator is defined
+        const lazyGen = Gen.lazy(expensiveComputation);
+        expect(computationDone).toBe(false);
+
+        // The computation should happen only when generate is called
+        const result = lazyGen.generate(rand); // Assuming rand is available in this scope
+        expect(computationDone).toBe(true);
+        expect(result.value).toBe(42);
+
+        // Check subsequent calls also work
+        computationDone = false; // Reset flag
+        const result2 = lazyGen.generate(rand);
+        expect(computationDone).toBe(true);
+        expect(result2.value).toBe(42);
+    });
+
+    /**
+     * Tests recursive generator definition without Gen.lazy using a factory function.
+     */
+    it('Recursive generator (manual factory)', () => {
+        // Define the recursive type: a node containing a number and optionally another node.
+        type Node = { value: number; next: Node | null };
+
+        // Factory function to create the recursive generator.
+        const createNodeGen:Generator<Node | null> =
+            Gen.oneOf(
+                // Base case: Null node (weight 0.8)
+                Gen.weightedGen(Gen.just(null), 0.8),
+                // Recursive case: Generate value and recursively generate the next node (weight 0.2)
+                Gen.weightedGen(
+                    Gen.interval(0, 100).flatMap(value =>
+                        // Recursively call the factory to get the generator for the next node
+                        createNodeGen.map(next => ({ value, next }))
+                    ),
+                0.2)
+            );
+
+        // Create the generator instance by calling the factory.
+        const nodeGen = createNodeGen;
+
+        // Use forAll to test the generated recursive structures.
+        let maxFoundDepth = 0;
+        forAll((node: Node | null) => {
+            let current = node;
+            let depth = 0;
+            const maxDepth = 20; // Set a reasonable max depth
+
+            while (current !== null && depth < maxDepth) {
+                expect(typeof current.value).toBe('number');
+                expect(current.value).toBeGreaterThanOrEqual(0);
+                expect(current.value).toBeLessThanOrEqual(100);
+                current = current.next;
+                depth++;
+            }
+            if (depth > maxFoundDepth) maxFoundDepth = depth;
+        }, nodeGen);
+        // Check if recursive generator is working by ensuring at least some recursive calls are made
+        expect(maxFoundDepth).toBeGreaterThan(0);
+    });
 })
 
 /**

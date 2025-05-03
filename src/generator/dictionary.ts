@@ -1,29 +1,33 @@
 import { ArbiContainer, Generator } from '../Generator'
 import { Shrinkable } from '../Shrinkable'
 import { Dictionary, shrinkableDictionary } from '../shrinker/dictionary'
-import { StringGen } from './string'
 
 /**
- * Generates a dictionary (object) with string keys and values of type T.
+ * Generates a dictionary (object) with keys of type string and values of type T.
  *
  * @template T The type of elements in the dictionary values.
+ * @param keyGen The generator for the dictionary keys (must generate strings).
  * @param elemGen The generator for the dictionary values.
  * @param minSize The minimum number of key-value pairs in the dictionary.
  * @param maxSize The maximum number of key-value pairs in the dictionary.
  * @returns A generator for dictionaries.
  */
-export function DictionaryGen<T>(elemGen: Generator<T>, minSize: number, maxSize: number): Generator<Dictionary<T>> {
+export function DictionaryGen<T>(
+    keyGen: Generator<string>,
+    elemGen: Generator<T>,
+    minSize: number,
+    maxSize: number
+): Generator<Dictionary<T>> {
     return new ArbiContainer<Dictionary<T>>(
         rand => {
             const size = rand.interval(minSize, maxSize)
             const dict: Dictionary<Shrinkable<T>> = {}
-            // Use a StringGen with a small length to generate keys,
-            // relying on the loop condition and existence check to ensure uniqueness eventually.
+            // Use the provided keyGen to generate keys.
+            // Rely on the loop condition and existence check to ensure uniqueness eventually.
             // This might be inefficient for larger dictionaries or stricter key requirements.
-            const strGen = StringGen(1, 2)
             while (Object.keys(dict).length < size) {
-                const strShr = strGen.generate(rand)
-                if (!dict[strShr.value]) dict[strShr.value] = elemGen.generate(rand)
+                const keyShr = keyGen.generate(rand)
+                if (!dict[keyShr.value]) dict[keyShr.value] = elemGen.generate(rand)
             }
 
             return shrinkableDictionary(dict, minSize)

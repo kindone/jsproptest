@@ -1,7 +1,70 @@
-import { Gen } from '../src/index'; // Keep Gen from index
-import { Property, forAll } from '../src/Property';
+import { Property, forAll, Gen } from '../src/index'; // Keep Gen from index
+import { deepStrictEqual } from 'assert'; // Use Node.js assert for deep equality
 
 describe('README Examples', () => {
+
+    it('should preserve data after serializing and parsing', () => {
+        // Assume we have functions to parse and serialize a simple key-value format
+        // (In a real scenario, these would be imported from your code)
+        function parseMyDataFormat(str: string): Record<string, string> {
+            const result: Record<string, string> = {};
+            if (str === '') return result;
+            str.split('&').forEach(pair => {
+                const parts = pair.split('=', 2); // Split into max 2 parts
+                if (parts.length === 2 && parts[0].length > 0) {
+                // Basic parsing, handling URL encoding
+                try {
+                    result[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+                } catch (e) {
+                    // Handle potential URIError during decoding, maybe skip malformed pairs
+                    console.warn(`Skipping malformed pair during parsing: ${pair}`, e);
+                }
+                }
+            });
+            return result;
+        }
+
+        function serializeMyDataFormat(data: Record<string, string>): string {
+            // Sort keys for consistent output order, crucial for round-trip testing
+            return Object.keys(data)
+                .sort()
+                .map(key => {
+                // Basic serialization, handling URL encoding
+                try {
+                    return `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`;
+                } catch (e) {
+                    // Handle potential URIError during encoding (unlikely for typical strings)
+                    console.error(`Error encoding key/value: ${key}=${data[key]}`, e);
+                    return ''; // Or throw, depending on desired behavior
+                }
+                })
+                .filter(pair => pair !== '') // Remove pairs that failed encoding
+                .join('&');
+        }
+        // Generator for keys (non-empty strings without '&' or '=')
+        const keyGen = Gen.string(1, 10).filter(s => s.length > 0 && !s.includes('&') && !s.includes('='));
+        // Generator for arbitrary string values
+        const valueGen = Gen.string(0, 10);
+        // Generator for objects (dictionaries) with our specific keys and values
+        const dataObjectGen = Gen.dictionary(keyGen, valueGen, 1, 10);
+
+        // forAll executes the property check with generated data objects
+        forAll(
+            (originalData: Record<string, string>) => {
+            // Perform the round trip: serialize then parse
+            const serialized = serializeMyDataFormat(originalData);
+            const parsedData = parseMyDataFormat(serialized);
+
+            // Property: The parsed data must deep-equal the original data object.
+            // Using deepStrictEqual ensures type and value equality.
+            deepStrictEqual(parsedData, originalData);
+            },
+            dataObjectGen // Use the dictionary generator
+        );
+        // jsproptest runs this property multiple times with diverse data objects.
+    });
+
+
     // Example from Introduction (Lines 18-27)
     it('should return the original array after double reversal (intro)', () => {
         // forAll executes a property check with generated inputs

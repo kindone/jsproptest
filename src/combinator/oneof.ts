@@ -75,11 +75,13 @@ export function oneOf<T>(...generators: Generator<T>[]): Generator<T> {
     })
 
     // Validate the sum of explicitly assigned weights.
-    if (sum < 0.0 || sum >= 1.0) throw Error('invalid weights: sum must be between 0.0 and < 1.0')
+    if (sum < 0.0 || sum > 1.0) throw Error('invalid weights: sum must be between 0.0 (exclusive) and 1.0 (inclusive)')
 
     // Distribute remaining probability mass among unweighted generators if any exist.
     if (numUnassigned > 0) {
         const rest = 1.0 - sum
+        if (rest <= 0.0) throw Error('invalid weights: rest of weights must be greater than 0.0')
+
         const perUnassigned = rest / numUnassigned
         weightedGenerators = weightedGenerators.map(weightedGenerator => {
             if (weightedGenerator.weight === 0.0) return new Weighted(weightedGenerator.gen, perUnassigned)

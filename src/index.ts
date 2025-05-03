@@ -55,6 +55,7 @@ export const Gen = {
     uniqueArray: UniqueArrayGen,
     set: SetGen,
     tuple: TupleGen,
+    dict: DictionaryGen,
     dictionary: DictionaryGen,
 
     // stateful

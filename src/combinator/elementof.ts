@@ -36,10 +36,13 @@ export function normalizeWeightedValues<T>(arr: Array<T | WeightedValue<T>>): We
         }
     })
 
-    if (sum < 0.0 || sum >= 1.0) throw Error('invalid weights')
+    // Validate the sum of explicitly assigned weights.
+    if (sum < 0.0 || sum > 1.0) throw Error('invalid weights: sum must be between 0.0 (exclusive) and 1.0 (inclusive)')
 
     if (numUnassigned > 0) {
         const rest = 1.0 - sum
+        if (rest <= 0.0) throw Error('invalid weights: rest of weights must be greater than 0.0')
+
         const perUnassigned = rest / numUnassigned
         weightedValues = weightedValues.map(weightedGenerator => {
             if (weightedGenerator.weight === 0.0) return new WeightedValue(weightedGenerator.value, perUnassigned)
