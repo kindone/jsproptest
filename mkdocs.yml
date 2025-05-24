@@ -53,7 +53,7 @@ plugins:
       DownloadImages: true
 
 nav:
-  - 'Introduction': README.md
+  - 'Introduction': index.md
   - properties.md
   - 'Generating Inputs':
     - generators.md
