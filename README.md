@@ -30,4 +30,4 @@ This will install the package and add it to your `devDependencies`.
 
 ## Documentation
 
-For comprehensive documentation, including core concepts, API reference, and advanced features, please visit our **[GitHub Pages documentation](https://kindone.github.io/jsproptest/)**. 
+For comprehensive documentation, including core concepts, API reference, and advanced features, please visit **[GitHub Pages documentation](https://kindone.github.io/jsproptest/)**. 
