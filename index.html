@@ -532,7 +532,6 @@
 </p>
 
 <h1 id="jsproptest">jsproptest<a class="headerlink" href="#jsproptest" title="Permanent link">&para;</a></h1>
-<p><strong>Current Version:</strong> 0.5.3</p>
 <p><code>jsproptest</code> is a property-based testing (PBT) framework for JavaScript and TypeScript, drawing inspiration from libraries such as Haskell's QuickCheck and Python's Hypothesis. Property-based testing shifts the focus from example-based verification to defining universal <em>properties</em> or <em>invariants</em> that must hold true for an input domain.</p>
 <p>Instead of manually crafting test cases for specific inputs, PBT allows you to describe the <em>domain</em> of inputs your function expects and the <em>general characteristics</em> of the output (e.g., <code>add(a, b)</code> should always be greater than or equal to <code>a</code> and <code>b</code> if they are non-negative). PBT then generates hundreds or thousands of varied inputs, searching for edge cases or unexpected behaviors that violate your defined properties. This approach significantly increases test coverage and the likelihood of finding subtle bugs.</p>
 <p>The core workflow involves:</p>
