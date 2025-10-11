@@ -4,3 +4,4 @@ node_modules
 dist
 site
 package-lock.json
+.dart_tool

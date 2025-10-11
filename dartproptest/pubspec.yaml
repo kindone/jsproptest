@@ -1,0 +1,22 @@
+name: dartproptest
+description: A property-based testing framework for Dart, inspired by QuickCheck and Hypothesis. Ported from jsproptest.
+version: 0.1.0
+homepage: https://github.com/kindone/dartproptest
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  # No external dependencies for core functionality
+
+dev_dependencies:
+  test: ^1.24.0
+  lints: ^3.0.0
+
+topics:
+  - testing
+  - property-based-testing
+  - quickcheck
+  - dart
+
+repository: https://github.com/kindone/dartproptest
