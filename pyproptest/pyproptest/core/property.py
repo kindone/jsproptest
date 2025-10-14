@@ -132,7 +132,7 @@ class Property:
             
             while improved:
                 improved = False
-                for candidate_shrinkable in shrinkable.shrinks:
+                for candidate_shrinkable in shrinkable.shrinks().to_list():
                     candidate_val = candidate_shrinkable.value
                     # Test if this candidate also fails
                     test_inputs = shrunk_inputs[:i] + [candidate_val] + inputs[i+1:]
