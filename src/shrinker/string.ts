@@ -22,7 +22,6 @@ export function shrinkableString(codepoints: Array<Shrinkable<number>>, minSize:
         }
     })
 
-    // TODO: shrink elementwise
     shrinkableArr = shrinkableArr.andThen(parent => shrinkElementwise(parent, 0, 0))
     return shrinkableArr.map(theArr => String.fromCodePoint(...theArr.map(shr => shr.value)))
 }

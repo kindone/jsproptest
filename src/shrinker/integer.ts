@@ -33,4 +33,3 @@ export function generateInteger(random: Random, min: number, max: number): Shrin
     else return binarySearchShrinkable(value)
 }
 
-// TODO: shrinkIntegral
