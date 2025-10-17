@@ -6,7 +6,6 @@ export interface Dictionary<T> {
     [Key: string]: T
 }
 
-// TODO: shrink elementwise
 function createDictionary<T>(pairs: Array<[string, Shrinkable<T>]>): Dictionary<T> {
     const dict: Dictionary<T> = {}
     for (const pair of pairs) {

@@ -35,8 +35,6 @@ export function shrinkableString(codepoints: Array<Shrinkable<number>>, minSize:
         }
     })
 
-    // TODO: shrink elementwise
-    // Then, shrink the individual codepoints within the array
     shrinkableArr = shrinkableArr.andThen(parent => shrinkElementWise(parent, 0, 0))
     return shrinkableArr.map(theArr => String.fromCodePoint(...theArr.map(shr => shr.value)))
 }
