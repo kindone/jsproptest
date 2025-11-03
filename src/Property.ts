@@ -224,6 +224,8 @@ export class Property<ARGS extends unknown[]> {
                     // Record the successful shrink step for reporting
                     failedArgs.push([n, JSONStringify(args)])
                     shrunk = true
+                    // Print real-time shrinking progress
+                    console.log(`  shrinking found simpler failing arg ${n}: ${JSONStringify(args)}`)
                     // Continue shrinking the *same* argument (n) further
                 } else {
                     // No shrink candidate for arg n at this level caused a failure

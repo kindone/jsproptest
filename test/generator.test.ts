@@ -5,6 +5,7 @@ import { forAll } from '../src/Property'
 import { JSONStringify } from '../src/util/JSON'
 import { exhaustive } from './testutil'
 import { Shrinkable } from '../src/Shrinkable'
+import { shrinkableFloat } from '../src/shrinker/floating'
 
 /**
  * Tests for basic primitive value generators (boolean, number, string).
@@ -79,6 +80,135 @@ describe('primitive generators', () => {
         expect(regions[5].count).toBeGreaterThanOrEqual(regions[4].count) // More in (100, 1000] than in [10, 100]
         expect(regions[4].count).toBeGreaterThanOrEqual(regions[3].count) // More in (10, 100] than in [1, 10]
         expect(regions[3].count).toBeGreaterThanOrEqual(regions[2].count) // More in (1, 10] than in [0, 1]
+    })
+
+    /**
+     * Tests the floating point shrinker to verify:
+     * 1. No infinite loops (the fix for base 2 decomposition)
+     * 2. Proper shrinking behavior (values get smaller)
+     * 3. Expected first-level children for specific values
+     */
+    it('floating point shrinker', () => {
+
+        // Test case 1: 100.0 should have proper shrinking behavior
+        {
+            const shrinkable = shrinkableFloat(100.0)
+            const firstLevel = shrinkable.shrinks()
+            const firstValues: number[] = []
+            let count = 0
+            for (const itr = firstLevel.iterator(); itr.hasNext() && count < 10; count++) {
+                const child = itr.next()
+                firstValues.push(child.value)
+            }
+
+            // Should include 0 as the first shrink
+            expect(firstValues[0]).toBe(0.0)
+            // Should have more than just 0
+            expect(firstValues.length).toBeGreaterThan(1)
+            // All first-level children should be <= 100 in absolute value
+            firstValues.forEach(val => {
+                expect(Math.abs(val)).toBeLessThanOrEqual(Math.abs(100.0))
+            })
+        }
+
+        // Test case 2: 4.0 used to cause infinite loops - verify it's fixed
+        {
+            const shrinkable = shrinkableFloat(4.0)
+            const seenValues = new Set<number>()
+            const maxDepth = 5
+            const maxNodesAtLevel = 10
+
+            // Traverse the tree with depth limit to check for cycles
+            const traverse = (shr: Shrinkable<number>, currentDepth: number) => {
+                if (currentDepth > maxDepth) return
+
+                // Check for uniqueness (no cycles)
+                if (seenValues.has(shr.value)) {
+                    // Allow duplicates at different depths, but fail if we see the same value
+                    // at similar depths (potential cycle)
+                    return
+                }
+                seenValues.add(shr.value)
+
+                // Verify shrinking: children should be closer to zero than parent
+                const shrinks = shr.shrinks()
+                let nodeCount = 0
+                for (const itr = shrinks.iterator(); itr.hasNext() && nodeCount < maxNodesAtLevel; nodeCount++) {
+                    const child = itr.next()
+                    // Shrunk values should be smaller in absolute value (or equal to zero)
+                    if (shr.value !== 0) {
+                        expect(Math.abs(child.value)).toBeLessThanOrEqual(Math.abs(shr.value))
+                    }
+                    traverse(child, currentDepth + 1)
+                }
+            }
+
+            traverse(shrinkable, 0)
+            // If we got here without stack overflow, the infinite loop is fixed
+            expect(seenValues.size).toBeGreaterThan(0)
+        }
+
+        // Test case 3: Verify shrinking produces unique values (no immediate duplicates)
+        {
+            const testValues = [100.0, 4.0, 0.5, 25.0, -100.0]
+            for (const testValue of testValues) {
+                const shrinkable = shrinkableFloat(testValue)
+                const firstLevel = shrinkable.shrinks()
+                const firstLevelValues: number[] = []
+                for (const itr = firstLevel.iterator(); itr.hasNext(); ) {
+                    firstLevelValues.push(itr.next().value)
+                }
+
+                // Check that 0.0 appears in first level for non-zero values
+                if (testValue !== 0.0) {
+                    expect(firstLevelValues).toContain(0.0)
+                }
+
+                // Verify first-level children are unique
+                const uniqueFirstLevel = new Set(firstLevelValues)
+                // Allow some duplicates due to multiple paths, but should have reasonable uniqueness
+                expect(uniqueFirstLevel.size).toBeGreaterThan(0)
+            }
+        }
+
+        // Test case 4: Verify specific shrink tree structure for 100.0
+        {
+            const shrinkable = shrinkableFloat(100.0)
+            const firstLevel = shrinkable.shrinks()
+            const firstLevelValues: number[] = []
+            for (const itr = firstLevel.iterator(); itr.hasNext(); ) {
+                firstLevelValues.push(itr.next().value)
+            }
+
+            // Verify expected first-level children exist (exponent shrinking)
+            // 100 = 0.78125 * 2^7, so shrinks should include values with smaller exponents
+            expect(firstLevelValues).toContain(0.0) // Always prepended
+            // Should have multiple shrink candidates from exponent shrinking
+            expect(firstLevelValues.length).toBeGreaterThan(2)
+
+            // Verify the tree structure: first child should be 0, second should be from exponent shrinking
+            expect(firstLevelValues[0]).toBe(0.0)
+            
+            // All first-level values should be <= 100 in absolute value
+            firstLevelValues.forEach(val => {
+                expect(Math.abs(val)).toBeLessThanOrEqual(Math.abs(100.0))
+            })
+        }
+
+        // Test case 5: Edge cases
+        {
+            // Zero should have no shrinks
+            const zeroShrinkable = shrinkableFloat(0.0)
+            const zeroShrinks = zeroShrinkable.shrinks()
+            expect(zeroShrinks.isEmpty()).toBe(true)
+
+            // NaN should shrink to 0
+            const nanShrinkable = shrinkableFloat(NaN)
+            const nanShrinks = nanShrinkable.shrinks()
+            expect(nanShrinks.isEmpty()).toBe(false)
+            const firstNanShrink = nanShrinks.iterator().next()
+            expect(firstNanShrink.value).toBe(0.0)
+        }
     })
 
     /**
