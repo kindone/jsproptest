@@ -4,9 +4,7 @@ import { Shrinkable } from './Shrinkable'
 import { PreconditionError } from './util/error'
 import { JSONStringify } from './util/JSON'
 
-// Type alias for a property function that returns boolean (true = pass)
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
-// Type alias for a property function that returns void (implies pass, throws on failure)
 type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
 
 /**
@@ -32,16 +30,31 @@ class ShrinkResult {
  * Encapsulates the test function, generators, execution logic, and configuration.
  */
 export class Property<ARGS extends unknown[]> {
-    /** Default number of test runs if not explicitly set. */
+    /**
+     * @internal
+     * Default number of test runs if not explicitly set.
+     */
     private static defaultNumRuns = 200
 
-    /** Optional setup function executed before each test run (including shrinks). */
+    /**
+     * @internal
+     * Optional setup function executed before each test run (including shrinks).
+     */
     private onStartup?: () => void
-    /** Optional teardown function executed after each *successful* test run (including shrinks). */
+    /**
+     * @internal
+     * Optional teardown function executed after each *successful* test run (including shrinks).
+     */
     private onCleanup?: () => void
-    /** Seed for the random number generator. Empty string uses a time-based seed. */
+    /**
+     * @internal
+     * Seed for the random number generator. Empty string uses a time-based seed.
+     */
     private seed: string = ''
-    /** Number of times to generate arguments and run the test function. */
+    /**
+     * @internal
+     * Number of times to generate arguments and run the test function.
+     */
     private numRuns = Property.defaultNumRuns
 
     /**
@@ -173,6 +186,7 @@ export class Property<ARGS extends unknown[]> {
     }
 
     /**
+     * @internal
      * Internal method to perform shrinking on failed arguments.
      * It attempts to find the smallest combination of arguments that still causes the property to fail.
      * @param savedRandom The Random state corresponding to the generation of the initial failing args.
@@ -251,6 +265,7 @@ export class Property<ARGS extends unknown[]> {
     }
 
     /**
+     * @internal
      * Helper to test the property with one argument replaced.
      * Used during the shrinking process.
      */
@@ -260,6 +275,7 @@ export class Property<ARGS extends unknown[]> {
     }
 
     /**
+     * @internal
      * Executes the core property function (`this.func`) once with the given arguments.
      * Handles startup/cleanup hooks and captures results or exceptions.
      * @returns `true` on success, `false` if the function returns false, or the `Error` object if it throws.
@@ -299,6 +315,7 @@ export class Property<ARGS extends unknown[]> {
     }
 
     /**
+     * @internal
      * Constructs the final Error object to be thrown when a property fails.
      * Includes information about the original failure and the shrinking process.
      */

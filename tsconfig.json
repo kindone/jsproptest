@@ -32,5 +32,8 @@
     "forceConsistentCasingInFileNames": true,
     // `tsdx build` ignores this option, but it is commonly used when type-checking separately with `tsc`
     "noEmit": true,
+    // Omit declarations whose JSDoc includes @internal from .d.ts. Put @internal on the first line of the
+    // comment, then full implementation documentation below — it stays in .ts for editors, not in typings.
+    "stripInternal": true,
   }
 }

@@ -11,6 +11,11 @@ import { Dictionary, shrinkableDictionary } from '../shrinker/dictionary'
  * @param minSize The minimum number of key-value pairs in the dictionary.
  * @param maxSize The maximum number of key-value pairs in the dictionary.
  * @returns A generator for dictionaries.
+ *
+ * @example
+ * ```ts
+ * Gen.dict(Gen.asciiString(1, 4), Gen.interval(0, 99), 0, 6)
+ * ```
  */
 export function DictionaryGen<T>(
     keyGen: Generator<string>,

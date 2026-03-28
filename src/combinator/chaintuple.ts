@@ -12,6 +12,11 @@ import { Shrinkable } from '../Shrinkable'
  * @param tupleGen The generator for the initial tuple elements `Ts`.
  * @param genFactory A function that takes the generated tuple `Ts` and returns a generator for the final element `U`.
  * @returns A generator for the combined tuple `[...Ts, U]`.
+ *
+ * @example
+ * ```ts
+ * Gen.chainTuple(Gen.tuple(Gen.interval(0, 3), Gen.interval(0, 3)), ([x, y]) => Gen.just(x + y))
+ * ```
  */
 export function chainTuple<Ts extends unknown[], U>(
     tupleGen: Generator<Ts>,

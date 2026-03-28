@@ -14,6 +14,11 @@ import { SetGen } from './set'
  * @param minSize The minimum number of elements in the generated array.
  * @param maxSize The maximum number of elements in the generated array.
  * @returns {Generator<Array<T>>} A generator producing arrays of type T.
+ *
+ * @example
+ * ```ts
+ * Gen.array(Gen.interval(-5, 5), 0, 10)
+ * ```
  */
 export function ArrayGen<T>(elemGen: Generator<T>, minSize: number, maxSize: number): Generator<Array<T>> {
     return new ArbiContainer<Array<T>>(
@@ -39,6 +44,11 @@ export function ArrayGen<T>(elemGen: Generator<T>, minSize: number, maxSize: num
  * @param minSize The minimum number of unique elements in the generated array.
  * @param maxSize The maximum number of unique elements in the generated array.
  * @returns {Generator<Array<T>>} A generator producing sorted arrays of unique elements of type T.
+ *
+ * @example
+ * ```ts
+ * Gen.uniqueArray(Gen.interval(0, 100), 1, 8)
+ * ```
  */
 export function UniqueArrayGen<T>(elemGen: Generator<T>, minSize: number, maxSize: number): Generator<Array<T>> {
     return SetGen(elemGen, minSize, maxSize).map(set => {

@@ -47,6 +47,14 @@ function isSimpleActionGen<ObjectType>(
  * @template ObjectType The type of the object.
  * @param simpleActionGenFactories Array of SimpleActionGen, SimpleActionGenFactory, or weighted versions.
  * @returns A SimpleActionGenFactory selecting based on weights.
+ *
+ * @example
+ * ```ts
+ * const choose = Gen.simpleActionGenOf(
+ *     Gen.just(new SimpleAction((xs: number[]) => xs.push(1), 'push')),
+ *     Gen.weightedValue((xs: number[]) => Gen.just(new SimpleAction(() => xs.pop(), 'pop')), 0.3)
+ * )
+ * ```
  */
 export function simpleActionGenOf<ObjectType>(
     ...simpleActionGenFactories: Array<
@@ -82,6 +90,14 @@ export function simpleActionGenOf<ObjectType>(
  * @template ModelType The type of the model.
  * @param actionGenFactories Array of ActionGen, ActionGenFactory, or weighted versions.
  * @returns An ActionGenFactory selecting based on weights.
+ *
+ * @example
+ * ```ts
+ * const choose = Gen.actionOf(
+ *     Gen.just(new Action((_o: object, _m: object) => {}, 'a')),
+ *     Gen.just(new Action((_o: object, _m: object) => {}, 'b'))
+ * )
+ * ```
  */
 export function actionGenOf<ObjectType, ModelType>(
     ...actionGenFactories: Array<

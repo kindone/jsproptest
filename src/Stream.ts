@@ -5,10 +5,10 @@ import { JSONStringify } from './util/JSON'
  * Note: This iterator modifies the stream it references as it progresses.
  */
 class Iterator<T> {
-    /**
-     * @param stream The Stream to iterate over.
-     */
-    constructor(public stream: Stream<T>) {}
+    stream: Stream<T>
+    constructor(stream: Stream<T>) {
+        this.stream = stream
+    }
 
     hasNext(): boolean {
         return !this.stream.isEmpty()
@@ -34,7 +34,10 @@ export class Stream<T> {
      * @param tailGen A function that, when called, generates the rest of the stream (the tail).
      *                This function enables the lazy evaluation of the stream.
      */
-    constructor(readonly head?: T, readonly tailGen: () => Stream<T> = () => new Stream<T>()) {}
+    constructor(
+        readonly head?: T,
+        readonly tailGen: () => Stream<T> = () => new Stream<T>()
+    ) {}
 
     isEmpty(): boolean {
         return this.head === undefined
@@ -49,9 +52,6 @@ export class Stream<T> {
         else return this.tailGen()
     }
 
-    /**
-     * Returns an Iterator to consume the stream.
-     */
     iterator() {
         return new Iterator<T>(this)
     }

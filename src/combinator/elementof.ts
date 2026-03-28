@@ -13,6 +13,18 @@ export function isWeighted<T>(element: WeightedValue<T> | T): element is Weighte
     return (element as WeightedValue<T>).weight !== undefined
 }
 
+/**
+ * Wraps a value with a weight for `elementOf` / `normalizeWeightedValues`.
+ *
+ * @param value The value to associate with a weight.
+ * @param weight Relative weight; normalized with other weighted entries when building a distribution.
+ * @returns A {@link WeightedValue} wrapper.
+ *
+ * @example
+ * ```ts
+ * Gen.elementOf(Gen.weightedValue('a', 0.7), 'b', 'c')
+ * ```
+ */
 export function weightedValue<T>(value: T, weight: number) {
     return new WeightedValue(value, weight)
 }
@@ -59,7 +71,13 @@ export function normalizeWeightedValues<T>(arr: Array<T | WeightedValue<T>>): We
  *               Weights should be between 0 and 1 (exclusive). If weights are provided, they don't need
  *               to sum to 1 initially; they will be normalized. Unweighted values will share
  *               the remaining probability mass equally.
- * @returns A Generator that produces values of type T based on the weighted distribution.
+ * @returns A `Generator<T>` that produces values based on the weighted distribution.
+ *
+ * @example
+ * ```ts
+ * Gen.elementOf(1, 2, 3)
+ * Gen.elementOf(Gen.weightedValue('x', 0.8), 'y')
+ * ```
  */
 export function elementOf<T>(...values: Array<T | WeightedValue<T>>): Generator<T> {
     const weightedValues = normalizeWeightedValues(values)

@@ -34,86 +34,150 @@ class TestResult {
 }
 
 /**
- * Orchestrates stateful property-based testing.
- * It generates an initial state, then a sequence of actions based on the current state,
- * executes these actions against both the real object and a model, and checks for discrepancies
- * or errors. If a failure occurs, it attempts to shrink the sequence of actions and the initial
- * state to find a minimal failing test case.
+ * Stateful property test: random initial state, then a random-length sequence of actions whose
+ * generators may depend on the current `(object, model)` pair.
  *
- * @template ObjectType The type of the system under test.
- * @template ModelType The type of the model used for checking correctness.
+ * Each run: build a model from the initial object via `modelFactory`, then for each step call
+ * `actionGenFactory(obj, model)` to sample the next `Action`, and run `action.call(obj, model)`.
+ * Use this when you maintain a reference model in parallel with the real implementation (dual updates).
+ *
+ * Failures (thrown from an action or from optional `postCheck`) trigger shrinking: first the
+ * random states used to generate actions, then the initial object via the `initialGen` shrink tree.
+ *
+ * Action generation can fail transiently; those steps are retried up to
+ * `maxAllowedConsecutiveGenerationFailures` (not configurable from outside today).
+ *
+ * Prefer {@link simpleStatefulProperty} when you only need `SimpleAction`s and no real model
+ * (`EmptyModel`).
+ *
+ * @template ObjectType The system under test.
+ * @template ModelType The reference model state type.
+ * @see {@link statefulProperty} — usual way to construct.
  */
 export class StatefulProperty<ObjectType, ModelType> {
+    /**
+     * @internal
+     * Seed for `Random`; empty string uses a fresh seed each process.
+     */
     private seed: string = ''
+    /**
+     * @internal
+     * Number of full runs (initial state + action sequence per run).
+     */
     private numRuns = 100
+    /**
+     * @internal
+     * Minimum actions sampled per run (length is uniform in `[minActions, maxActions]`).
+     */
     private minActions = 1
+    /**
+     * @internal
+     * Maximum actions per run.
+     */
     private maxActions = 100
+    /**
+     * @internal
+     * When action generation throws repeatedly, stop retrying after this many consecutive failures.
+     */
     private maxAllowedConsecutiveGenerationFailures = 20
+    /**
+     * @internal
+     * When true, log discarded actions and shrink-time generation failures.
+     */
     private verbose = false
+    /**
+     * @internal
+     * Optional hook before each run and before shrink replays.
+     */
     private onStartup?: () => void
+    /**
+     * @internal
+     * Optional hook after a successful run (all actions and `postCheck`, including replays).
+     */
     private onCleanup?: () => void
+    /**
+     * @internal
+     * Optional invariant run after the action sequence completes without throwing.
+     */
     private postCheck?: (obj: ObjectType, mdl: ModelType) => void
 
+    /**
+     * @param initialGen Samples the starting `ObjectType` (shrunk on failure).
+     * @param modelFactory Builds the model from the initial object (typically a pure spec of expected behavior).
+     * @param actionGenFactory Given current `(obj, model)`, returns a generator of the next `Action` to apply.
+     */
     constructor(
         readonly initialGen: Generator<ObjectType>,
         readonly modelFactory: (_: ObjectType) => ModelType,
         readonly actionGenFactory: ActionGenFactory<ObjectType, ModelType>
     ) {}
 
+    /** Reproducible RNG for all runs; empty string uses a fresh seed each process. */
     setSeed(seed: string) {
         this.seed = seed
         return this
     }
 
+    /** Number of full runs (each: new initial state + action sequence). Default 100. */
     setNumRuns(numRuns: number) {
         this.numRuns = numRuns
         return this
     }
 
+    /** Minimum number of actions attempted per run (length is random in `[min, max]`). */
     setMinActions(num: number) {
         this.minActions = num
         return this
     }
 
+    /** Maximum number of actions per run. */
     setMaxActions(num: number) {
         this.maxActions = num
         return this
     }
 
+    /**
+     * Hook before each run and before replay during shrinking (same semantics as {@link Property#setOnStartup}).
+     */
     setOnStartup(onStartup: () => void) {
         this.onStartup = onStartup
         return this
     }
 
+    /**
+     * Hook after a run completes without throwing through all actions and `postCheck` (also after replays that succeed).
+     */
     setOnCleanup(onCleanup: () => void) {
         this.onCleanup = onCleanup
         return this
     }
 
+    /**
+     * Final assertion after the action sequence: e.g. compare `obj` with an independently recomputed result.
+     * Runs only when no action threw.
+     */
     setPostCheck(postCheck: (obj: ObjectType, mdl: ModelType) => void) {
         this.postCheck = postCheck
         return this
     }
 
+    /** Same as {@link setPostCheck} but only receives `obj` (model ignored). */
     setPostCheckWithoutModel(postCheck: (obj: ObjectType) => void) {
         this.postCheck = (obj: ObjectType, _: ModelType) => postCheck(obj)
         return this
     }
 
+    /** Log discarded actions and shrink internals to the console when `true`. */
     setVerbosity(verbose: boolean) {
         this.verbose = verbose
         return this
     }
 
     /**
-     * Executes the stateful property test suite.
-     * Runs `numRuns` test iterations. In each iteration:
-     * 1. Generates an initial object and model.
-     * 2. Generates a sequence of actions based on the evolving state.
-     * 3. Executes each action, updating the object and model.
-     * 4. If an action fails (throws an error), initiates the shrinking process.
-     * 5. Performs a final check (if `postCheck` is set) after all actions complete.
-     * 6. Calls cleanup hooks (`onCleanup`).
+     * Run the suite: `numRuns` iterations, each with a random action count in `[minActions, maxActions]`.
+     * On first thrown error from an action, stops that iteration and shrinks toward a smaller failing case.
+     *
+     * @throws With a message that includes shrunk or original args when an action or `postCheck` fails.
      */
     go() {
         if (this.minActions <= 0 || this.minActions > this.maxActions)
@@ -183,6 +247,14 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * Same as {@link go}. Familiar name used by several stateful / model-based testing APIs.
+     */
+    run() {
+        this.go()
+    }
+
+    /**
+     * @internal
      * Orchestrates the shrinking process when a test failure occurs.
      * It attempts to find a smaller or simpler failing test case by:
      * 1. Shrinking the sequence of random seeds used (`shrinkRandomwise`).
@@ -238,6 +310,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Attempts to shrink the failing test case by simplifying the sequence of random numbers
      * used to generate the actions. It iteratively tries smaller sets of random seeds derived
      * from the original sequence.
@@ -274,6 +347,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Attempts to shrink the failing test case by simplifying the initial generated object.
      * It iteratively tries simpler versions of the initial object derived from its shrink tree.
      *
@@ -316,6 +390,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Runs a test sequence using the default initial state generation and
      * a given sequence of random generators for action generation. Used during random-wise shrinking.
      *
@@ -359,6 +434,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Runs a test sequence using a specific initial state derived from shrink steps
      * and a fixed sequence of random generators for action generation. Used during initial object shrinking.
      *
@@ -407,6 +483,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Generates the initial object and its corresponding model using the provided
      * initial generator and model factory. Wraps the generation in a `Try` to handle
      * potential generation errors gracefully.
@@ -427,6 +504,7 @@ export class StatefulProperty<ObjectType, ModelType> {
     }
 
     /**
+     * @internal
      * Formats and enhances the error message after a failure, incorporating details
      * from both the original failure and the shrunk failure (if shrinking was successful).
      * Provides context about the initial object and action sequence that caused the error.
@@ -477,14 +555,10 @@ export class StatefulProperty<ObjectType, ModelType> {
 }
 
 /**
- * Factory function to create a `StatefulProperty` instance.
+ * Builds a {@link StatefulProperty} with an explicit model: use when actions update both a real object and a reference model.
  *
- * @template ObjectType The type of the system under test.
- * @template ModelType The type of the model used for checking correctness.
- * @param initialGen Generator for the initial state of the object under test.
- * @param modelFactory Function to create the initial model state based on the initial object state.
- * @param actionGenFactory Factory to generate actions based on the current object and model state.
- * @returns A new `StatefulProperty` instance configured with the provided generators and factories.
+ * @template ObjectType The system under test.
+ * @template ModelType The model type (often a pure functional spec).
  */
 export function statefulProperty<ObjectType, ModelType>(
     initialGen: Generator<ObjectType>,
@@ -495,14 +569,10 @@ export function statefulProperty<ObjectType, ModelType>(
 }
 
 /**
- * Factory function to create a `StatefulProperty` instance for cases where
- * no explicit model is needed (using an `EmptyModel`). Simplifies setup when
- * checks only involve the object under test or invariants.
+ * Same as {@link statefulProperty} but with `EmptyModel`: actions are {@link SimpleAction}s wrapped via
+ * {@link Action.fromSimpleAction}, so you only write object-only logic. Use for invariants or SUT-only state machines.
  *
- * @template ObjectType The type of the system under test.
- * @param initialGen Generator for the initial state of the object under test.
- * @param simpleActionGenFactory Factory to generate actions based only on the current object state.
- * @returns A new `StatefulProperty` instance configured for model-less stateful testing.
+ * @template ObjectType The system under test.
  */
 export function simpleStatefulProperty<ObjectType>(
     initialGen: Generator<ObjectType>,

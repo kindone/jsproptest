@@ -46,7 +46,18 @@ function isWeighted<T>(gen: Weighted<T> | Generator<T>): gen is Weighted<T> {
     return (gen as Weighted<T>).weight !== undefined
 }
 
-// Helper function to explicitly create a Weighted generator.
+/**
+ * Wraps a generator with a weight for `oneOf`.
+ *
+ * @param gen The generator to weight.
+ * @param weight Relative weight; normalized with other weighted entries when building a distribution.
+ * @returns A weighted generator wrapper accepted by {@link oneOf}.
+ *
+ * @example
+ * ```ts
+ * Gen.oneOf(Gen.weightedGen(Gen.interval(0, 5), 0.5), Gen.just(100))
+ * ```
+ */
 export function weightedGen<T>(gen: Generator<T>, weight: number) {
     return new Weighted(gen, weight)
 }
@@ -57,6 +68,13 @@ export function weightedGen<T>(gen: Generator<T>, weight: number) {
  * weighted (using `weightedGen`), the remaining probability mass (1.0 - sum of weights)
  * is distributed equally among them.
  * @param generators A list of generators, optionally wrapped with `weightedGen`.
+ * @returns A `Generator<T>` that samples one of the inputs according to weights.
+ *
+ * @example
+ * ```ts
+ * Gen.oneOf(Gen.just('a'), Gen.just('b'))
+ * Gen.oneOf(Gen.weightedGen(Gen.float(), 0.2), Gen.interval(0, 10))
+ * ```
  */
 export function oneOf<T>(...generators: Generator<T>[]): Generator<T> {
     let sum = 0.0

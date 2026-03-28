@@ -3,13 +3,20 @@ import { Shrinkable } from '../Shrinkable'
 import { shrinkableString } from '../shrinker/string'
 import { interval } from './integer'
 
-/** Generates integers representing ASCII character codes (1-127). */
+/**
+ * Generates integers representing ASCII character codes (1–127).
+ * @returns A `Generator<number>` of code points.
+ */
 export const ASCIICharGen = interval(1, 0x7f)
-/** Generates integers representing printable ASCII character codes (32-127). */
+/**
+ * Generates integers representing printable ASCII character codes (32–127).
+ * @returns A `Generator<number>` of code points.
+ */
 export const PrintableASCIICharGen = interval(0x20, 0x7f)
 /**
  * Generates integers representing Unicode character codes.
  * Maps the interval to avoid generating surrogate pair code points directly (U+D800 to U+DFFF).
+ * @returns A `Generator<number>` of code points.
  */
 export const UnicodeCharGen = interval(1, 0xd7ff + (0x10ffff - 0xe000 + 1)).map(code =>
     // Skip surrogate pair range D800-DFFF
@@ -23,6 +30,12 @@ export const UnicodeCharGen = interval(1, 0xd7ff + (0x10ffff - 0xe000 + 1)).map(
  * @param maxSize - The maximum length of the generated string (inclusive).
  * @param charGen - The generator used to produce character codes for the string. Defaults to `ASCIICharGen`.
  * @returns A generator that produces strings with shrinkable characters.
+ *
+ * @example
+ * ```ts
+ * Gen.string(0, 8) // default ASCII char codes
+ * Gen.string(0, 4, Gen.unicode) // Unicode code units
+ * ```
  */
 export function StringGen(
     minSize: number,
@@ -49,6 +62,11 @@ export function StringGen(
  * @param minSize - The minimum length of the generated string (inclusive).
  * @param maxSize - The maximum length of the generated string (inclusive).
  * @returns A generator that produces ASCII strings.
+ *
+ * @example
+ * ```ts
+ * Gen.asciiString(1, 12)
+ * ```
  */
 export function ASCIIStringGen(minSize: number, maxSize: number): Generator<string> {
     return StringGen(minSize, maxSize)
@@ -62,6 +80,11 @@ export function ASCIIStringGen(minSize: number, maxSize: number): Generator<stri
  * @param minSize - The minimum length of the generated string (inclusive).
  * @param maxSize - The maximum length of the generated string (inclusive).
  * @returns A generator that produces Unicode strings.
+ *
+ * @example
+ * ```ts
+ * Gen.unicodeString(0, 20)
+ * ```
  */
 export function UnicodeStringGen(minSize: number, maxSize: number): Generator<string> {
     return StringGen(minSize, maxSize, UnicodeCharGen)
@@ -74,6 +97,11 @@ export function UnicodeStringGen(minSize: number, maxSize: number): Generator<st
  * @param minSize - The minimum length of the generated string (inclusive).
  * @param maxSize - The maximum length of the generated string (inclusive).
  * @returns A generator that produces printable ASCII strings.
+ *
+ * @example
+ * ```ts
+ * Gen.printableAsciiString(3, 40)
+ * ```
  */
 export function PrintableASCIIStringGen(minSize: number, maxSize: number): Generator<string> {
     return StringGen(minSize, maxSize, PrintableASCIICharGen)

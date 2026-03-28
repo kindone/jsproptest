@@ -16,15 +16,12 @@ import { Random } from '../Random'
  * @returns A Generator that produces instances of `Type`.
  *
  * @example
- * ```typescript
- *
+ * ```ts
  * class User {
- *   constructor(public id: number, public name: string) {}
+ *     constructor(public id: number, public name: string) {}
  * }
  *
- * const userGenerator = Gen.construct(User, Gen.integer(1, 100), Gen.string(5, 10));
- * // userGenerator can now produce instances of User with id between 1 and 100
- * // and name with length between 5 and 10.
+ * const userGen = Gen.construct(User, Gen.interval(1, 100), Gen.asciiString(1, 20))
  * ```
  */
 export function construct<T, Gens extends Generator<unknown>[]>(

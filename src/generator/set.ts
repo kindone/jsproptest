@@ -9,6 +9,11 @@ import { shrinkableSet } from '../shrinker/set'
  * @param minSize - The minimum number of elements the generated set should contain.
  * @param maxSize - The maximum number of elements the generated set should contain.
  * @returns A Generator that produces Set<T> instances with sizes between minSize and maxSize (inclusive).
+ *
+ * @example
+ * ```ts
+ * Gen.set(Gen.asciiString(1, 3), 0, 5)
+ * ```
  */
 export function SetGen<T>(elemGen: Generator<T>, minSize: number, maxSize: number): Generator<Set<T>> {
     return new ArbiContainer<Set<T>>(

@@ -24,6 +24,10 @@ export class Random {
      * Predefined boundary values useful for testing edge cases involving 32-bit integers.
      */
     static readonly INT_BOUNDS = [0, -128, 127, -32768, 32767, -2147483648, 2147483647]
+    /**
+     * @internal
+     * Mersenne Twister engine from `random-js`; holds generator state between draws.
+     */
     private mt: MersenneTwister19937
 
     /**
@@ -150,8 +154,7 @@ export class Random {
         return new Random(this.initialSeed, this.mt.getUseCount())
     }
 
-    // Internal helper to map a generated number within its native range [genMin, genMax]
-    // to a target range [min, max].
+    /** @internal */
     _interval(genNum: number, genMin: number, genMax: number, min: number, max: number): number {
         if (genNum < genMin) throw new RangeError('genMin(' + genMin + ') greater than num(' + genNum + ')')
         if (genNum > genMax) throw new RangeError('num(' + genNum + ') greater than genMax(' + genMax + ')')

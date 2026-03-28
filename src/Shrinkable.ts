@@ -94,6 +94,7 @@ export class Shrinkable<T> {
         return transformer(this.value).with(() => this.shrinks().transform(shr => shr.flatMap(transformer)))
     }
 
+    /** @throws If `criteria(value)` is false. */
     filter(criteria: (_: T) => boolean): Shrinkable<T> {
         if (!criteria(this.value)) throw new Error('cannot apply criteria')
         return this.with(() =>
@@ -107,12 +108,7 @@ export class Shrinkable<T> {
         return this.with(() => this.shrinksGen().take(n))
     }
 
-    /*
-     * Returns the nth child of this shrinkable.
-     * @throws Error if n is out of bound
-     * @param n the index of the child
-     * @return the nth child
-     * */
+    /** @throws If `n` is out of bounds. */
     getNthChild(n: number): Shrinkable<T> {
         if (n < 0) throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + ' < 0')
 
@@ -125,12 +121,7 @@ export class Shrinkable<T> {
         throw new Error('Shrinkable getNthChild failed: index out of bound: ' + n + ' >= ' + i)
     }
 
-    /*
-     * Returns the child shrinkable at the given steps, traversing the tree of children.
-     * @throws Error if any step is out of bound
-     * @param steps the indices of the children
-     * @return the child shrinkable at the given steps
-     * */
+    /** @throws If any {@link getNthChild} step is out of range. */
     retrieve(steps: number[]): Shrinkable<T> {
         let shr: Shrinkable<T> = this // eslint-disable-line @typescript-eslint/no-this-alias
         for (let i = 0; i < steps.length; i++) {

@@ -56,7 +56,7 @@ describe('stateful', () => {
 
         prop.setSeed('1')
             .setNumRuns(NUM_RUNS)
-            .go()
+            .run()
 
         // Check counters after the run
         expect(startupCallCount).toBe(NUM_RUNS)

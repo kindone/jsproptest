@@ -15,12 +15,10 @@ export class SimpleAction<ObjectType> {
      */
     constructor(readonly func: (obj: ObjectType) => void, readonly name = 'unnamed') {}
 
-    /** Calls the underlying function with the given object. */
     call(obj: ObjectType) {
         this.func(obj)
     }
 
-    /** Returns the name of the action. */
     toString() {
         return this.name
     }
@@ -48,12 +46,10 @@ export class Action<ObjectType, ModelType> {
      */
     constructor(readonly func: (obj: ObjectType, mdl: ModelType) => void, readonly name = 'unnamed') {}
 
-    /** Calls the underlying function with the object and model. */
     call(obj: ObjectType, mdl: ModelType) {
         this.func(obj, mdl)
     }
 
-    /** Returns the name of the action. */
     toString() {
         return this.name
     }
@@ -76,10 +72,30 @@ export type EmptyModel = {} // eslint-disable-line @typescript-eslint/no-empty-o
  * @deprecated Use the newer StatefulProperty implementation if available.
  */
 export class StatefulPropertyDeprecated<ObjectType, ModelType> {
+    /**
+     * @internal
+     * Seed for the random number generator.
+     */
     private seed: string = ''
+    /**
+     * @internal
+     * Number of test runs; `0` means use the underlying `Property` default.
+     */
     private numRuns = 0
+    /**
+     * @internal
+     * Optional hook before each test run (forwarded to `Property#setOnStartup`).
+     */
     private onStartup?: () => void
+    /**
+     * @internal
+     * Optional hook after each successful run (forwarded to `Property#setOnCleanup`).
+     */
     private onCleanup?: () => void
+    /**
+     * @internal
+     * Optional check after actions, comparing object and model.
+     */
     private postCheck?: (obj: ObjectType, mdl: ModelType) => void
 
     /**
@@ -171,5 +187,12 @@ export class StatefulPropertyDeprecated<ObjectType, ModelType> {
 
         // Run the property test
         prop.forAll(tupleGen)
+    }
+
+    /**
+     * Same as {@link go}.
+     */
+    run() {
+        this.go()
     }
 }
