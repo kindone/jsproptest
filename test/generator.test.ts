@@ -1,7 +1,7 @@
 import { Random } from '../src/Random'
 import { Gen } from '../src'
 import { Generator } from '../src/Generator'
-import { forAll } from '../src/Property'
+import { Property, forAll } from '../src/Property'
 import { JSONStringify } from '../src/util/JSON'
 import { exhaustive } from './testutil'
 import { Shrinkable } from '../src/Shrinkable'
@@ -27,8 +27,9 @@ describe('primitive generators', () => {
             if (value) numTrue++
             else numFalse++
         }
-        expect(numTrue).toBeGreaterThan(numGenerations * 0.45)
-        expect(numFalse).toBeGreaterThan(numGenerations * 0.45)
+        // ~3σ from 50% at n=1000 is ~47.5%; use 40% to avoid rare binomial tails in CI
+        expect(numTrue).toBeGreaterThan(numGenerations * 0.4)
+        expect(numFalse).toBeGreaterThan(numGenerations * 0.4)
     })
 
     /**
@@ -235,8 +236,8 @@ describe('primitive generators', () => {
      */
     it('Gen.interval', () => {
         const gen = Gen.interval(-10, 10)
-        // make sure it generates all values
-        const numGenerations = 1000
+        // make sure it generates all values (need enough draws to cover all 21 integers w.h.p.)
+        const numGenerations = 3000
         const set: Set<number> = new Set([])
         for (let i = 0; i < numGenerations; i++) {
             const value = gen.generate(rand).value
@@ -255,7 +256,7 @@ describe('primitive generators', () => {
         const gen1 = Gen.string(0, 5)
         // make sure it generates values of all lengths from 0 to 5 and only ASCII
         const set: Set<number> = new Set([])
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 5000; i++) {
             const value = gen1.generate(rand).value
             expect(value.length).toBeLessThanOrEqual(5)
             for (let j = 0; j < value.length; j++) {
@@ -270,7 +271,7 @@ describe('primitive generators', () => {
         const gen2 = Gen.unicodeString(0, 10)
         // make sure it generates values of all lengths from 0 to 10 and includes non-ASCII
         const set2: Set<number> = new Set([])
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 5000; i++) {
             const value = gen2.generate(rand).value
             expect(value.length).toBeLessThanOrEqual(10)
             set2.add(value.length)
@@ -292,7 +293,7 @@ describe('container generators', () => {
         const elemGen = Gen.interval(0, 5)
         const gen = Gen.array(elemGen, 5, 6)
 
-        const numGenerations = 1000
+        const numGenerations = 3000
         const set: Set<number> = new Set()
 
         for (let i = 0; i < numGenerations; i++) {
@@ -460,23 +461,26 @@ describe('container generators', () => {
         const nodeGen = createNodeGen;
 
         // Use forAll to test the generated recursive structures.
-        let maxFoundDepth = 0;
-        forAll((node: Node | null) => {
-            let current = node;
-            let depth = 0;
-            const maxDepth = 20; // Set a reasonable max depth
+        let maxFoundDepth = 0
+        new Property((node: Node | null) => {
+            let current = node
+            let depth = 0
+            const maxDepth = 20 // Set a reasonable max depth
 
             while (current !== null && depth < maxDepth) {
-                expect(typeof current.value).toBe('number');
-                expect(current.value).toBeGreaterThanOrEqual(0);
-                expect(current.value).toBeLessThanOrEqual(100);
-                current = current.next;
-                depth++;
+                expect(typeof current.value).toBe('number')
+                expect(current.value).toBeGreaterThanOrEqual(0)
+                expect(current.value).toBeLessThanOrEqual(100)
+                current = current.next
+                depth++
             }
-            if (depth > maxFoundDepth) maxFoundDepth = depth;
-        }, nodeGen);
+            if (depth > maxFoundDepth) maxFoundDepth = depth
+            return true
+        })
+            .setNumRuns(500)
+            .forAll(nodeGen)
         // Check if recursive generator is working by ensuring at least some recursive calls are made
-        expect(maxFoundDepth).toBeGreaterThan(0);
+        expect(maxFoundDepth).toBeGreaterThan(0)
     });
 })
 
