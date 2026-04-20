@@ -25,6 +25,7 @@ import { DictionaryGen } from './generator/dictionary'
 import { simpleActionGenOf as SimpleActionGenOf, actionGenOf as ActionGenOf } from './stateful/actionof'
 
 export { Generator, Arbitrary, GenFunction } from './Generator'
+export type { FloatGenConfig } from './generator/floating'
 export { Property, forAll } from './Property'
 export { Random } from './Random'
 export { Shrinkable } from './Shrinkable'
@@ -90,10 +91,19 @@ export const Gen = {
     /**
      * Same API as {@link FloatingGen}.
      *
-     * Generates arbitrary floating-point numbers between 0 (inclusive) and 1 (exclusive).
-     * The generated values are shrinkable towards 0.
+     * Generates floating-point numbers. By default generates only finite values in [0, 1),
+     * shrinkable towards 0. Pass a {@link FloatGenConfig} to enable probabilistic generation
+     * of `NaN`, `+Infinity`, and `-Infinity`.
      *
+     * @param config Optional probability configuration for special float values.
      * @returns A Generator for floating-point numbers.
+     *
+     * @example
+     * ```ts
+     * Gen.float()                                                              // finite only
+     * Gen.float({ nanProb: 0.05 })                                             // 5 % NaN
+     * Gen.float({ nanProb: 0.05, posInfProb: 0.02, negInfProb: 0.02 })
+     * ```
      */
     float: FloatingGen,
 

@@ -213,6 +213,75 @@ describe('primitive generators', () => {
     })
 
     /**
+     * Tests Gen.float(config) with nan/inf probability parameters:
+     * - Default (no config) generates only finite values
+     * - nanProb > 0 generates NaN at approximately the specified rate
+     * - posInfProb / negInfProb generate infinities at specified rates
+     * - Invalid configs throw errors
+     */
+    it('Gen.float with nanProb/posInfProb/negInfProb config', () => {
+        const rand = new Random('42')
+        const N = 2000
+
+        // Default: all finite
+        {
+            const gen = Gen.float()
+            for (let i = 0; i < N; i++) {
+                expect(Number.isFinite(gen.generate(rand).value)).toBe(true)
+            }
+        }
+
+        // nanProb=0.2: roughly 20% NaN, rest finite
+        {
+            const gen = Gen.float({ nanProb: 0.2 })
+            let nanCount = 0
+            for (let i = 0; i < N; i++) {
+                const v = gen.generate(rand).value
+                if (Number.isNaN(v)) nanCount++
+                else expect(Number.isFinite(v)).toBe(true)
+            }
+            // Allow ±10% tolerance (3σ for binomial at N=2000, p=0.2 is ~2.7%)
+            expect(nanCount).toBeGreaterThan(N * 0.10)
+            expect(nanCount).toBeLessThan(N * 0.30)
+        }
+
+        // posInfProb=0.1, negInfProb=0.1: ~10% each, rest finite
+        {
+            const gen = Gen.float({ posInfProb: 0.1, negInfProb: 0.1 })
+            let posInfCount = 0, negInfCount = 0, finiteCount = 0
+            for (let i = 0; i < N; i++) {
+                const v = gen.generate(rand).value
+                if (v === Number.POSITIVE_INFINITY) posInfCount++
+                else if (v === Number.NEGATIVE_INFINITY) negInfCount++
+                else { expect(Number.isFinite(v)).toBe(true); finiteCount++ }
+            }
+            expect(posInfCount).toBeGreaterThan(N * 0.04)
+            expect(negInfCount).toBeGreaterThan(N * 0.04)
+            expect(finiteCount).toBeGreaterThan(N * 0.70)
+        }
+
+        // All three: nanProb=0.1, posInfProb=0.1, negInfProb=0.1 → 30% special, 70% finite
+        {
+            const gen = Gen.float({ nanProb: 0.1, posInfProb: 0.1, negInfProb: 0.1 })
+            let specialCount = 0
+            for (let i = 0; i < N; i++) {
+                const v = gen.generate(rand).value
+                if (!Number.isFinite(v)) specialCount++
+            }
+            expect(specialCount).toBeGreaterThan(N * 0.15)
+            expect(specialCount).toBeLessThan(N * 0.45)
+        }
+
+        // Validation: individual prob out of range
+        expect(() => Gen.float({ nanProb: -0.1 })).toThrow()
+        expect(() => Gen.float({ nanProb: 1.1 })).toThrow()
+        expect(() => Gen.float({ posInfProb: 1.5 })).toThrow()
+
+        // Validation: sum > 1.0
+        expect(() => Gen.float({ nanProb: 0.5, posInfProb: 0.3, negInfProb: 0.3 })).toThrow()
+    })
+
+    /**
      * Tests Gen.interval(0, 1) for roughly even distribution of 0 and 1.
      */
     it('Gen.interval small', () => {
