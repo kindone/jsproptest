@@ -21,6 +21,8 @@ Properties define the expected behavior of your code over a range of inputs.
 
 *   **`property.setNumRuns(n: number)`**: Configures the number of random test cases to execute when `forAll` is called on a `Property` instance. Returns the `Property` instance for chaining.
 
+*   **`property.setMaxDurationMs(ms: number)`**: Configures a wall-clock time budget for starting generated test cases. Once the budget is exhausted, `forAll` stops starting new runs even if `setNumRuns(...)` has not been reached. Returns the `Property` instance for chaining.
+
 *   **`property.example(...args: any[])`**: Runs the property's predicate *once* with the explicitly provided `args`. Useful for debugging specific edge cases.
 
     ```typescript

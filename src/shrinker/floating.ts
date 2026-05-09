@@ -58,7 +58,7 @@ function shrinkableFloatStream(value: number): Stream<Shrinkable<number>> {
             fraction = decomposed.fraction
             exponent = decomposed.exponent
         } else if (value === Number.NEGATIVE_INFINITY) {
-            const min = Number.MIN_VALUE
+            const min = -Number.MAX_VALUE
             const decomposed = decomposeFloat(min)
             fraction = decomposed.fraction
             exponent = decomposed.exponent

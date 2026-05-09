@@ -4,6 +4,9 @@ import { just } from '../combinator/just'
 import { oneOf, weightedGen } from '../combinator/oneof'
 import { shrinkableFloat } from '../shrinker/floating'
 
+const floatBuffer = new ArrayBuffer(8)
+const floatView = new DataView(floatBuffer)
+
 /**
  * Configuration for {@link FloatingGen}.
  *
@@ -26,17 +29,30 @@ export interface FloatGenConfig {
 }
 
 /**
- * Base finite-only generator: generates values in [0, 1) shrinkable towards 0.
+ * Generates a finite IEEE-754 double by interpreting random bits as a number
+ * and rejecting NaN/infinities.
+ */
+function nextFiniteDouble(random: Random): number {
+    while (true) {
+        floatView.setUint32(0, random.nextInt(0) >>> 0)
+        floatView.setUint32(4, random.nextInt(0) >>> 0)
+        const value = floatView.getFloat64(0)
+        if (Number.isFinite(value)) return value
+    }
+}
+
+/**
+ * Base finite-only generator: generates finite IEEE-754 doubles shrinkable towards 0.
  */
 function finiteFloatingGen(): Generator<number> {
     return new Arbitrary<number>((random: Random) => {
-        const value = random.nextNumber()
+        const value = nextFiniteDouble(random)
         return shrinkableFloat(value)
     })
 }
 
 /**
- * Generates floating-point numbers. By default generates only finite values in [0, 1).
+ * Generates floating-point numbers. By default generates only finite IEEE-754 doubles.
  *
  * Pass a {@link FloatGenConfig} to control the probability of also generating
  * `NaN`, `Number.POSITIVE_INFINITY`, and `Number.NEGATIVE_INFINITY`.
@@ -57,9 +73,9 @@ export function FloatingGen(config?: FloatGenConfig): Generator<number> {
     const negInfProb = config?.negInfProb ?? 0.0
 
     // Validate individual probabilities
-    if (nanProb    < 0.0 || nanProb    > 1.0) throw new Error(`nanProb must be in [0.0, 1.0], got ${nanProb}`)
-    if (posInfProb < 0.0 || posInfProb > 1.0) throw new Error(`posInfProb must be in [0.0, 1.0], got ${posInfProb}`)
-    if (negInfProb < 0.0 || negInfProb > 1.0) throw new Error(`negInfProb must be in [0.0, 1.0], got ${negInfProb}`)
+    if (!Number.isFinite(nanProb)    || nanProb    < 0.0 || nanProb    > 1.0) throw new Error(`nanProb must be in [0.0, 1.0], got ${nanProb}`)
+    if (!Number.isFinite(posInfProb) || posInfProb < 0.0 || posInfProb > 1.0) throw new Error(`posInfProb must be in [0.0, 1.0], got ${posInfProb}`)
+    if (!Number.isFinite(negInfProb) || negInfProb < 0.0 || negInfProb > 1.0) throw new Error(`negInfProb must be in [0.0, 1.0], got ${negInfProb}`)
 
     const specialSum = nanProb + posInfProb + negInfProb
     if (specialSum > 1.0) throw new Error(`sum of nanProb + posInfProb + negInfProb must be ≤ 1.0, got ${specialSum}`)
@@ -72,8 +88,8 @@ export function FloatingGen(config?: FloatGenConfig): Generator<number> {
     if (nanProb    > 0.0) gens.push(weightedGen(just(NaN),                       nanProb))
     if (posInfProb > 0.0) gens.push(weightedGen(just(Number.POSITIVE_INFINITY),  posInfProb))
     if (negInfProb > 0.0) gens.push(weightedGen(just(Number.NEGATIVE_INFINITY),  negInfProb))
-    // Unweighted finite generator receives the remaining probability mass automatically
-    gens.push(finiteFloatingGen())
+    const finiteProb = 1.0 - specialSum
+    if (finiteProb > 0.0) gens.push(weightedGen(finiteFloatingGen(), finiteProb))
 
     return oneOf(...gens)
 }

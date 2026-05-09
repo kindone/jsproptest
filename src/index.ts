@@ -91,9 +91,9 @@ export const Gen = {
     /**
      * Same API as {@link FloatingGen}.
      *
-     * Generates floating-point numbers. By default generates only finite values in [0, 1),
-     * shrinkable towards 0. Pass a {@link FloatGenConfig} to enable probabilistic generation
-     * of `NaN`, `+Infinity`, and `-Infinity`.
+     * Generates floating-point numbers. By default generates only finite IEEE-754 doubles,
+     * shrinkable towards 0. Pass a {@link FloatGenConfig} to enable probabilistic
+     * generation of `NaN`, `+Infinity`, and `-Infinity`.
      *
      * @param config Optional probability configuration for special float values.
      * @returns A Generator for floating-point numbers.

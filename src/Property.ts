@@ -56,6 +56,11 @@ export class Property<ARGS extends unknown[]> {
      * Number of times to generate arguments and run the test function.
      */
     private numRuns = Property.defaultNumRuns
+    /**
+     * @internal
+     * Maximum wall-clock time spent starting new generated test runs.
+     */
+    private maxDurationMs?: number
 
     /**
      * Creates a new Property instance.
@@ -75,8 +80,11 @@ export class Property<ARGS extends unknown[]> {
         const random = this.seed === '' ? new Random() : new Random(this.seed)
         let numPrecondFailures = 0 // Counter for skipped runs due to preconditions
         let result: boolean | object = true // Holds the outcome of the latest test run
+        const startedAt = Date.now()
 
         for (let i = 0; i < this.numRuns; i++) {
+            if (this.hasExceededMaxDuration(startedAt)) break
+
             const savedRandom = random.clone() // Save RNG state for reproducible shrinking if this run fails
             if (this.onStartup) this.onStartup()
 
@@ -168,6 +176,16 @@ export class Property<ARGS extends unknown[]> {
         return this
     }
 
+    /** Sets the maximum wall-clock duration for starting generated test runs. */
+    setMaxDurationMs(maxDurationMs: number) {
+        if (!Number.isFinite(maxDurationMs) || maxDurationMs < 0) {
+            throw new Error('setMaxDurationMs(): maxDurationMs must be a finite non-negative number')
+        }
+
+        this.maxDurationMs = maxDurationMs
+        return this
+    }
+
     /** Sets a setup function to be called before each test execution (including shrinks). */
     setOnStartup(onStartup: () => void) {
         this.onStartup = onStartup
@@ -183,6 +201,10 @@ export class Property<ARGS extends unknown[]> {
     /** Sets the default number of runs for all subsequently created Property instances. */
     static setDefaultNumRuns(numRuns: number) {
         Property.defaultNumRuns = numRuns
+    }
+
+    private hasExceededMaxDuration(startedAt: number): boolean {
+        return typeof this.maxDurationMs !== 'undefined' && Date.now() - startedAt >= this.maxDurationMs
     }
 
     /**

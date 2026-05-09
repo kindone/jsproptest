@@ -32,13 +32,9 @@ describe('primitive generators', () => {
         expect(numFalse).toBeGreaterThan(numGenerations * 0.4)
     })
 
-    /**
-     * Tests Gen.float() for generating values across a wide range
-     * and checks if the distribution favors larger magnitudes.
-     */
     it('Gen.float', () => {
         const gen = Gen.float()
-        const numGenerations = 10000
+        const numGenerations = 50000
         const generatedValues: number[] = []
 
         for (let i = 0; i < numGenerations; i++) {
@@ -50,37 +46,13 @@ describe('primitive generators', () => {
         const minValue = Math.min(...generatedValues)
         const maxValue = Math.max(...generatedValues)
 
-        // Assert that the minimum and maximum values are within a reasonable range
+        expect(generatedValues.every(Number.isFinite)).toBe(true)
         expect(minValue).toBeGreaterThanOrEqual(-Number.MAX_VALUE)
         expect(maxValue).toBeLessThanOrEqual(Number.MAX_VALUE)
-
-        // Define regions to analyze the distribution of generated floats.
-        // The ranges increase exponentially to check if more values are generated at larger scales.
-        const regions = [
-            { range: [-Number.MAX_VALUE, -1], count: 0 },
-            { range: [-1, 0], count: 0 },
-            { range: [0, 1], count: 0 },
-            { range: [1, 10], count: 0 },
-            { range: [10, 100], count: 0 },
-            { range: [100, 1000], count: 0 },
-            { range: [1000, Number.MAX_VALUE], count: 0 },
-        ]
-
-        // Count the number of generated values in each region
-        generatedValues.forEach(value => {
-            for (const region of regions) {
-                if (value > region.range[0] && value <= region.range[1]) {
-                    region.count++
-                    break
-                }
-            }
-        })
-        // Check that the distribution is skewed towards larger absolute values.
-        // We expect more numbers further away from zero.
-        expect(regions[6].count).toBeGreaterThanOrEqual(regions[5].count) // More in (1000, MAX_VALUE] than in [100, 1000]
-        expect(regions[5].count).toBeGreaterThanOrEqual(regions[4].count) // More in (100, 1000] than in [10, 100]
-        expect(regions[4].count).toBeGreaterThanOrEqual(regions[3].count) // More in (10, 100] than in [1, 10]
-        expect(regions[3].count).toBeGreaterThanOrEqual(regions[2].count) // More in (1, 10] than in [0, 1]
+        expect(generatedValues.some(value => value < 0)).toBe(true)
+        expect(generatedValues.some(value => value > 0)).toBe(true)
+        expect(generatedValues.some(value => Math.abs(value) > Number.MAX_SAFE_INTEGER)).toBe(true)
+        expect(generatedValues.some(value => value !== 0 && Math.abs(value) < 2 ** -1022)).toBe(true)
     })
 
     /**
@@ -209,6 +181,16 @@ describe('primitive generators', () => {
             expect(nanShrinks.isEmpty()).toBe(false)
             const firstNanShrink = nanShrinks.iterator().next()
             expect(firstNanShrink.value).toBe(0.0)
+
+            // -Infinity should shrink through negative finite values, not positive ones.
+            const negInfShrinkable = shrinkableFloat(Number.NEGATIVE_INFINITY)
+            const negInfShrinks = negInfShrinkable.shrinks()
+            const negInfValues: number[] = []
+            for (const itr = negInfShrinks.iterator(); itr.hasNext() && negInfValues.length < 5; ) {
+                negInfValues.push(itr.next().value)
+            }
+            expect(negInfValues[0]).toBe(0.0)
+            expect(negInfValues.some(value => value < 0)).toBe(true)
         }
     })
 
@@ -275,10 +257,19 @@ describe('primitive generators', () => {
         // Validation: individual prob out of range
         expect(() => Gen.float({ nanProb: -0.1 })).toThrow()
         expect(() => Gen.float({ nanProb: 1.1 })).toThrow()
+        expect(() => Gen.float({ nanProb: Number.NaN })).toThrow()
         expect(() => Gen.float({ posInfProb: 1.5 })).toThrow()
 
         // Validation: sum > 1.0
         expect(() => Gen.float({ nanProb: 0.5, posInfProb: 0.3, negInfProb: 0.3 })).toThrow()
+
+        // Sum exactly 1.0 is valid and leaves no finite generation remainder.
+        {
+            const gen = Gen.float({ nanProb: 1.0 })
+            for (let i = 0; i < 50; i++) {
+                expect(Number.isNaN(gen.generate(rand).value)).toBe(true)
+            }
+        }
     })
 
     /**

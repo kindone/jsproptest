@@ -49,6 +49,39 @@ describe('property', () => {
 
     })
 
+    it('maxDurationMs stops before starting runs when the time budget is exhausted', () => {
+        let runs = 0
+        const prop = new Property((value: number) => {
+            runs++
+            expect(value).toBe(1)
+        })
+
+        expect(prop.setNumRuns(100).setMaxDurationMs(0).forAll(Gen.just(1))).toBe(true)
+        expect(runs).toBe(0)
+    })
+
+    it('maxDurationMs stops starting new runs after the wall-clock budget', () => {
+        let runs = 0
+        const prop = new Property((value: number) => {
+            runs++
+            expect(value).toBe(1)
+            const startedAt = Date.now()
+            while (Date.now() - startedAt < 5) {
+                // Consume enough wall-clock time for the runner to observe the budget.
+            }
+        })
+
+        expect(prop.setNumRuns(100).setMaxDurationMs(1).forAll(Gen.just(1))).toBe(true)
+        expect(runs).toBe(1)
+    })
+
+    it('maxDurationMs validates the configured budget', () => {
+        const prop = new Property((_value: number) => true)
+
+        expect(() => prop.setMaxDurationMs(-1)).toThrow(/finite non-negative/)
+        expect(() => prop.setMaxDurationMs(Number.NaN)).toThrow(/finite non-negative/)
+    })
+
     it('shrink 1', () => {
         const numGen = Gen.interval(0, 1000)
         const prop = new Property((a: number, b: number) => {
