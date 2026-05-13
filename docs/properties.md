@@ -23,6 +23,14 @@ Properties define the expected behavior of your code over a range of inputs.
 
 *   **`property.setMaxDurationMs(ms: number)`**: Configures a wall-clock time budget for starting generated test cases. Once the budget is exhausted, `forAll` stops starting new runs even if `setNumRuns(...)` has not been reached. Returns the `Property` instance for chaining.
 
+*   **`property.setShrinkMaxRetries(n: number)`**: Configures extra retry attempts for each shrink candidate. `0` preserves the default single attempt; `5` means the candidate can be tried up to six times.
+
+*   **`property.setShrinkTimeoutMs(ms: number)` / `property.setShrinkRetryTimeoutMs(ms: number)`**: Configure total shrink-phase and per-candidate retry time budgets.
+
+*   **`property.setOutputStream(writer)` / `property.setErrorStream(writer)`**: Redirect runner output to objects with a `write(message: string): void` method.
+
+*   **`property.setOnReproductionStats(callback)`**: Receives `{ numReproduced, totalRuns, elapsedSec, argsAsString }` after each shrink candidate retry assessment.
+
 *   **`property.example(...args: any[])`**: Runs the property's predicate *once* with the explicitly provided `args`. Useful for debugging specific edge cases.
 
     ```typescript

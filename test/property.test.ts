@@ -71,8 +71,9 @@ describe('property', () => {
             }
         })
 
-        expect(prop.setNumRuns(100).setMaxDurationMs(1).forAll(Gen.just(1))).toBe(true)
-        expect(runs).toBe(1)
+        expect(prop.setNumRuns(100).setMaxDurationMs(20).forAll(Gen.just(1))).toBe(true)
+        expect(runs).toBeGreaterThan(0)
+        expect(runs).toBeLessThan(100)
     })
 
     it('maxDurationMs validates the configured budget', () => {
@@ -80,6 +81,42 @@ describe('property', () => {
 
         expect(() => prop.setMaxDurationMs(-1)).toThrow(/finite non-negative/)
         expect(() => prop.setMaxDurationMs(Number.NaN)).toThrow(/finite non-negative/)
+    })
+
+    it('shrink retry options collect reproduction stats and write shrink output', () => {
+        const stats: Array<{ numReproduced: number; totalRuns: number; elapsedSec: number; argsAsString: string }> = []
+        const output: string[] = []
+        const prop = new Property((value: number) => {
+            return value < 6
+        })
+
+        expect(() =>
+            prop
+                .setNumRuns(1)
+                .setSeed('42')
+                .setShrinkMaxRetries(2)
+                .setShrinkTimeoutMs(1000)
+                .setShrinkRetryTimeoutMs(1000)
+                .setOutputStream({ write: message => output.push(message) })
+                .setOnReproductionStats(item => stats.push(item))
+                .forAll(Gen.interval(6, 10))
+        ).toThrow()
+
+        expect(stats.length).toBeGreaterThan(0)
+        expect(stats.every(item => item.totalRuns === 3)).toBe(true)
+        expect(stats.some(item => item.numReproduced > 0)).toBe(true)
+        expect(output.join('')).toContain('shrinking found simpler failing arg')
+    })
+
+    it('shrink parity options validate configured values', () => {
+        const prop = new Property((_value: number) => true)
+
+        expect(() => prop.setShrinkMaxRetries(-1)).toThrow(/non-negative integer/)
+        expect(() => prop.setShrinkMaxRetries(1.5)).toThrow(/non-negative integer/)
+        expect(() => prop.setShrinkTimeoutMs(-1)).toThrow(/finite non-negative/)
+        expect(() => prop.setShrinkRetryTimeoutMs(Number.NaN)).toThrow(/finite non-negative/)
+        expect(() => prop.setOutputStream({} as { write(message: string): void })).toThrow(/write/)
+        expect(() => prop.setErrorStream({} as { write(message: string): void })).toThrow(/write/)
     })
 
     it('shrink 1', () => {

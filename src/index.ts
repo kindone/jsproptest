@@ -27,6 +27,7 @@ import { simpleActionGenOf as SimpleActionGenOf, actionGenOf as ActionGenOf } fr
 export { Generator, Arbitrary, GenFunction } from './Generator'
 export type { FloatGenConfig } from './generator/floating'
 export { Property, forAll } from './Property'
+export type { PropertyWriteStream, ReproductionStats } from './Property'
 export { Random } from './Random'
 export { Shrinkable } from './Shrinkable'
 export { Stream } from './Stream'

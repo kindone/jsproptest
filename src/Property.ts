@@ -6,6 +6,13 @@ import { JSONStringify } from './util/JSON'
 
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
 type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
+export type PropertyWriteStream = { write(message: string): void }
+export type ReproductionStats = {
+    numReproduced: number
+    totalRuns: number
+    elapsedSec: number
+    argsAsString: string
+}
 
 /**
  * Internal class to hold the results of a shrinking operation.
@@ -61,6 +68,12 @@ export class Property<ARGS extends unknown[]> {
      * Maximum wall-clock time spent starting new generated test runs.
      */
     private maxDurationMs?: number
+    private shrinkMaxRetries = 0
+    private shrinkTimeoutMs?: number
+    private shrinkRetryTimeoutMs?: number
+    private outputStream?: PropertyWriteStream
+    private errorStream?: PropertyWriteStream
+    private onReproductionStats?: (stats: ReproductionStats) => void
 
     /**
      * Creates a new Property instance.
@@ -113,7 +126,7 @@ export class Property<ARGS extends unknown[]> {
                 if (result instanceof PreconditionError) numPrecondFailures++
                 // Log if too many preconditions fail, potentially indicating an issue
                 if (numPrecondFailures > 0 && numPrecondFailures % this.numRuns === 0)
-                    console.info('Number of precondition failure exceeding ' + numPrecondFailures)
+                    this.writeOutput('Number of precondition failure exceeding ' + numPrecondFailures + '\n')
             }
 
             // Skip to next iteration if a precondition failed
@@ -178,11 +191,7 @@ export class Property<ARGS extends unknown[]> {
 
     /** Sets the maximum wall-clock duration for starting generated test runs. */
     setMaxDurationMs(maxDurationMs: number) {
-        if (!Number.isFinite(maxDurationMs) || maxDurationMs < 0) {
-            throw new Error('setMaxDurationMs(): maxDurationMs must be a finite non-negative number')
-        }
-
-        this.maxDurationMs = maxDurationMs
+        this.maxDurationMs = this.validateFiniteNonNegative(maxDurationMs, 'setMaxDurationMs(): maxDurationMs')
         return this
     }
 
@@ -198,6 +207,48 @@ export class Property<ARGS extends unknown[]> {
         return this
     }
 
+    /** Sets the number of extra retry attempts for each shrink candidate. */
+    setShrinkMaxRetries(shrinkMaxRetries: number) {
+        this.shrinkMaxRetries = this.validateNonNegativeInteger(
+            shrinkMaxRetries,
+            'setShrinkMaxRetries(): shrinkMaxRetries'
+        )
+        return this
+    }
+
+    /** Sets the total wall-clock time budget for shrinking. */
+    setShrinkTimeoutMs(shrinkTimeoutMs: number) {
+        this.shrinkTimeoutMs = this.validateFiniteNonNegative(shrinkTimeoutMs, 'setShrinkTimeoutMs(): shrinkTimeoutMs')
+        return this
+    }
+
+    /** Sets the per-candidate wall-clock time budget while retrying shrink candidates. */
+    setShrinkRetryTimeoutMs(shrinkRetryTimeoutMs: number) {
+        this.shrinkRetryTimeoutMs = this.validateFiniteNonNegative(
+            shrinkRetryTimeoutMs,
+            'setShrinkRetryTimeoutMs(): shrinkRetryTimeoutMs'
+        )
+        return this
+    }
+
+    /** Sets the writer used for informational shrinking output. */
+    setOutputStream(outputStream: PropertyWriteStream) {
+        this.outputStream = this.validateStream(outputStream, 'setOutputStream(): outputStream')
+        return this
+    }
+
+    /** Sets the writer used for error output. */
+    setErrorStream(errorStream: PropertyWriteStream) {
+        this.errorStream = this.validateStream(errorStream, 'setErrorStream(): errorStream')
+        return this
+    }
+
+    /** Sets a callback invoked after each shrink candidate reproduction assessment. */
+    setOnReproductionStats(onReproductionStats: (stats: ReproductionStats) => void) {
+        this.onReproductionStats = onReproductionStats
+        return this
+    }
+
     /** Sets the default number of runs for all subsequently created Property instances. */
     static setDefaultNumRuns(numRuns: number) {
         Property.defaultNumRuns = numRuns
@@ -205,6 +256,31 @@ export class Property<ARGS extends unknown[]> {
 
     private hasExceededMaxDuration(startedAt: number): boolean {
         return typeof this.maxDurationMs !== 'undefined' && Date.now() - startedAt >= this.maxDurationMs
+    }
+
+    private hasExceededTimeout(startedAt: number, timeoutMs?: number): boolean {
+        return typeof timeoutMs !== 'undefined' && Date.now() - startedAt >= timeoutMs
+    }
+
+    private validateFiniteNonNegative(value: number, label: string): number {
+        if (!Number.isFinite(value) || value < 0) {
+            throw new Error(`${label} must be a finite non-negative number`)
+        }
+        return value
+    }
+
+    private validateNonNegativeInteger(value: number, label: string): number {
+        if (!Number.isInteger(value) || value < 0) {
+            throw new Error(`${label} must be a non-negative integer`)
+        }
+        return value
+    }
+
+    private validateStream(stream: PropertyWriteStream, label: string): PropertyWriteStream {
+        if (!stream || typeof stream.write !== 'function') {
+            throw new Error(`${label} must have a write(message) method`)
+        }
+        return stream
     }
 
     /**
@@ -229,6 +305,7 @@ export class Property<ARGS extends unknown[]> {
         const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
         let shrunk = false // Flag: Did we find any simpler failing case?
         let result: boolean | object = true // Stores the failure result (Error or false) of the simplest case found
+        const shrinkStartedAt = Date.now()
 
         // Iterate through each argument position (index n)
         for (let n = 0; n < shrinkables.length; n++) {
@@ -236,6 +313,8 @@ export class Property<ARGS extends unknown[]> {
 
             // Repeatedly try to shrink argument n as long as we find simpler failing values
             while (!shrinks.isEmpty()) {
+                if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+
                 const iter = shrinks.iterator()
                 let shrinkFound = false // Found a smaller failing value for arg n in this pass?
 
@@ -243,12 +322,12 @@ export class Property<ARGS extends unknown[]> {
                 while (iter.hasNext()) {
                     const nextShrinkable = iter.next()
                     // Test the property with arg n replaced by the shrink candidate value
-                    const testResult: boolean | object = this.testWithReplace(args, n, nextShrinkable.value)
+                    const testResult = this.testWithReplaceWithRetries(args, n, nextShrinkable.value)
 
                     // Check if this smaller value *also* causes a failure (ignoring PreconditionError)
-                    if ((typeof testResult === 'object' && !(testResult instanceof PreconditionError)) || !testResult) {
+                    if (testResult.reproduced) {
                         // Yes, this shrink is a new, simpler failing case
-                        result = testResult
+                        result = testResult.result
                         shrinks = nextShrinkable.shrinks() // Get shrinks for this *new*, smaller value
                         args[n] = nextShrinkable.value
                         shrinkFound = true
@@ -261,7 +340,7 @@ export class Property<ARGS extends unknown[]> {
                     failedArgs.push([n, JSONStringify(args)])
                     shrunk = true
                     // Print real-time shrinking progress
-                    console.log(`  shrinking found simpler failing arg ${n}: ${JSONStringify(args)}`)
+                    this.writeOutput(`  shrinking found simpler failing arg ${n}: ${JSONStringify(args)}\n`)
                     // Continue shrinking the *same* argument (n) further
                 } else {
                     // No shrink candidate for arg n at this level caused a failure
@@ -291,9 +370,40 @@ export class Property<ARGS extends unknown[]> {
      * Helper to test the property with one argument replaced.
      * Used during the shrinking process.
      */
-    private testWithReplace(args: unknown[], n: number, replace: unknown): boolean | object {
+    private testWithReplaceWithRetries(
+        args: unknown[],
+        n: number,
+        replace: unknown
+    ): { reproduced: boolean; result: boolean | object } {
         const newArgs = [...args.slice(0, n), replace, ...args.slice(n + 1)]
-        return this.test(newArgs)
+        const startedAt = Date.now()
+        const maxAttempts = this.shrinkMaxRetries + 1
+        let totalRuns = 0
+        let numReproduced = 0
+        let lastFailure: boolean | object = false
+
+        while (totalRuns < maxAttempts) {
+            if (totalRuns > 0 && this.hasExceededTimeout(startedAt, this.shrinkRetryTimeoutMs)) break
+
+            totalRuns++
+            const testResult = this.test(newArgs)
+            if ((typeof testResult === 'object' && !(testResult instanceof PreconditionError)) || !testResult) {
+                numReproduced++
+                lastFailure = testResult
+            }
+        }
+
+        const argsAsString = JSONStringify(newArgs)
+        if (this.onReproductionStats) {
+            this.onReproductionStats({
+                numReproduced,
+                totalRuns,
+                elapsedSec: (Date.now() - startedAt) / 1000,
+                argsAsString,
+            })
+        }
+
+        return { reproduced: numReproduced > 0, result: lastFailure }
     }
 
     /**
@@ -362,6 +472,7 @@ export class Property<ARGS extends unknown[]> {
             const error = shrinkResult.error as Error
             newError.message += '\n  ' // Add space before original error message
             newError.stack = error.stack
+            this.writeError(newError)
             return newError
         }
         // not shrunk
@@ -376,15 +487,25 @@ export class Property<ARGS extends unknown[]> {
                 // Append stack trace from the original error
                 newError.message += '\n  ' // Add space before original error message
                 newError.stack = error.stack
+                this.writeError(newError)
                 return newError
             } else {
                 // Subcase 2b: The original failure was returning false
                 newError.message += '\nproperty returned false\n'
                 // Capture stack trace pointing back to the forAll call
                 Error.captureStackTrace(newError, this.forAll)
+                this.writeError(newError)
                 return newError
             }
         }
+    }
+
+    private writeError(error: Error) {
+        if (this.errorStream) this.errorStream.write(error.message + '\n')
+    }
+
+    private writeOutput(message: string) {
+        if (this.outputStream) this.outputStream.write(message)
     }
 }
 
