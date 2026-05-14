@@ -1,4 +1,4 @@
-import { Gen } from '../src'
+import { Arbitrary, Gen, Shrinkable, Stream } from '../src'
 import { Action, SimpleAction } from '../src/stateful/statefulbase'
 import { simpleStatefulProperty, statefulProperty } from '../src/stateful/statefultest'
 
@@ -137,7 +137,7 @@ describe('stateful', () => {
         ).toThrow('error')
 
         // Check counters after the run
-        expect(startupCallCount).toBe(1)
+        expect(startupCallCount).toBeGreaterThanOrEqual(1)
         expect(cleanupCallCount).toBe(0)
     })
 
@@ -224,5 +224,50 @@ describe('stateful', () => {
         expect(startupCallCount).toBeGreaterThanOrEqual(1)
         // Cleanup won't run as error is thrown duringg postcheck
         expect(cleanupCallCount).toBe(0)
+    })
+
+    it('stateful shrink retry options collect stats and write shrink output', () => {
+        type T = { value: number }
+        type M = { value: number }
+        const initialGen = new Arbitrary<T>(() => new Shrinkable({ value: 1 }, () => Stream.one(new Shrinkable({ value: 0 }))))
+        const actionGen = Gen.actionOf<T, M>(Gen.just(new Action((_obj: T, _model: M) => {}, 'noop')))
+        const stats: Array<{ numReproduced: number; totalRuns: number; elapsedSec: number; argsAsString: string }> = []
+        const output: string[] = []
+
+        const prop = statefulProperty(initialGen, obj => ({ value: obj.value }), actionGen)
+        prop.setPostCheck(() => {
+            throw new Error('stateful boom')
+        })
+
+        expect(() =>
+            prop
+                .setSeed('1')
+                .setNumRuns(1)
+                .setMinActions(1)
+                .setMaxActions(1)
+                .setShrinkMaxRetries(2)
+                .setShrinkTimeoutMs(1000)
+                .setShrinkRetryTimeoutMs(1000)
+                .setOutputStream({ write: message => output.push(message) })
+                .setOnReproductionStats(item => stats.push(item))
+                .go()
+        ).toThrow('stateful boom')
+
+        expect(stats.length).toBeGreaterThan(0)
+        expect(stats.every(item => item.totalRuns === 3)).toBe(true)
+        expect(stats.some(item => item.numReproduced > 0)).toBe(true)
+        expect(output.join('')).toContain('stateful shrinking found simpler')
+        expect(prop.getLastReproductionStats()).toBeDefined()
+    })
+
+    it('stateful shrink parity options validate configured values', () => {
+        const prop = simpleStatefulProperty(Gen.just({}), () => Gen.just(new SimpleAction(() => {}, 'noop')))
+
+        expect(() => prop.setShrinkMaxRetries(-1)).toThrow(/non-negative integer/)
+        expect(() => prop.setShrinkMaxRetries(1.5)).toThrow(/non-negative integer/)
+        expect(() => prop.setShrinkTimeoutMs(-1)).toThrow(/finite non-negative/)
+        expect(() => prop.setShrinkRetryTimeoutMs(Number.NaN)).toThrow(/finite non-negative/)
+        expect(() => prop.setOutputStream({} as { write(message: string): void })).toThrow(/write/)
+        expect(() => prop.setErrorStream({} as { write(message: string): void })).toThrow(/write/)
     })
 })

@@ -5,6 +5,7 @@ import { shrinkableArray } from '../shrinker/array'
 import { Try, TryResult } from '../Try'
 import { GenerationError } from '../util/error'
 import { JSONStringify } from '../util/JSON'
+import type { PropertyWriteStream, ReproductionStats } from '../Property'
 import { ActionGenFactory, SimpleActionGenFactory } from './actionof'
 import { Action, EmptyModel } from './statefulbase'
 
@@ -85,6 +86,13 @@ export class StatefulProperty<ObjectType, ModelType> {
      * When true, log discarded actions and shrink-time generation failures.
      */
     private verbose = false
+    private shrinkMaxRetries = 0
+    private shrinkTimeoutMs?: number
+    private shrinkRetryTimeoutMs?: number
+    private outputStream?: PropertyWriteStream
+    private errorStream?: PropertyWriteStream
+    private onReproductionStats?: (stats: ReproductionStats) => void
+    private lastReproductionStats?: ReproductionStats
     /**
      * @internal
      * Optional hook before each run and before shrink replays.
@@ -173,6 +181,53 @@ export class StatefulProperty<ObjectType, ModelType> {
         return this
     }
 
+    /** Sets the number of extra retry attempts for each shrink candidate. */
+    setShrinkMaxRetries(shrinkMaxRetries: number) {
+        this.shrinkMaxRetries = this.validateNonNegativeInteger(
+            shrinkMaxRetries,
+            'setShrinkMaxRetries(): shrinkMaxRetries'
+        )
+        return this
+    }
+
+    /** Sets the total wall-clock time budget for stateful shrinking. */
+    setShrinkTimeoutMs(shrinkTimeoutMs: number) {
+        this.shrinkTimeoutMs = this.validateFiniteNonNegative(shrinkTimeoutMs, 'setShrinkTimeoutMs(): shrinkTimeoutMs')
+        return this
+    }
+
+    /** Sets the per-candidate wall-clock time budget while retrying stateful shrink candidates. */
+    setShrinkRetryTimeoutMs(shrinkRetryTimeoutMs: number) {
+        this.shrinkRetryTimeoutMs = this.validateFiniteNonNegative(
+            shrinkRetryTimeoutMs,
+            'setShrinkRetryTimeoutMs(): shrinkRetryTimeoutMs'
+        )
+        return this
+    }
+
+    /** Sets the writer used for informational stateful shrinking output. */
+    setOutputStream(outputStream: PropertyWriteStream) {
+        this.outputStream = this.validateStream(outputStream, 'setOutputStream(): outputStream')
+        return this
+    }
+
+    /** Sets the writer used for warning/error output from the stateful runner. */
+    setErrorStream(errorStream: PropertyWriteStream) {
+        this.errorStream = this.validateStream(errorStream, 'setErrorStream(): errorStream')
+        return this
+    }
+
+    /** Sets a callback invoked after each stateful shrink candidate reproduction assessment. */
+    setOnReproductionStats(onReproductionStats: (stats: ReproductionStats) => void) {
+        this.onReproductionStats = onReproductionStats
+        return this
+    }
+
+    /** Returns the most recent stateful shrink reproduction stats, if a shrink attempt produced any. */
+    getLastReproductionStats() {
+        return this.lastReproductionStats
+    }
+
     /**
      * Run the suite: `numRuns` iterations, each with a random action count in `[minActions, maxActions]`.
      * On first thrown error from an action, stops that iteration and shrinks toward a smaller failing case.
@@ -213,13 +268,13 @@ export class StatefulProperty<ObjectType, ModelType> {
                 } catch (e) {
                     // tolerate generation failures
                     // exception while generating action can happen: ignore and retry unless limit is reached
-                    if (this.verbose) console.info('discarded action: ' + (e as Error).message)
+                    this.writeVerbose('discarded action: ' + (e as Error).message + '\n')
                     numConsecutiveFailures++
                     if (numConsecutiveFailures >= this.maxAllowedConsecutiveGenerationFailures) {
-                        console.warn(
+                        this.writeError(
                             'could not generate a suitable action. Tried ' +
                                 this.maxAllowedConsecutiveGenerationFailures +
-                                ' failures'
+                                ' failures\n'
                         )
                         break
                     }
@@ -231,7 +286,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 try {
                     const action = actionShr.value
                     action.call(obj, model)
-                    if (this.verbose) console.info('action generated. run: ', i, 'action: ', j)
+                    this.writeVerbose('action generated. run: ' + i + ' action: ' + j + '\n')
                     j++
                 } catch (e) {
                     // shrink based on actionShrArr
@@ -240,9 +295,14 @@ export class StatefulProperty<ObjectType, ModelType> {
                     throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
-            if (this.postCheck) this.postCheck(obj, model)
-
-            if (this.onCleanup) this.onCleanup()
+            try {
+                if (this.postCheck) this.postCheck(obj, model)
+                if (this.onCleanup) this.onCleanup()
+            } catch (e) {
+                const originalActions = actionShrArr.map(actionShr => actionShr.value)
+                const shrinkResult = this.shrink(originalActions, savedRand, randomArr, e as Error)
+                throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
+            }
         }
     }
 
@@ -275,12 +335,14 @@ export class StatefulProperty<ObjectType, ModelType> {
         if (originalActions.length !== randomArr.length)
             throw new Error('action and random arrays have different sizes')
 
+        const shrinkStartedAt = Date.now()
         // phase 1: shrink random wise
-        /* eslint-disable-next-line prefer-const */
-        let { shrunk, result } = this.shrinkActionsRandomWise(initialRand, randomArr)
+        const actionShrinkResult = this.shrinkActionsRandomWise(initialRand, randomArr, shrinkStartedAt)
+        const shrunk = actionShrinkResult.shrunk
+        let result = actionShrinkResult.result
         // phase 2: shrink initial object
-        if (shrunk) {
-            result = this.shrinkInitialObject(initialRand, result!)
+        if (!this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs) && shrunk) {
+            result = this.shrinkInitialObject(initialRand, result!, shrinkStartedAt)
         } else {
             result = this.shrinkInitialObject(
                 initialRand,
@@ -289,7 +351,8 @@ export class StatefulProperty<ObjectType, ModelType> {
                     originalActions.map(action => new Shrinkable(action)),
                     randomArr,
                     originalError
-                )
+                ),
+                shrinkStartedAt
             )
         }
 
@@ -319,23 +382,38 @@ export class StatefulProperty<ObjectType, ModelType> {
      * @param randomArr The original sequence of random generator states for each action.
      * @returns An object indicating if shrinking was successful and the resulting `TestResult` if it was.
      */
-    private shrinkActionsRandomWise(initialRand: Random, randomArr: Random[]): { shrunk: boolean; result?: TestResult } {
+    private shrinkActionsRandomWise(
+        initialRand: Random,
+        randomArr: Random[],
+        shrinkStartedAt: number
+    ): { shrunk: boolean; result?: TestResult } {
         const randomShrinkables: Shrinkable<Random>[] = randomArr.map(rand => new Shrinkable(rand))
         let nextArrayShr = shrinkableArray(randomShrinkables, 0)
         let shrinks = nextArrayShr.shrinks()
         let shrunk = false
         let result: TestResult | undefined
         while (!shrinks.isEmpty()) {
+            if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+
             const iter = shrinks.iterator()
             let shrinkFound = false
             while (iter.hasNext()) {
                 nextArrayShr = iter.next()
-                const testResult: boolean | TestResult = this.testWithRandoms(initialRand.clone(), nextArrayShr.value)
+                const assessment = this.testShrinkCandidateWithRetries(
+                    'action randoms: ' + nextArrayShr.value.length,
+                    () => this.testWithRandoms(initialRand.clone(), nextArrayShr.value),
+                    shrinkStartedAt
+                )
                 // found a shrink (a non-generation error occurred)
-                if (testResult instanceof TestResult) {
-                    result = testResult
+                if (assessment.reproduced) {
+                    result = assessment.result
                     shrinks = nextArrayShr.shrinks()
                     shrinkFound = true
+                    this.writeOutput(
+                        '  stateful shrinking found simpler failing action sequence: ' +
+                            nextArrayShr.value.length +
+                            ' actions\n'
+                    )
                     break
                 }
             }
@@ -355,12 +433,14 @@ export class StatefulProperty<ObjectType, ModelType> {
      * @param prevTestResult The best failing test result found so far (potentially after random-wise shrinking).
      * @returns The TestResult corresponding to the smallest initial object found that still causes a failure.
      */
-    private shrinkInitialObject(initialRand: Random, prevTestResult: TestResult): TestResult {
+    private shrinkInitialObject(initialRand: Random, prevTestResult: TestResult, shrinkStartedAt: number): TestResult {
         let shr = this.generateInitial(initialRand.clone()).getOrThrow()
         let shrinks = shr.shrinks()
         let result: TestResult = prevTestResult
         const steps: number[] = []
         while (!shrinks.isEmpty()) {
+            if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+
             const iter = shrinks.iterator()
             let step = 0
             let shrinkFound = false
@@ -368,17 +448,20 @@ export class StatefulProperty<ObjectType, ModelType> {
                 shr = iter.next()
                 const testSteps = steps.concat()
                 testSteps.push(step)
-                const testResult: boolean | TestResult = this.testWithInitial(
-                    initialRand.clone(),
-                    testSteps,
-                    prevTestResult.randoms
+                const assessment = this.testShrinkCandidateWithRetries(
+                    'initial shrink steps: ' + JSONStringify(testSteps),
+                    () => this.testWithInitial(initialRand.clone(), testSteps, prevTestResult.randoms),
+                    shrinkStartedAt
                 )
                 // found a shrink (a non-generation error occurred)
-                if (testResult instanceof TestResult) {
-                    result = testResult
+                if (assessment.reproduced) {
+                    result = assessment.result
                     shrinks = shr.shrinks()
                     steps.push(step)
                     shrinkFound = true
+                    this.writeOutput(
+                        '  stateful shrinking found simpler initial value: ' + JSONStringify(testSteps) + '\n'
+                    )
                     break
                 }
                 step++
@@ -416,8 +499,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
-                    if (this.verbose)
-                        console.info('failure in action generation during shrinking: ' + (e as Error).toString())
+                    this.writeVerbose('failure in action generation during shrinking: ' + (e as Error).toString() + '\n')
                     throw new GenerationError('failure in action generation during shrinking')
                 }
                 action.call(obj, model)
@@ -465,8 +547,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                     actionShrs.push(actionShr)
                     action = actionShr.value
                 } catch (e) {
-                    if (this.verbose)
-                        console.info('failure in action generation during shrinking: ' + (e as Error).toString())
+                    this.writeVerbose('failure in action generation during shrinking: ' + (e as Error).toString() + '\n')
                     throw new GenerationError('failure in action generation during shrinking')
                 }
                 action.call(obj, model)
@@ -498,9 +579,84 @@ export class StatefulProperty<ObjectType, ModelType> {
                 return { obj: o, model: this.modelFactory(o) }
             })
         }).mapError(e => {
-            if (this.verbose) console.info('failure in initialization: ' + (e as Error).toString())
+            this.writeVerbose('failure in initialization: ' + (e as Error).toString() + '\n')
             return new GenerationError('failure in initialization: ' + (e as Error).toString())
         })
+    }
+
+    private testShrinkCandidateWithRetries(
+        argsAsString: string,
+        runCandidate: () => boolean | TestResult,
+        shrinkStartedAt: number
+    ): { reproduced: boolean; result: TestResult } {
+        const startedAt = Date.now()
+        const maxAttempts = this.shrinkMaxRetries + 1
+        let totalRuns = 0
+        let numReproduced = 0
+        let lastFailure: TestResult | undefined
+
+        while (totalRuns < maxAttempts) {
+            if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+            if (totalRuns > 0 && this.hasExceededTimeout(startedAt, this.shrinkRetryTimeoutMs)) break
+
+            totalRuns++
+            const testResult = runCandidate()
+            if (testResult instanceof TestResult) {
+                numReproduced++
+                lastFailure = testResult
+            }
+        }
+
+        const stats = {
+            numReproduced,
+            totalRuns,
+            elapsedSec: (Date.now() - startedAt) / 1000,
+            argsAsString,
+        }
+        this.lastReproductionStats = stats
+        if (this.onReproductionStats) this.onReproductionStats(stats)
+
+        return { reproduced: typeof lastFailure !== 'undefined', result: lastFailure as TestResult }
+    }
+
+    private hasExceededTimeout(startedAt: number, timeoutMs?: number): boolean {
+        return typeof timeoutMs !== 'undefined' && Date.now() - startedAt >= timeoutMs
+    }
+
+    private validateFiniteNonNegative(value: number, label: string): number {
+        if (!Number.isFinite(value) || value < 0) {
+            throw new Error(`${label} must be a finite non-negative number`)
+        }
+        return value
+    }
+
+    private validateNonNegativeInteger(value: number, label: string): number {
+        if (!Number.isInteger(value) || value < 0) {
+            throw new Error(`${label} must be a non-negative integer`)
+        }
+        return value
+    }
+
+    private validateStream(stream: PropertyWriteStream, label: string): PropertyWriteStream {
+        if (!stream || typeof stream.write !== 'function') {
+            throw new Error(`${label} must have a write(message) method`)
+        }
+        return stream
+    }
+
+    private writeVerbose(message: string) {
+        if (!this.verbose) return
+        this.writeOutput(message)
+    }
+
+    private writeOutput(message: string) {
+        if (this.outputStream) this.outputStream.write(message)
+        else if (this.verbose) console.info(message)
+    }
+
+    private writeError(message: string) {
+        if (this.errorStream) this.errorStream.write(message)
+        else console.warn(message)
     }
 
     /**

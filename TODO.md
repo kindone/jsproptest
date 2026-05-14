@@ -6,6 +6,23 @@ Tracks open tasks and feature gaps relative to the C++ reference implementation 
 
 ## Open
 
+### [ ] Batch property configuration
+- **What**: Add a JS-friendly equivalent to C++ `ForAllConfig` / `setConfig(...)`.
+- **Candidate API**: `property.setConfig({ seed, numRuns, maxDurationMs, shrinkMaxRetries, ... })` and optionally `forAll(func, config, ...gens)`.
+- **Note**: Keep direct fluent setters as the primary API; config object is for parity and concise setup.
+
+### [ ] noShrink combinator
+- **What**: Public helper for generators whose values should not shrink, matching C++ `.noShrink()`.
+- **Candidate API**: `gen.noShrink()` as an instance method and/or `Gen.noShrink(gen)`.
+
+### [ ] Matrix/example table testing helper
+- **What**: JS equivalent of C++ `matrix(...)` for Cartesian product example testing.
+- **Candidate API**: `property.matrix([a1, a2], [b1, b2])`.
+
+### [ ] Classification/statistics API
+- **What**: JS equivalent for C++ `PROP_TAG`, `PROP_CLASSIFY`, `PROP_STAT`, and stat assertions.
+- **Note**: Needs a JS-native design; do not copy C++ macros directly.
+
 ### [x] Floating point generator — nan/inf probability parameters
 - **What**: Allow callers to control the probability of generating `NaN`, `+Infinity`, and `-Infinity` in addition to finite values. Default behaviour (finite-only) must remain unchanged.
 - **API**: `Gen.float({ nanProb?: number, posInfProb?: number, negInfProb?: number })`
@@ -34,3 +51,4 @@ Tracks open tasks and feature gaps relative to the C++ reference implementation 
 - **[x] outputStream / errorStream** — `setOutputStream(writer)` and `setErrorStream(writer)` accept `{ write(message) }` writers
 - **[x] onReproductionStats** — `setOnReproductionStats(fn)` receives `{ numReproduced, totalRuns, elapsedSec, argsAsString }`
 - **[x] Stateful testing** — `StatefulProperty` with action sequences and model
+- **[x] Stateful shrink retry/logging parity** — `StatefulProperty` supports `setShrinkMaxRetries`, shrink timeouts, output/error streams, and reproduction stats; post-check failures now enter shrinking
