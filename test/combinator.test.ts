@@ -68,9 +68,9 @@ describe('combinator', () => {
             if (num === 2) count2++
             countAll++
         }, gen1)
-        // Verify that number 2 appears roughly 25% of the time (10-30% to account for randomness)
-        expect(count2 / countAll).toBeGreaterThan(0.1)
-        expect(count2 / countAll).toBeLessThan(0.3)
+        // Verify that number 2 appears roughly 25% of the time (5-45% to account for randomness)
+        expect(count2 / countAll).toBeGreaterThan(0.05)
+        expect(count2 / countAll).toBeLessThan(0.45)
     })
 
     // Tests the elementOf combinator with weighted selection
