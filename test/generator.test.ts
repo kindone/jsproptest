@@ -373,7 +373,24 @@ describe('container generators', () => {
             expect(set.has(i)).toBe(true)
         }
 
-        // TODO: check shrinking
+        // check shrinking: element values shrink as well as array length
+        const shrinkRand = new Random('42')
+        const shrinkGen = Gen.array(Gen.interval(0, 9), 2, 2) // fixed size: membership shrinking inactive
+        const root = shrinkGen.generate(shrinkRand)
+        expect(root.value.length).toBe(2)
+
+        let foundElementShrink = false
+        exhaustive(root, 0, (shrinkable: Shrinkable<number[]>, _level: number) => {
+            expect(shrinkable.value.length).toBe(2)
+            expect(shrinkable.value.every(v => v >= 0 && v <= 9)).toBe(true)
+            if (shrinkable.value[0] < root.value[0] || shrinkable.value[1] < root.value[1]) {
+                foundElementShrink = true
+            }
+        })
+        // root must have at least one non-zero element for element shrinking to fire
+        if (root.value[0] > 0 || root.value[1] > 0) {
+            expect(foundElementShrink).toBe(true) // element values should shrink within a fixed-size array
+        }
     })
 
     /**
@@ -731,5 +748,112 @@ describe('combinators', () => {
             expect(_nums.length).toBeLessThanOrEqual(4)
             expect(_nums.every((num, index) => index === 0 || num >= _nums[index - 1])).toBe(true) // Ensure non-decreasing order
         }, gen)
+    })
+
+    /**
+     * Shrink-shape test: chain U-axis shrinks should be accessible at the root.
+     * Before the fix (andThen), U-axis shrinks were gated behind T reaching its minimum.
+     * After the fix (concat), U-axis shrinks appear as direct children of every T-axis node,
+     * including the root.
+     *
+     * With chain([T, U]) where T = interval(2,5) and U = interval(1,T):
+     *   T-axis child: childT < rootT  (T shrinks → U regenerated)
+     *   U-axis child: childT === rootT && childU < rootU  (T fixed, U shrinks)
+     */
+    it('Generator::chain U-axis shrinks reachable at root', () => {
+        const shrinkRand = new Random('chain-u-axis-root')
+        const gen = Gen.interval(2, 5).chain((n: number) => Gen.interval(1, n))
+
+        let foundUAxisAtRoot = false
+        for (let i = 0; i < 200 && !foundUAxisAtRoot; i++) {
+            const root = gen.generate(shrinkRand)
+            const [rootT, rootU] = root.value as [number, number]
+            // Only try roots where T > 2 (T-axis exists) and U > 1 (U-axis exists)
+            if (rootT > 2 && rootU > 1) {
+                for (let itr = root.shrinks().iterator(); itr.hasNext(); ) {
+                    const child = itr.next()
+                    const [childT, childU] = child.value as [number, number]
+                    if (childT === rootT && childU < rootU) {
+                        // Same T, smaller U: this is a U-axis shrink at the root level
+                        foundUAxisAtRoot = true
+                        break
+                    }
+                }
+            }
+        }
+        // With concat, U-axis shrinks must be reachable as direct children of the root
+        expect(foundUAxisAtRoot).toBe(true)
+    })
+
+    /**
+     * Shrink-shape test: accumulate element shrinks should be accessible from any length node,
+     * not just from the minimum-length leaf.
+     * Before the fix (andThen), element shrinks were only reachable at the minimum-length node.
+     * After the fix (concat), element shrinks appear as direct children of every length node.
+     *
+     * Accumulate [a0, a1, ..., aN] with minSize=2, maxSize=4.
+     * Length-axis child: shorter array (length shrinks)
+     * Element-axis child: same length, last element value is smaller
+     */
+    it('Generator::accumulate element shrinks reachable at non-minimum length', () => {
+        const shrinkRand = new Random('accum-elem-at-nonmin')
+        const gen = Gen.interval(1, 3).accumulate(num => Gen.interval(num, num + 2), 2, 4)
+
+        let foundElemShrinkAtNonMin = false
+        for (let i = 0; i < 200 && !foundElemShrinkAtNonMin; i++) {
+            const root = gen.generate(shrinkRand)
+            const arr = root.value as number[]
+            // Only test roots longer than minSize (so length can still shrink)
+            if (arr.length > 2 && arr[arr.length - 1] > arr[arr.length - 2]) {
+                // last element > second-to-last, so it can shrink while staying non-decreasing
+                for (let itr = root.shrinks().iterator(); itr.hasNext(); ) {
+                    const child = itr.next()
+                    const childArr = child.value as number[]
+                    if (childArr.length === arr.length &&
+                        childArr[childArr.length - 1] < arr[arr.length - 1]) {
+                        // Same length, smaller last element: element-axis shrink at root level
+                        foundElemShrinkAtNonMin = true
+                        break
+                    }
+                }
+            }
+        }
+        // With concat, element shrinks must be reachable from arrays longer than minSize
+        expect(foundElemShrinkAtNonMin).toBe(true)
+    })
+
+    /**
+     * Tests Gen.noShrink() — generated values carry no shrink candidates.
+     */
+    it('Gen.noShrink produces no shrinks', () => {
+        const shrinkRand = new Random('noshrink-test')
+        const gen = Gen.noShrink(Gen.interval(5, 100))
+        for (let i = 0; i < 50; i++) {
+            const shr = gen.generate(shrinkRand)
+            expect(shr.value).toBeGreaterThanOrEqual(5)
+            expect(shr.value).toBeLessThanOrEqual(100)
+            expect(shr.shrinks().isEmpty()).toBe(true)
+        }
+    })
+
+    /**
+     * Tests Gen.noShrink() composition with flatMap.
+     * When T has no shrinks, the flatMap output has only U-axis shrinks (no T-axis).
+     * This means shrinking only explores smaller U values with T locked.
+     */
+    it('Gen.noShrink + flatMap: only U-axis shrinks', () => {
+        const shrinkRand = new Random('noshrink-flatmap')
+        // T is suppressed → only U shrinks remain
+        const gen = Gen.noShrink(Gen.interval(2, 5)).flatMap(n => Gen.interval(0, n))
+
+        for (let i = 0; i < 50; i++) {
+            const root = gen.generate(shrinkRand)
+            // All direct children of root must be U-axis shrinks (value ≤ root value, no T regeneration)
+            // The key property: root.value came from interval(0, T), all shrinks should be ≤ root.value
+            for (let itr = root.shrinks().iterator(); itr.hasNext(); ) {
+                const child = itr.next()
+                expect(child.value).toBeLessThanOrEqual(root.value)
+            }
+        }
     })
 })

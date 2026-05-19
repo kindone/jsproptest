@@ -27,7 +27,7 @@ export function ArrayGen<T>(elemGen: Generator<T>, minSize: number, maxSize: num
             const array: Array<Shrinkable<T>> = []
             for (let i = 0; i < size; i++) array.push(elemGen.generate(rand))
 
-            return shrinkableArray(array, minSize)
+            return shrinkableArray(array, minSize, true, true)
         },
         minSize,
         maxSize

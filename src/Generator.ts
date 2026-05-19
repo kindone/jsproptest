@@ -126,17 +126,18 @@ export class Arbitrary<T> implements Generator<T> {
                 shrArr.push(shr)
             }
             // Shrink the array primarily by length, then by shrinking the last element.
-            // This is a common strategy for shrinking collections.
+            // concat (not andThen) appends element shrinks at EVERY length node, not just the
+            // minimum-length leaf. This makes element shrinks reachable from any array length.
             return shrinkArrayLength(shrArr, minSize)
-                .andThen(parent => {
-                    const shrArr = parent.value
-                    if (shrArr.length === 0) return new Stream()
-                    const lastElemShr = shrArr[shrArr.length - 1]
+                .concat(parent => {
+                    const arr = parent.value
+                    if (arr.length === 0) return new Stream()
+                    const lastElemShr = arr[arr.length - 1]
                     const elemShrinks = lastElemShr.shrinks()
                     if (elemShrinks.isEmpty()) return new Stream()
                     // Create shrinks by replacing the last element with its own shrinks.
                     return elemShrinks.transform(elem => {
-                        const copy = shrArr.concat()
+                        const copy = arr.concat()
                         copy[copy.length - 1] = elem
                         return new Shrinkable(copy)
                     })
@@ -152,10 +153,12 @@ export class Arbitrary<T> implements Generator<T> {
                 .generate(rand)
                 .map(value => genFactory(value).generate(rand))
             // Shrinking involves two steps:
-            // 1. Shrink the intermediate Shrinkable (which shrinks the *outer* value T).
-            // 2. Shrink the inner Shrinkable (which shrinks the *inner* value U).
+            // 1. Shrink the intermediate Shrinkable (which shrinks the *outer* value T, T-axis).
+            // 2. Shrink the inner Shrinkable (which shrinks the *inner* value U, U-axis).
+            // concat (not andThen) appends U-axis shrinks at EVERY T-axis node, not just the
+            // T-axis leaf. This makes U-axis shrinks reachable from the root value.
             return intermediate
-                .andThen(interShr =>
+                .concat(interShr =>
                     // This flatMap combines shrinks from the inner Shrinkable<U>.
                     interShr.value.flatMap<Shrinkable<U>>(second => new Shrinkable(new Shrinkable(second))).shrinks()
                 )
@@ -170,10 +173,12 @@ export class Arbitrary<T> implements Generator<T> {
                 .generate(rand)
                 .map(value => [value, genFactory(value).generate(rand)]) // Keep 'value' (type T).
             // Shrinking:
-            // 1. Shrink the intermediate Shrinkable (shrinks T).
-            // 2. Shrink the inner Shrinkable (shrinks U).
+            // 1. Shrink the intermediate Shrinkable (shrinks T, T-axis).
+            // 2. Shrink the inner Shrinkable (shrinks U, U-axis).
+            // concat (not andThen) appends U-axis shrinks at EVERY T-axis node, not just the
+            // T-axis leaf. This makes U-axis shrinks reachable from the root value.
             return intermediate
-                .andThen(interShr =>
+                .concat(interShr =>
                     // Combine shrinks from the inner Shrinkable<U>.
                     interShr.value[1]
                         .flatMap<[T, Shrinkable<U>]>(
@@ -195,8 +200,9 @@ export class Arbitrary<T> implements Generator<T> {
                 return [...tuple, genFactory(tuple).generate(rand)]
             })
             // Shrinking logic similar to chain, adapted for tuples.
+            // concat (not andThen) appends U-axis shrinks at EVERY T-axis node, not just the leaf.
             return intermediate
-                .andThen(interShr => {
+                .concat(interShr => {
                     const head = interShr.value.slice(0, interShr.value.length - 1) as Ts
                     const tail = interShr.value[interShr.value.length - 1] as Shrinkable<U>
                     // Combine shrinks from the tail element (Shrinkable<U>).

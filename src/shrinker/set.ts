@@ -11,6 +11,9 @@ import { shrinkableArray } from './array'
  * @returns A `Shrinkable` instance for the `Set<T>`.
  */
 export function shrinkableSet<T>(array: Array<Shrinkable<T>>, minSize: number): Shrinkable<Set<T>> {
-    const shrinkableArr = shrinkableArray(array, minSize)
+    // elementWise is intentionally disabled: shrinking an element's value could produce a value
+    // that already exists in the set, collapsing the set size below minSize and violating the
+    // uniqueness invariant. Membership shrinking (element removal) is safe and sufficient.
+    const shrinkableArr = shrinkableArray(array, minSize, true, false)
     return shrinkableArr.map(theArr => new Set(theArr))
 }

@@ -4,6 +4,7 @@ import { oneOf as OneOf, weightedGen as WeightedGen } from './combinator/oneof'
 import { lazy as Lazy } from './combinator/lazy'
 import { just as Just } from './combinator/just'
 import { chainTuple as ChainTuple } from './combinator/chaintuple'
+import { noShrink as NoShrink } from './combinator/noshrink'
 
 import { BooleanGen } from './generator/boolean'
 import { inRange as InRange, integers as Integers, interval as Interval } from './generator/integer'
@@ -485,4 +486,27 @@ export const Gen = {
      * ```
      */
     chainTuple: ChainTuple,
+
+    /**
+     * Same API as {@link NoShrink}.
+     *
+     * Wraps a generator to produce the same values but with an empty shrink stream.
+     * Use when shrinking is meaningless or undesirable — e.g. seeds, UUIDs, timestamps,
+     * or when you want to suppress context shrinking in a `flatMap` chain.
+     *
+     * @template T The type produced by the base generator.
+     * @param gen The base generator.
+     * @returns A Generator<T> that produces the same distribution of values but no shrink candidates.
+     *
+     * @example
+     * ```ts
+     * // Seed value that should not be shrunk
+     * const seedGen = Gen.noShrink(Gen.interval(0, 1000))
+     *
+     * // Suppress context (T) shrinking in a flatMap:
+     * // Only the inner value (U) will shrink — T is locked to the generated value.
+     * const gen = Gen.noShrink(Gen.interval(0, 10)).flatMap(n => Gen.array(Gen.interval(0, n), 1, 5))
+     * ```
+     */
+    noShrink: NoShrink,
 }
