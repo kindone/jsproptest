@@ -23,6 +23,8 @@ Combinators are higher-order functions that manipulate or combine existing gener
 | `tupleGen.chainAsTuple(nextGen)`             | Method-chaining version of `Gen.chainTuple`.                             | `nextGen`                            | `yearTupleGen.chainAsTuple(([y]) => monthGen()).chainAsTuple(([y,m]) => dayGen(y,m))` \[Y,M,D\] |
 | **Class Construction**                       |                                                                          |                                      |                                                                               |
 | `Gen.construct(Class, ...argGens)`           | Creates class instances using `new Class(...args)` from `argGens`.       | `Constructor`, `...argumentGenerators` | `Gen.construct(Point, Gen.nat(), Gen.nat())` (Construct Point object)       |
+| **Shrink Control**                           |                                                                          |                                      |                                                                               |
+| `Gen.noShrink(gen)`                          | Strips all shrink candidates from `gen`. Values are generated normally but never shrunk. | `generator` | `Gen.noShrink(Gen.interval(0, 1000))` (seed that should not shrink)        |
 
 ## Detailed Combinator Examples
 
@@ -233,3 +235,36 @@ const extendedTupleGenMethod = baseTupleGen.chainAsTuple(
 );
 // Generates the same kind of tuples: [4, "b", true], [1, "qq", false]
 ```
+
+### `Gen.noShrink(gen)`
+
+Wraps a generator so that generated values carry no shrink candidates. The value distribution is identical to the original generator — only the shrink tree is suppressed.
+
+```typescript
+import { Gen } from 'jsproptest';
+
+// A random seed that should never be simplified during shrinking
+const seedGen = Gen.noShrink(Gen.interval(0, 1000));
+// Generates 0–1000 as normal, but shrinking stops here
+
+// A UUID-like identifier — meaningless to shrink
+const idGen = Gen.noShrink(Gen.asciiString(8, 8));
+```
+
+**Composition with `flatMap` to suppress context shrinking:**
+
+When used before `flatMap`, `noShrink` locks the outer value (T) in place during shrinking. Only the inner generator's own shrinks (U-axis) are explored. This is useful when T is a configuration that is already known to be relevant and should not change.
+
+```typescript
+// Without noShrink: both the size (T) and array elements (U) shrink
+const gen1 = Gen.interval(1, 5)
+  .flatMap(n => Gen.array(Gen.interval(0, 9), n, n));
+// Shrinking tries smaller n AND smaller element values
+
+// With noShrink: only array elements shrink; size stays fixed
+const gen2 = Gen.noShrink(Gen.interval(1, 5))
+  .flatMap(n => Gen.array(Gen.interval(0, 9), n, n));
+// Shrinking only tries smaller element values; n is locked
+```
+
+See [Shrinking — noShrink](shrinking.md#noshrink) for a detailed discussion of shrink strategy composition.
