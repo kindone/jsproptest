@@ -291,7 +291,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 } catch (e) {
                     // shrink based on actionShrArr
                     const originalActions = actionShrArr.map(actionShr => actionShr.value)
-                    const shrinkResult = this.shrink(originalActions, savedRand, randomArr, e as Error)
+                    const shrinkResult = this.shrink(originalActions, actionShrArr, savedRand, randomArr, e as Error)
                     throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
                 }
             }
@@ -300,7 +300,7 @@ export class StatefulProperty<ObjectType, ModelType> {
                 if (this.onCleanup) this.onCleanup()
             } catch (e) {
                 const originalActions = actionShrArr.map(actionShr => actionShr.value)
-                const shrinkResult = this.shrink(originalActions, savedRand, randomArr, e as Error)
+                const shrinkResult = this.shrink(originalActions, actionShrArr, savedRand, randomArr, e as Error)
                 throw this.processFailureAsError(e as Error, originalActions, shrinkResult)
             }
         }
@@ -317,10 +317,12 @@ export class StatefulProperty<ObjectType, ModelType> {
      * @internal
      * Orchestrates the shrinking process when a test failure occurs.
      * It attempts to find a smaller or simpler failing test case by:
-     * 1. Shrinking the sequence of random seeds used (`shrinkRandomwise`).
+     * 1. Shrinking the sequence of random seeds used (`shrinkActionsRandomWise`).
      * 2. Shrinking the initial state generated (`shrinkInitialObject`).
+     * 3. Shrinking the parameters of the last failing action (`shrinkLastAction`).
      *
      * @param originalActions The sequence of actions that led to the failure.
+     * @param originalActionShrs The shrinkable wrappers for each action (carry the shrink tree from generation).
      * @param initialRand The initial random generator state for the failed run.
      * @param randomArr The array of random generator states used for each action generation.
      * @param originalError The error that triggered the shrinking.
@@ -328,6 +330,7 @@ export class StatefulProperty<ObjectType, ModelType> {
      */
     private shrink(
         originalActions: Action<ObjectType, ModelType>[],
+        originalActionShrs: Shrinkable<Action<ObjectType, ModelType>>[],
         initialRand: Random,
         randomArr: Random[],
         originalError: Error
@@ -336,40 +339,141 @@ export class StatefulProperty<ObjectType, ModelType> {
             throw new Error('action and random arrays have different sizes')
 
         const shrinkStartedAt = Date.now()
-        // phase 1: shrink random wise
-        const actionShrinkResult = this.shrinkActionsRandomWise(initialRand, randomArr, shrinkStartedAt)
-        const shrunk = actionShrinkResult.shrunk
-        let result = actionShrinkResult.result
-        // phase 2: shrink initial object
-        if (!this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs) && shrunk) {
-            result = this.shrinkInitialObject(initialRand, result!, shrinkStartedAt)
-        } else {
-            result = this.shrinkInitialObject(
-                initialRand,
-                new TestResult(
-                    [],
-                    originalActions.map(action => new Shrinkable(action)),
-                    randomArr,
-                    originalError
-                ),
-                shrinkStartedAt
-            )
-        }
+        // Baseline TestResult using the original action shrinkables (which carry real shrink trees).
+        const baseline = new TestResult([], originalActionShrs, randomArr, originalError)
 
-        // phase 3: return the shrink result (rebuild the initial object from the shrink result)
-        // (initial object is recreated in each test run)
+        // phase 1: shrink action sequence length (random-wise)
+        const actionShrinkResult = this.shrinkActionsRandomWise(initialRand, randomArr, shrinkStartedAt)
+        const phase1Shrunk = actionShrinkResult.shrunk
+
+        // phase 2: shrink initial object — start from Phase 1 result if available, otherwise baseline
+        const phase2Input =
+            phase1Shrunk && !this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)
+                ? actionShrinkResult.result!
+                : baseline
+        let result: TestResult = this.shrinkInitialObject(initialRand, phase2Input, shrinkStartedAt)
+        const phase2Shrunk = result !== phase2Input
+
+        // phase 3: shrink last action parameters
+        const phase3Input = result
+        if (!this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) {
+            result = this.shrinkLastAction(initialRand, result, shrinkStartedAt)
+        }
+        const phase3Shrunk = result !== phase3Input
+
+        // finalize: rebuild the initial object from the best shrink result found
         const initialObj = this.initialGen.generate(initialRand.clone())
-        // shrinking done
-        if (shrunk) {
-            const testResult: TestResult = result as TestResult
+        if (phase1Shrunk || phase2Shrunk || phase3Shrunk) {
             return new ShrinkResult(
-                initialObj.retrieve(testResult.initialSteps),
-                testResult.actions,
-                testResult.error as Error
+                initialObj.retrieve(result.initialSteps),
+                result.actions,
+                result.error
             )
         }
         // unable to shrink -> return originally failed combination
-        else return new ShrinkResult(initialObj.value, originalActions)
+        return new ShrinkResult(initialObj.value, originalActions)
+    }
+
+    /**
+     * @internal
+     * Attempts to shrink the parameters of the last action in the failing sequence.
+     * Iterates the shrink tree of the last `Shrinkable<Action>` and replays the sequence
+     * with each candidate, keeping the simplest one that still fails.
+     *
+     * @param initialRand The initial random generator state for the test run.
+     * @param prevTestResult The best failing test result found so far (after phases 1 and 2).
+     * @param shrinkStartedAt Timestamp when the overall shrink started (for timeout checks).
+     * @returns The TestResult corresponding to the simplest last action found, or `prevTestResult` unchanged.
+     */
+    private shrinkLastAction(initialRand: Random, prevTestResult: TestResult, shrinkStartedAt: number): TestResult {
+        const actions = prevTestResult.actions as Shrinkable<Action<ObjectType, ModelType>>[]
+        if (actions.length === 0) return prevTestResult
+
+        const prefixActionShrs = actions.slice(0, -1)
+        let currentLastShr = actions[actions.length - 1]
+        let shrinks = currentLastShr.shrinks()
+        let result: TestResult = prevTestResult
+
+        while (!shrinks.isEmpty()) {
+            if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+
+            const iter = shrinks.iterator()
+            let shrinkFound = false
+            while (iter.hasNext()) {
+                const candidateActionShr = iter.next()
+                const assessment = this.testShrinkCandidateWithRetries(
+                    'last action params',
+                    () =>
+                        this.testWithLastActionFixed(
+                            initialRand.clone(),
+                            prevTestResult.initialSteps,
+                            prevTestResult.randoms,
+                            prefixActionShrs,
+                            candidateActionShr
+                        ),
+                    shrinkStartedAt
+                )
+                if (assessment.reproduced) {
+                    result = assessment.result
+                    currentLastShr = candidateActionShr
+                    shrinks = currentLastShr.shrinks()
+                    shrinkFound = true
+                    this.writeOutput('  stateful shrinking found simpler last action params\n')
+                    break
+                }
+            }
+            if (!shrinkFound) break
+        }
+
+        return result
+    }
+
+    /**
+     * @internal
+     * Runs a test sequence using a specific initial state (derived from shrink steps), a fixed prefix
+     * of actions (replayed from stored values), and a single candidate last action. Used during Phase 3
+     * (last action parameter shrinking).
+     *
+     * @param initialRand The base random generator for generating the initial state.
+     * @param initialSteps The sequence of shrink steps to apply to the initial state generator.
+     * @param randoms The random states used for the preceding actions (stored in TestResult for consistency).
+     * @param prefixActionShrs The shrinkable actions preceding the last one; their values are replayed directly.
+     * @param lastActionShr The candidate shrunk action to try as the final step.
+     * @returns `true` if the test passes, `false` if a generation error occurs, or a `TestResult` if a non-generation error occurs.
+     */
+    private testWithLastActionFixed(
+        initialRand: Random,
+        initialSteps: number[],
+        randoms: Random[],
+        prefixActionShrs: Shrinkable<Action<ObjectType, ModelType>>[],
+        lastActionShr: Shrinkable<Action<ObjectType, ModelType>>
+    ): boolean | TestResult {
+        const newActionShrs = [...prefixActionShrs, lastActionShr]
+        try {
+            if (this.onStartup) this.onStartup()
+
+            const { obj, model } = this.generateInitial(initialRand.clone())
+                .map(shr => shr.retrieve(initialSteps))
+                .map(shr => {
+                    return { obj: shr.value.obj, model: shr.value.model }
+                })
+                .getOrThrow()
+
+            // replay prefix actions directly from stored values (no re-generation needed)
+            for (const actionShr of prefixActionShrs) {
+                actionShr.value.call(obj, model)
+            }
+
+            // execute the candidate last action
+            lastActionShr.value.call(obj, model)
+
+            if (this.postCheck) this.postCheck(obj, model)
+            if (this.onCleanup) this.onCleanup()
+            return true
+        } catch (e) {
+            if (e instanceof GenerationError) return false
+            return new TestResult(initialSteps, newActionShrs, randoms, e as Error)
+        }
     }
 
     /**
