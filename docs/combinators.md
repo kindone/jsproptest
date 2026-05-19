@@ -24,7 +24,7 @@ Combinators are higher-order functions that manipulate or combine existing gener
 | **Class Construction**                       |                                                                          |                                      |                                                                               |
 | `Gen.construct(Class, ...argGens)`           | Creates class instances using `new Class(...args)` from `argGens`.       | `Constructor`, `...argumentGenerators` | `Gen.construct(Point, Gen.nat(), Gen.nat())` (Construct Point object)       |
 | **Shrink Control**                           |                                                                          |                                      |                                                                               |
-| `Gen.noShrink(gen)`                          | Strips all shrink candidates from `gen`. Values are generated normally but never shrunk. | `generator` | `Gen.noShrink(Gen.interval(0, 1000))` (seed that should not shrink)        |
+| `Gen.noShrink(gen)` / `gen.noShrink()`       | Strips all shrink candidates from `gen`. Values are generated normally but never shrunk. | `generator` | `Gen.noShrink(Gen.interval(0, 1000))` / `Gen.interval(0,1000).noShrink()` |
 
 ## Detailed Combinator Examples
 
@@ -236,19 +236,19 @@ const extendedTupleGenMethod = baseTupleGen.chainAsTuple(
 // Generates the same kind of tuples: [4, "b", true], [1, "qq", false]
 ```
 
-### `Gen.noShrink(gen)`
+### `Gen.noShrink(gen)` / `gen.noShrink()`
 
-Wraps a generator so that generated values carry no shrink candidates. The value distribution is identical to the original generator — only the shrink tree is suppressed.
+Wraps a generator so that generated values carry no shrink candidates. The value distribution is identical to the original generator — only the shrink tree is suppressed. Both a standalone function and a method form are available; they are equivalent.
 
 ```typescript
 import { Gen } from 'jsproptest';
 
 // A random seed that should never be simplified during shrinking
-const seedGen = Gen.noShrink(Gen.interval(0, 1000));
-// Generates 0–1000 as normal, but shrinking stops here
+const seedGen = Gen.interval(0, 1000).noShrink();  // method form
+// equivalent: Gen.noShrink(Gen.interval(0, 1000)) // standalone form
 
 // A UUID-like identifier — meaningless to shrink
-const idGen = Gen.noShrink(Gen.asciiString(8, 8));
+const idGen = Gen.asciiString(8, 8).noShrink();
 ```
 
 **Composition with `flatMap` to suppress context shrinking:**
@@ -262,7 +262,7 @@ const gen1 = Gen.interval(1, 5)
 // Shrinking tries smaller n AND smaller element values
 
 // With noShrink: only array elements shrink; size stays fixed
-const gen2 = Gen.noShrink(Gen.interval(1, 5))
+const gen2 = Gen.interval(1, 5).noShrink()
   .flatMap(n => Gen.array(Gen.interval(0, 9), n, n));
 // Shrinking only tries smaller element values; n is locked
 ```

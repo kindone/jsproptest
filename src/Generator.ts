@@ -78,6 +78,14 @@ export interface Generator<T> {
      * @returns A new Generator producing only values that satisfy the predicate.
      */
     filter(filterer: (value: T) => boolean): Generator<T>
+
+    /**
+     * Strips all shrink candidates from this generator.
+     * Values are generated with the same distribution but carry no shrink tree.
+     * Use for seeds, UUIDs, timestamps, or to suppress context shrinking in flatMap.
+     * @returns A new Generator producing the same values but with empty shrink streams.
+     */
+    noShrink(): Generator<T>
 }
 
 /**
@@ -228,6 +236,10 @@ export class Arbitrary<T> implements Generator<T> {
             }
         })
     }
+
+    noShrink(): Generator<T> {
+        return new Arbitrary<T>((rand: Random) => new Shrinkable<T>(this.generate(rand).value))
+    }
 }
 
 /**
@@ -272,12 +284,11 @@ export class ArbiContainer<T> implements Generator<T> {
         // Preserve size constraints when flatMapping.
         return new ArbiContainer<U>(
             (rand: Random) => {
-                // Standard flatMap logic.
                 const intermediate: Shrinkable<Shrinkable<U>> = this
                     .generate(rand)
                     .map(value => genFactory(value).generate(rand))
                 return intermediate
-                    .andThen(interShr =>
+                    .concat(interShr =>
                         interShr.value
                             .flatMap<Shrinkable<U>>(second => new Shrinkable(new Shrinkable(second)))
                             .shrinks()
@@ -293,12 +304,11 @@ export class ArbiContainer<T> implements Generator<T> {
         // Preserve size constraints when chaining.
         return new ArbiContainer<[T, U]>(
             (rand: Random) => {
-                // Standard chain logic.
                 const intermediate: Shrinkable<[T, Shrinkable<U>]> = this
                     .generate(rand)
                     .map(value => [value, genFactory(value).generate(rand)])
                 return intermediate
-                    .andThen(interShr =>
+                    .concat(interShr =>
                         interShr.value[1]
                             .flatMap<[T, Shrinkable<U>]>(
                                 second => new Shrinkable([interShr.value[0], new Shrinkable(second)])
@@ -312,8 +322,6 @@ export class ArbiContainer<T> implements Generator<T> {
         )
     }
 
-    // Note: chainAsTuple in ArbiContainer currently returns an Arbitrary, not preserving ArbiContainer properties.
-    // This might be intentional or an oversight depending on desired behavior.
     chainAsTuple<Ts extends unknown[], U>(genFactory: (arg: Ts) => Generator<U>): Generator<[...Ts, U]> {
         return new Arbitrary<[...Ts, U]>((rand: Random) => {
             const intermediate: Shrinkable<[...Ts, Shrinkable<U>]> = this.generate(rand).map(value => {
@@ -322,7 +330,7 @@ export class ArbiContainer<T> implements Generator<T> {
                 return [...tuple, genFactory(tuple).generate(rand)]
             })
             return intermediate
-                .andThen(interShr => {
+                .concat(interShr => {
                     const head = interShr.value.slice(0, interShr.value.length - 1) as Ts
                     const tail = interShr.value[interShr.value.length - 1] as Shrinkable<U>
                     return tail
@@ -368,14 +376,14 @@ export class ArbiContainer<T> implements Generator<T> {
                     shrArr.push(shr)
                 }
                 return shrinkArrayLength(shrArr, minSize)
-                    .andThen(parent => {
-                        const shrArr = parent.value
-                        if (shrArr.length === 0) return new Stream()
-                        const lastElemShr = shrArr[shrArr.length - 1]
+                    .concat(parent => {
+                        const arr = parent.value
+                        if (arr.length === 0) return new Stream()
+                        const lastElemShr = arr[arr.length - 1]
                         const elemShrinks = lastElemShr.shrinks()
                         if (elemShrinks.isEmpty()) return new Stream()
                         return elemShrinks.transform(elem => {
-                            const copy = shrArr.concat()
+                            const copy = arr.concat()
                             copy[copy.length - 1] = elem
                             return new Shrinkable(copy)
                         })
@@ -395,15 +403,16 @@ export class ArbiContainer<T> implements Generator<T> {
                 // Potential infinite loop risk remains.
                 while (true) {
                     const shr = this.generate(rand)
-                    // Mistake in original code? Should filter the *returned* shrinkable, not regenerate.
-                    // if (filterer(shr.value)) return this.generate(rand).filter(filterer)
-                    // Corrected version:
-                     if (filterer(shr.value)) return shr.filter(filterer)
+                    if (filterer(shr.value)) return shr.filter(filterer)
                 }
             },
             this.minSize,
             this.maxSize
         )
+    }
+
+    noShrink(): Generator<T> {
+        return new Arbitrary<T>((rand: Random) => new Shrinkable<T>(this.generate(rand).value))
     }
 
     /**

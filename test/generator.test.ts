@@ -823,16 +823,24 @@ describe('combinators', () => {
     })
 
     /**
-     * Tests Gen.noShrink() — generated values carry no shrink candidates.
+     * Tests Gen.noShrink() and the .noShrink() method — generated values carry no shrink candidates.
      */
-    it('Gen.noShrink produces no shrinks', () => {
+    it('Gen.noShrink / .noShrink() produces no shrinks', () => {
         const shrinkRand = new Random('noshrink-test')
-        const gen = Gen.noShrink(Gen.interval(5, 100))
+        // standalone form
+        const gen1 = Gen.noShrink(Gen.interval(5, 100))
+        // method form
+        const gen2 = Gen.interval(5, 100).noShrink()
         for (let i = 0; i < 50; i++) {
-            const shr = gen.generate(shrinkRand)
-            expect(shr.value).toBeGreaterThanOrEqual(5)
-            expect(shr.value).toBeLessThanOrEqual(100)
-            expect(shr.shrinks().isEmpty()).toBe(true)
+            const shr1 = gen1.generate(shrinkRand)
+            expect(shr1.value).toBeGreaterThanOrEqual(5)
+            expect(shr1.value).toBeLessThanOrEqual(100)
+            expect(shr1.shrinks().isEmpty()).toBe(true)
+
+            const shr2 = gen2.generate(shrinkRand)
+            expect(shr2.value).toBeGreaterThanOrEqual(5)
+            expect(shr2.value).toBeLessThanOrEqual(100)
+            expect(shr2.shrinks().isEmpty()).toBe(true)
         }
     })
 

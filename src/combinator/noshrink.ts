@@ -1,6 +1,4 @@
-import { Arbitrary, Generator } from '../Generator'
-import { Shrinkable } from '../Shrinkable'
-import { Random } from '../Random'
+import { Generator } from '../Generator'
 
 /**
  * Wraps a generator to produce the same values but with an empty shrink stream.
@@ -22,9 +20,5 @@ import { Random } from '../Random'
  * ```
  */
 export function noShrink<T>(gen: Generator<T>): Generator<T> {
-    return new Arbitrary<T>((rand: Random) => {
-        const shr = gen.generate(rand)
-        // Return the same value but replace the shrinks generator with an empty stream.
-        return new Shrinkable<T>(shr.value)
-    })
+    return gen.noShrink()
 }

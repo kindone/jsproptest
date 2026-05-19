@@ -40,6 +40,10 @@ class Weighted<T> implements Generator<T> {
     filter(filterer: (value: T) => boolean): Generator<T> {
         return this.gen.filter(filterer)
     }
+
+    noShrink(): Generator<T> {
+        return this.gen.noShrink()
+    }
 }
 
 function isWeighted<T>(gen: Weighted<T> | Generator<T>): gen is Weighted<T> {
