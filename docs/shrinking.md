@@ -189,8 +189,15 @@ The table below summarizes shrink axis coverage for all combinators:
 
 &nbsp;
 
+## Stateful Test Shrinking
+
+Stateful tests (sequences of actions applied to a stateful object) have their own three-phase shrink strategy — sequence length → initial object → last action parameters. See [Stateful Testing — Shrinking](stateful-testing.md#shrinking) for details.
+
+&nbsp;
+
 ## Related Topics
 
 - [Generators](generators.md) — Built-in generators and their shrink strategies
 - [Combinators](combinators.md) — Generator combinators
 - [Properties](properties.md) — Using `forAll` and property configuration
+- [Stateful Testing](stateful-testing.md) — Stateful shrink phases and ordering
