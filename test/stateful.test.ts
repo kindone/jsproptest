@@ -226,6 +226,53 @@ describe('stateful', () => {
         expect(cleanupCallCount).toBe(0)
     })
 
+    /**
+     * Tests Phase 3 (last action parameter) shrinking.
+     * push(n) only pushes when n < 5, so any n >= 5 triggers a Jest assertion failure.
+     * Phase 1 reduces the sequence to a single action; Phase 3 then binary-searches the
+     * push value down to exactly 5 (the boundary). The shrunk error message must contain
+     * 'push(5)' regardless of which larger value was originally generated.
+     */
+    it('stateful shrink: Phase 3 shrinks last action parameter to boundary value', () => {
+        type T = number[]
+        type M = Record<string, never>
+
+        const THRESHOLD = 5
+        // push(n): only actually pushes when n < THRESHOLD; the size assertion always fires,
+        // so any n >= THRESHOLD causes an expect() failure inside the action.
+        const pushGen = Gen.interval(0, 10).map(
+            (n: number) =>
+                new Action<T, M>(
+                    (obj: T, _model: M) => {
+                        const size = obj.length
+                        if (n < THRESHOLD) obj.push(n)
+                        expect(obj.length).toBe(size + 1)
+                    },
+                    'push(' + n + ')'
+                )
+        )
+
+        // Use Arbitrary (not Gen.just([])) so each generate() call produces a fresh array,
+        // avoiding aliasing bugs where actions from one run mutate the shared reference.
+        const prop = statefulProperty(
+            new Arbitrary<T>((_rand) => new Shrinkable<T>([])),
+            () => ({}) as M,
+            (_obj, _model) => pushGen
+        )
+
+        let errMsg: string | null = null
+        try {
+            prop.setSeed('1').setNumRuns(100).setMinActions(1).setMaxActions(10).go()
+        } catch (e) {
+            errMsg = (e as Error).message
+        }
+
+        // The property must have failed (some push(n) with n >= THRESHOLD was generated)
+        expect(errMsg).not.toBeNull()
+        // Phase 3 must have shrunk the value to exactly the threshold: push(5)
+        expect(errMsg).toContain('push(5)')
+    })
+
     it('stateful shrink retry options collect stats and write shrink output', () => {
         type T = { value: number }
         type M = { value: number }
