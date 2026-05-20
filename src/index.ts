@@ -510,3 +510,19 @@ export const Gen = {
      */
     noShrink: NoShrink,
 }
+
+// ---------------------------------------------------------------------------
+// Backward-compatible aliases for jsproptest 0.3.x flat-export names.
+// These were previously top-level exports; they now live under Gen.* in 0.5.x.
+// ---------------------------------------------------------------------------
+export { interval, inRange, integers } from './generator/integer'
+export { BooleanGen as booleanGen } from './generator/boolean'
+export { StringGen as stringGen, PrintableASCIIStringGen } from './generator/string'
+export { ArrayGen } from './generator/array'
+export { SetGen } from './generator/set'
+export { TupleGen } from './generator/tuple'
+export { just } from './combinator/just'
+export { oneOf, weightedGen } from './combinator/oneof'
+export { elementOf } from './combinator/elementof'
+export { chainTuple } from './combinator/chaintuple'
+export { actionGenOf } from './stateful/actionof'
