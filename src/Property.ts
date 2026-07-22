@@ -1,8 +1,35 @@
 import { Generator } from './Generator'
 import { Random } from './Random'
 import { Shrinkable } from './Shrinkable'
+import { PropertyContext, StatAssertion, _setContext } from './PropertyContext'
 import { PreconditionError } from './util/error'
 import { JSONStringify } from './util/JSON'
+
+/**
+ * Batch configuration object accepted by {@link Property.setConfig}.
+ * All keys are optional — only the supplied ones are applied.
+ */
+export interface PropertyConfig {
+    seed?: string
+    numRuns?: number
+    maxDurationMs?: number
+    shrinkMaxRetries?: number
+    shrinkTimeoutMs?: number
+    shrinkRetryTimeoutMs?: number
+    onStartup?: () => void
+    onCleanup?: () => void
+    outputStream?: PropertyWriteStream
+    errorStream?: PropertyWriteStream
+    onReproductionStats?: (stats: ReproductionStats) => void
+}
+
+/** Compute the Cartesian product of an array of value lists. */
+function cartesianProduct(lists: unknown[][]): unknown[][] {
+    return lists.reduce<unknown[][]>(
+        (acc, list) => acc.flatMap(combo => list.map(item => [...combo, item])),
+        [[]]
+    )
+}
 
 type PropertyFunction<ARGS extends unknown[]> = (...args: ARGS) => boolean
 type PropertyFunctionVoid<ARGS extends unknown[]> = (...args: ARGS) => void
@@ -74,6 +101,7 @@ export class Property<ARGS extends unknown[]> {
     private outputStream?: PropertyWriteStream
     private errorStream?: PropertyWriteStream
     private onReproductionStats?: (stats: ReproductionStats) => void
+    private statAssertions: StatAssertion[] = []
 
     /**
      * Creates a new Property instance.
@@ -95,53 +123,77 @@ export class Property<ARGS extends unknown[]> {
         let result: boolean | object = true // Holds the outcome of the latest test run
         const startedAt = Date.now()
 
-        for (let i = 0; i < this.numRuns; i++) {
-            if (this.hasExceededMaxDuration(startedAt)) break
+        // Set up a fresh per-forAll() context for tag / stat collection
+        const ctx = new PropertyContext()
+        _setContext(ctx)
+        let completedRuns = 0
 
-            const savedRandom = random.clone() // Save RNG state for reproducible shrinking if this run fails
-            if (this.onStartup) this.onStartup()
+        try {
+            for (let i = 0; i < this.numRuns; i++) {
+                if (this.hasExceededMaxDuration(startedAt)) break
 
-            const shrinkables = gens.map((gen: Generator<unknown>) => gen.generate(random))
-            const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
+                const savedRandom = random.clone() // Save RNG state for reproducible shrinking if this run fails
+                if (this.onStartup) this.onStartup()
 
-            // Basic validation
-            if (this.func.length !== args.length)
-                throw new Error(
-                    'forAll(): number of function parameters (' +
-                        this.func.length +
-                        ') != number of generators given (' +
-                        args.length +
-                        ')'
-                )
+                const shrinkables = gens.map((gen: Generator<unknown>) => gen.generate(random))
+                const args = shrinkables.map((shr: Shrinkable<unknown>) => shr.value)
 
-            // Execute the test function, handling exceptions and PreconditionError
-            try {
-                const func = this.func as PropertyFunction<ARGS>
-                const maybe_result = func(...(args as ARGS))
-                if (typeof maybe_result !== 'undefined') result = maybe_result
-                // Execute cleanup hook if defined and the function didn't throw
-                if (this.onCleanup) this.onCleanup()
-            } catch (e) {
-                result = e as Error
-                if (result instanceof PreconditionError) numPrecondFailures++
-                // Log if too many preconditions fail, potentially indicating an issue
-                if (numPrecondFailures > 0 && numPrecondFailures % this.numRuns === 0)
-                    this.writeOutput('Number of precondition failure exceeding ' + numPrecondFailures + '\n')
+                // Basic validation
+                if (this.func.length !== args.length)
+                    throw new Error(
+                        'forAll(): number of function parameters (' +
+                            this.func.length +
+                            ') != number of generators given (' +
+                            args.length +
+                            ')'
+                    )
+
+                // Execute the test function, handling exceptions and PreconditionError
+                try {
+                    const func = this.func as PropertyFunction<ARGS>
+                    const maybe_result = func(...(args as ARGS))
+                    if (typeof maybe_result !== 'undefined') result = maybe_result
+                    // Execute cleanup hook if defined and the function didn't throw
+                    if (this.onCleanup) this.onCleanup()
+                } catch (e) {
+                    result = e as Error
+                    if (result instanceof PreconditionError) numPrecondFailures++
+                    // Log if too many preconditions fail, potentially indicating an issue
+                    if (numPrecondFailures > 0 && numPrecondFailures % this.numRuns === 0)
+                        this.writeOutput('Number of precondition failure exceeding ' + numPrecondFailures + '\n')
+                }
+
+                // Skip to next iteration if a precondition failed
+                if (result instanceof PreconditionError) {
+                    continue
+                }
+
+                completedRuns++
+
+                // Check for actual failure (false return or Error thrown)
+                // failed
+                if ((typeof result === 'object' && !(result instanceof PreconditionError)) || !result) {
+                    // Suspend context during shrinking (shrink runs must not distort tag counts)
+                    _setContext(null)
+                    // Attempt to shrink the failing arguments
+                    const shrinkResult = this.shrink(savedRandom, ...gens)
+                    // Format and throw error (no summary on failure — matches C++ behaviour)
+                    throw this.processFailureAsError(result, shrinkResult)
+                }
             }
+        } finally {
+            _setContext(null)
+        }
 
-            // Skip to next iteration if a precondition failed
-            if (result instanceof PreconditionError) {
-                continue
+        // Check stat assertions and print summary (only reached on success)
+        if (this.statAssertions.length > 0) {
+            const failures = ctx.checkStatAssertions(this.statAssertions, completedRuns)
+            if (ctx.hasTags() && this.outputStream) ctx.printSummary(this.outputStream)
+            if (failures.length > 0) {
+                throw new Error('Stat assertion(s) failed:\n' + failures.map(f => '  ' + f).join('\n'))
             }
-
-            // Check for actual failure (false return or Error thrown)
-            // failed
-            if ((typeof result === 'object' && !(result instanceof PreconditionError)) || !result) {
-                // Attempt to shrink the failing arguments
-                const shrinkResult = this.shrink(savedRandom, ...gens)
-                // Format and throw error
-                throw this.processFailureAsError(result, shrinkResult)
-            }
+        } else if (ctx.hasTags() && this.outputStream) {
+            ctx.printSummary(this.outputStream)
         }
 
         // Property holds if loop completes without throwing
@@ -246,6 +298,86 @@ export class Property<ARGS extends unknown[]> {
     /** Sets a callback invoked after each shrink candidate reproduction assessment. */
     setOnReproductionStats(onReproductionStats: (stats: ReproductionStats) => void) {
         this.onReproductionStats = onReproductionStats
+        return this
+    }
+
+    /**
+     * Apply multiple configuration options at once.
+     * Equivalent to calling the individual fluent setters; only supplied keys are applied.
+     * Direct fluent setters remain the primary API — use this for concise batch setup.
+     *
+     * @example
+     * ```ts
+     * new Property(func)
+     *   .setConfig({ seed: '42', numRuns: 500, maxDurationMs: 2000 })
+     *   .forAll(gen)
+     * ```
+     */
+    setConfig(config: PropertyConfig): this {
+        if (config.seed !== undefined) this.setSeed(config.seed)
+        if (config.numRuns !== undefined) this.setNumRuns(config.numRuns)
+        if (config.maxDurationMs !== undefined) this.setMaxDurationMs(config.maxDurationMs)
+        if (config.shrinkMaxRetries !== undefined) this.setShrinkMaxRetries(config.shrinkMaxRetries)
+        if (config.shrinkTimeoutMs !== undefined) this.setShrinkTimeoutMs(config.shrinkTimeoutMs)
+        if (config.shrinkRetryTimeoutMs !== undefined) this.setShrinkRetryTimeoutMs(config.shrinkRetryTimeoutMs)
+        if (config.onStartup !== undefined) this.setOnStartup(config.onStartup)
+        if (config.onCleanup !== undefined) this.setOnCleanup(config.onCleanup)
+        if (config.outputStream !== undefined) this.setOutputStream(config.outputStream)
+        if (config.errorStream !== undefined) this.setErrorStream(config.errorStream)
+        if (config.onReproductionStats !== undefined) this.setOnReproductionStats(config.onReproductionStats)
+        return this
+    }
+
+    /**
+     * Run the property against every combination in the Cartesian product of the given value lists.
+     * Equivalent to calling `property.example(a, b)` for every `(a, b)` in `listA × listB × …`.
+     * Throws with the failing combination on the first failure.
+     *
+     * @example
+     * ```ts
+     * // Runs for (1,0.2), (1,0.3), (2,0.2), (2,0.3)
+     * new Property((n: number, f: number) => n * f >= 0)
+     *   .matrix([1, 2], [0.2, 0.3])
+     * ```
+     */
+    matrix(...lists: unknown[][]): boolean {
+        for (const combo of cartesianProduct(lists)) {
+            if (!this.example(...(combo as ARGS))) {
+                throw new Error(`matrix: property failed for args: ${JSONStringify(combo)}`)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Assert that the ratio of runs where `stat(key, value)` produced `"true"` is ≥ `bound`.
+     * Evaluated after `forAll()` completes successfully.
+     *
+     * @example
+     * ```ts
+     * new Property((n: number) => { stat('positive', n > 0); return true })
+     *   .assertStatGe('positive', 0.4)
+     *   .forAll(Gen.interval(-100, 100))
+     * ```
+     */
+    assertStatGe(key: string, bound: number): this {
+        this.statAssertions.push({ type: 'GE', key, bound })
+        return this
+    }
+
+    /**
+     * Assert that the ratio of runs where `stat(key, value)` produced `"true"` is ≤ `bound`.
+     */
+    assertStatLe(key: string, bound: number): this {
+        this.statAssertions.push({ type: 'LE', key, bound })
+        return this
+    }
+
+    /**
+     * Assert that the ratio of runs where `stat(key, value)` produced `"true"` is in `[min, max]`.
+     */
+    assertStatInRange(key: string, min: number, max: number): this {
+        this.statAssertions.push({ type: 'IN_RANGE', key, min, max })
         return this
     }
 

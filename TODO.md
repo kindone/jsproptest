@@ -6,23 +6,6 @@ Tracks open tasks and feature gaps relative to the C++ reference implementation 
 
 ## Open
 
-### [ ] Batch property configuration
-- **What**: Add a JS-friendly equivalent to C++ `ForAllConfig` / `setConfig(...)`.
-- **Candidate API**: `property.setConfig({ seed, numRuns, maxDurationMs, shrinkMaxRetries, ... })` and optionally `forAll(func, config, ...gens)`.
-- **Note**: Keep direct fluent setters as the primary API; config object is for parity and concise setup.
-
-### [ ] noShrink combinator
-- **What**: Public helper for generators whose values should not shrink, matching C++ `.noShrink()`.
-- **Candidate API**: `gen.noShrink()` as an instance method and/or `Gen.noShrink(gen)`.
-
-### [ ] Matrix/example table testing helper
-- **What**: JS equivalent of C++ `matrix(...)` for Cartesian product example testing.
-- **Candidate API**: `property.matrix([a1, a2], [b1, b2])`.
-
-### [ ] Classification/statistics API
-- **What**: JS equivalent for C++ `PROP_TAG`, `PROP_CLASSIFY`, `PROP_STAT`, and stat assertions.
-- **Note**: Needs a JS-native design; do not copy C++ macros directly.
-
 ### [x] Floating point generator — nan/inf probability parameters
 - **What**: Allow callers to control the probability of generating `NaN`, `+Infinity`, and `-Infinity` in addition to finite values. Default behaviour (finite-only) must remain unchanged.
 - **API**: `Gen.float({ nanProb?: number, posInfProb?: number, negInfProb?: number })`
@@ -40,6 +23,10 @@ Tracks open tasks and feature gaps relative to the C++ reference implementation 
 
 ## Completed
 
+- **[x] noShrink combinator** — `Gen.noShrink(gen)` and `gen.noShrink()`; strips shrink stream; instance method on both `Arbitrary` and `ArbiContainer`; exported via `Gen.noShrink`
+- **[x] Batch property configuration** — `property.setConfig({ seed, numRuns, maxDurationMs, shrinkMaxRetries, ... })`; applies only supplied keys; equivalent to individual fluent setters
+- **[x] Matrix/example table testing helper** — `property.matrix([a1, a2], [b1, b2])`; Cartesian product of value lists; throws with failing combination on first failure
+- **[x] Classification/statistics API** — `tag(key, value)`, `classify(condition, key, value)`, `stat(label, value)` module-level functions usable inside property body; `property.assertStatGe/Le/InRange(key, bound)`; summary printed to `outputStream` on success; exported from package root
 - **[x] seed + numRuns config** — `new Property(...).setSeed('42').setNumRuns(200)`
 - **[x] maxDurationMs config** — `new Property(...).setMaxDurationMs(5000)`
 - **[x] onStartup / onCleanup hooks** — `setOnStartup(fn)` / `setOnCleanup(fn)`
