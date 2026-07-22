@@ -27,6 +27,10 @@ import { simpleActionGenOf as SimpleActionGenOf, actionGenOf as ActionGenOf } fr
 
 export { Generator, Arbitrary, GenFunction } from './Generator'
 export type { FloatGenConfig } from './generator/floating'
+export type { ArrayGenConfig } from './generator/array'
+export type { SetGenConfig } from './generator/set'
+export type { StringGenConfig } from './generator/string'
+export type { DictGenConfig } from './generator/dictionary'
 export { Property, forAll } from './Property'
 export type { PropertyWriteStream, ReproductionStats, PropertyConfig } from './Property'
 export { tag, classify, stat } from './PropertyContext'
