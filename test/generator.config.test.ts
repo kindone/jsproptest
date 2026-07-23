@@ -235,6 +235,61 @@ describe('Gen.dict — config form', () => {
             expect(Object.keys(d).length).toBeLessThanOrEqual(6)
         })
     })
+
+    // ── Shrink quality tests ───────────────────────────────────────────────
+
+    it('shrink: keys shrink to minimum failing length', () => {
+        // Property fails when any key is longer than 1 char.
+        // The shrinker should narrow both membership (1 entry) and key length (2 chars = minLength).
+        let ce: string | undefined
+        try {
+            new Property((d: Record<string, number>) => Object.keys(d).every(k => k.length <= 1))
+                .setSeed('dict-key-shrink').setNumRuns(500)
+                .forAll(Gen.dict(Gen.asciiString(2, 6), Gen.interval(0, 9), 1, 3))
+        } catch (e: any) { ce = e.message }
+        // Shrinking must fire (not just "args found")
+        expect(ce).toMatch(/simplest args found by shrinking/)
+        // Minimal CE: 1 entry with a 2-char key (the minimum failing key length)
+        const m = ce!.match(/\[(\{.*?\})\]/)
+        const shrunk = JSON.parse(m?.[1] ?? '{}') as Record<string, number>
+        expect(Object.keys(shrunk).length).toBe(1)
+        expect(Object.keys(shrunk).every(k => k.length === 2)).toBe(true)
+    })
+
+    it('shrink: value axis fires — "simplest … by shrinking" not "args found"', () => {
+        // Property fails when any value >= 5.
+        // Binary-search integer shrinking from 6 targets 0, so the shrunk value may be 6
+        // rather than exactly 5 — that's correct behaviour (3, 1, 0 are all < 5 so they pass).
+        // The important thing is that the failure message shows shrinking fired.
+        let ce: string | undefined
+        try {
+            new Property((d: Record<string, number>) => Object.values(d).every(v => v < 5))
+                .setSeed('dict-val-shrink').setNumRuns(200)
+                .forAll(Gen.dict(Gen.asciiString(1, 3), Gen.interval(0, 9), 1, 3))
+        } catch (e: any) { ce = e.message }
+        expect(ce).toMatch(/simplest args found by shrinking/)
+        const m = ce!.match(/\[(\{.*?\})\]/)
+        const vals = Object.values(JSON.parse(m?.[1] ?? '{}')) as number[]
+        // All values in the CE must be in the failing range
+        expect(vals.every(v => v >= 5)).toBe(true)
+        // Membership should also shrink to 1 entry
+        expect(vals.length).toBe(1)
+    })
+
+    it('shrink: membership shrinks to minSize entries', () => {
+        // Property fails when dict has more than 1 entry.
+        // minSize=2 so the minimal CE is exactly 2 entries.
+        let ce: string | undefined
+        try {
+            new Property((d: Record<string, number>) => Object.keys(d).length <= 1)
+                .setSeed('dict-membership').setNumRuns(100)
+                .forAll(Gen.dict(Gen.asciiString(1, 4), Gen.interval(0, 5), 2, 5))
+        } catch (e: any) { ce = e.message }
+        expect(ce).toMatch(/simplest args found by shrinking/)
+        const m = ce!.match(/\[(\{.*?\})\]/)
+        const shrunk = JSON.parse(m?.[1] ?? '{}') as Record<string, number>
+        expect(Object.keys(shrunk).length).toBe(2)
+    })
 })
 
 // ── Gen.uniqueArray ────────────────────────────────────────────────────────

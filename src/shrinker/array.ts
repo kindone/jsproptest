@@ -108,13 +108,11 @@ export function shrinkElementWise<T>(
     const numSplits = Math.pow(2, power)
     if (length / numSplits < 1 || offset >= numSplits) return Stream.empty()
 
-    const newShrinkableElemsShr = shrinkableElemsShr.concat(parent => {
-        const length = parent.value.length
-        if (length / numSplits < 1 || offset >= numSplits) return Stream.empty()
-        else return shrinkBulk<T>(parent, power, offset)
-    })
-
-    return newShrinkableElemsShr.shrinks()
+    // Return only the direct element-wise shrink candidates from shrinkBulk.
+    // The outer shrinkableArray drives tree traversal via concat at every node;
+    // re-emitting the parent's existing membership shrinks here would produce
+    // duplicate nodes in the shrink tree.
+    return shrinkBulk<T>(shrinkableElemsShr, power, offset)
 }
 
 /**
@@ -266,9 +264,13 @@ export function shrinkableArray<T>(
         });
     }
 
-    // Chain element-wise shrinking if enabled
+    // Chain element-wise shrinking if enabled.
+    // Use concat (not andThen) so element-wise shrinks are appended at EVERY
+    // node in the membership shrink tree, not only at leaf nodes.  This matches
+    // cppproptest's behaviour: elementWise fires at every membership step so
+    // the shrinker can try element shrinks alongside further membership shrinks.
     if (elementWise) {
-        currentShrinkable = currentShrinkable.andThen(parent => {
+        currentShrinkable = currentShrinkable.concat(parent => {
             return shrinkElementWise(parent, 0, 0);
         });
     }

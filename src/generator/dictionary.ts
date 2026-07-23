@@ -55,16 +55,18 @@ export function DictionaryGen<T>(
     return new ArbiContainer<Dictionary<T>>(
         rand => {
             const size = rand.interval(resolvedMinSize, resolvedMaxSize)
-            const dict: Dictionary<Shrinkable<T>> = {}
-            // Use the provided keyGen to generate keys.
-            // Rely on the loop condition and existence check to ensure uniqueness eventually.
-            // This might be inefficient for larger dictionaries or stricter key requirements.
-            while (Object.keys(dict).length < size) {
+            // Collect [Shrinkable<string>, Shrinkable<T>] pairs, keeping both
+            // shrink trees so the shrinker can shrink keys and values independently.
+            const pairs: Array<[Shrinkable<string>, Shrinkable<T>]> = []
+            const seenKeys = new Set<string>()
+            while (pairs.length < size) {
                 const keyShr = resolvedKeyGen.generate(rand)
-                if (!dict[keyShr.value]) dict[keyShr.value] = resolvedElemGen.generate(rand)
+                if (!seenKeys.has(keyShr.value)) {
+                    seenKeys.add(keyShr.value)
+                    pairs.push([keyShr, resolvedElemGen.generate(rand)])
+                }
             }
-
-            return shrinkableDictionary(dict, resolvedMinSize)
+            return shrinkableDictionary(pairs, resolvedMinSize)
         },
         resolvedMinSize,
         resolvedMaxSize
