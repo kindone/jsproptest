@@ -319,6 +319,8 @@ export class StatefulProperty<ObjectType, ModelType> {
      * It attempts to find a smaller or simpler failing test case by:
      * 1. Shrinking the sequence of random seeds used (`shrinkActionsRandomWise`).
      * 2. Shrinking the initial state generated (`shrinkInitialObject`).
+     * 2b. PrefixParams: for each non-last slot i, replay the prefix to reconstruct live state,
+     *     then regenerate the action from its bookmark — yields a fresh, state-correct shrink tree.
      * 3. Shrinking the parameters of the last failing action (`shrinkLastAction`).
      *
      * @param originalActions The sequence of actions that led to the failure.
@@ -354,6 +356,16 @@ export class StatefulProperty<ObjectType, ModelType> {
         let result: TestResult = this.shrinkInitialObject(initialRand, phase2Input, shrinkStartedAt)
         const phase2Shrunk = result !== phase2Input
 
+        // phase 2b: PrefixParams — for each non-last slot i, replay prefix [0,i) to reconstruct
+        // the live (obj, model) at that position, then regenerate the action from its stored
+        // Random bookmark.  This yields a fresh shrink tree correct for the current state —
+        // which may differ from the original-generation state if the sequence was pruned.
+        const phase2bInput = result
+        if (!this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) {
+            result = this.shrinkPrefixParams(initialRand, result, shrinkStartedAt)
+        }
+        const phase2bShrunk = result !== phase2bInput
+
         // phase 3: shrink last action parameters
         const phase3Input = result
         if (!this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) {
@@ -363,7 +375,7 @@ export class StatefulProperty<ObjectType, ModelType> {
 
         // finalize: rebuild the initial object from the best shrink result found
         const initialObj = this.initialGen.generate(initialRand.clone())
-        if (phase1Shrunk || phase2Shrunk || phase3Shrunk) {
+        if (phase1Shrunk || phase2Shrunk || phase2bShrunk || phase3Shrunk) {
             return new ShrinkResult(
                 initialObj.retrieve(result.initialSteps),
                 result.actions,
@@ -372,6 +384,128 @@ export class StatefulProperty<ObjectType, ModelType> {
         }
         // unable to shrink -> return originally failed combination
         return new ShrinkResult(initialObj.value, originalActions)
+    }
+
+    /**
+     * @internal
+     * Runs a full action sequence with one slot replaced by a candidate action. Used by
+     * both PrefixParams (Phase 2b, any non-last slot) and, indirectly, Phase 3.
+     *
+     * @param slot      Index of the slot to replace (0-based).
+     * @param candidateShr  The candidate action to try at that slot.
+     */
+    private testWithActionAtSlot(
+        initialRand: Random,
+        initialSteps: number[],
+        randoms: Random[],
+        actions: Shrinkable<Action<ObjectType, ModelType>>[],
+        slot: number,
+        candidateShr: Shrinkable<Action<ObjectType, ModelType>>
+    ): boolean | TestResult {
+        const newActions = [...actions]
+        newActions[slot] = candidateShr
+        try {
+            if (this.onStartup) this.onStartup()
+            const { obj, model } = this.generateInitial(initialRand.clone())
+                .map(shr => shr.retrieve(initialSteps))
+                .map(shr => ({ obj: shr.value.obj, model: shr.value.model }))
+                .getOrThrow()
+            for (const actionShr of newActions) {
+                actionShr.value.call(obj, model)
+            }
+            if (this.postCheck) this.postCheck(obj, model)
+            if (this.onCleanup) this.onCleanup()
+            return true
+        } catch (e) {
+            if (e instanceof GenerationError) return false
+            return new TestResult(initialSteps, newActions, randoms, e as Error)
+        }
+    }
+
+    /**
+     * @internal
+     * Phase 2b — PrefixParams: for each non-last action slot i, reconstructs the live
+     * (obj, model) state at position i by replaying prefix [0,i) from the current best
+     * initial state, then regenerates the action from its stored Random bookmark using
+     * that fresh state.  Walking the resulting shrink tree can find simpler actions that
+     * are valid at the actual current state — candidates that the stale generation-time
+     * tree would have missed after SequencePruning changed the preceding context.
+     *
+     * Equivalent to cppproptest's PrefixParams phase (stateful sequential case).
+     */
+    private shrinkPrefixParams(
+        initialRand: Random,
+        prevTestResult: TestResult,
+        shrinkStartedAt: number
+    ): TestResult {
+        const actions = prevTestResult.actions as Shrinkable<Action<ObjectType, ModelType>>[]
+        if (actions.length <= 1) return prevTestResult
+
+        let result: TestResult = prevTestResult
+
+        for (let i = 0; i + 1 < (result.actions as Shrinkable<Action<ObjectType, ModelType>>[]).length; i++) {
+            if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+
+            // Reconstruct live (obj, model) at position i by replaying prefix [0, i)
+            let liveObj!: ObjectType
+            let liveModel!: ModelType
+            let reconstructed = false
+            try {
+                const currentActions = result.actions as Shrinkable<Action<ObjectType, ModelType>>[]
+                const init = this.generateInitial(initialRand.clone())
+                    .map(shr => shr.retrieve(result.initialSteps))
+                    .map(shr => ({ obj: shr.value.obj, model: shr.value.model }))
+                    .getOrThrow()
+                liveObj = init.obj
+                liveModel = init.model
+                for (let j = 0; j < i; j++) {
+                    currentActions[j].value.call(liveObj, liveModel)
+                }
+                reconstructed = true
+            } catch { /* prefix replay failed — skip this slot */ }
+            if (!reconstructed) continue
+
+            // Regenerate action at slot i from its stored bookmark, using the live state.
+            // This produces a fresh shrink tree appropriate for the current prefix context.
+            let freshActionShr: Shrinkable<Action<ObjectType, ModelType>>
+            try {
+                freshActionShr = this.actionGenFactory(liveObj, liveModel).generate(result.randoms[i].clone())
+            } catch { continue }
+
+            // Walk the fresh shrink tree, keeping the first candidate that still fails.
+            let shrinks = freshActionShr.shrinks()
+            while (!shrinks.isEmpty()) {
+                if (this.hasExceededTimeout(shrinkStartedAt, this.shrinkTimeoutMs)) break
+                const iter = shrinks.iterator()
+                let shrinkFound = false
+                while (iter.hasNext()) {
+                    const candidateShr = iter.next()
+                    const assessment = this.testShrinkCandidateWithRetries(
+                        `prefix params slot ${i}`,
+                        () =>
+                            this.testWithActionAtSlot(
+                                initialRand,
+                                result.initialSteps,
+                                result.randoms,
+                                result.actions as Shrinkable<Action<ObjectType, ModelType>>[],
+                                i,
+                                candidateShr
+                            ),
+                        shrinkStartedAt
+                    )
+                    if (assessment.reproduced) {
+                        result = assessment.result
+                        shrinks = candidateShr.shrinks()
+                        shrinkFound = true
+                        this.writeOutput(`  stateful shrinking found simpler action at slot ${i} via prefix params\n`)
+                        break
+                    }
+                }
+                if (!shrinkFound) break
+            }
+        }
+
+        return result
     }
 
     /**
