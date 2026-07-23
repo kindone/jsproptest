@@ -19,10 +19,16 @@ Generators are the foundation of property-based testing in `jsproptest`. They ar
 | `Gen.unicodeString(...)`  | Generates strings containing Unicode chars.                     | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.unicodeString(1, 8)`                             |
 | `Gen.printableAsciiString(...)` | Generates strings containing only printable ASCII chars.  | `minLength` (def: 0), `maxLength` (def: 10)        | `Gen.printableAsciiString(5, 5)`                      |
 | **Containers**            |                                                                 |                                                    |                                                       |
-| `Gen.array(elem, minL, maxL)` | Generates arrays with elements from `elem`.                   | `elementGen`, `minLength` (def: 0), `maxLength` (def: 10) | `Gen.array(Gen.boolean(), 2, 4)`                      |
-| `Gen.uniqueArray(elem, minL, maxL)` | Generates arrays with unique elements from `elem`.    | `elementGen`, `minLength` (def: 0), `maxLength` (def: 10) | `Gen.uniqueArray(Gen.interval(1, 10), 3, 3)`          |
-| `Gen.set(elem, minS, maxS)`   | Generates `Set` objects with elements from `elem`.            | `elementGen`, `minSize` (def: 0), `maxSize` (def: 10)   | `Gen.set(Gen.interval(1, 3), 1, 3)`                   |
-| `Gen.dictionary(keyGen, valGen, minS, maxS)` | Generates objects with keys from `keyGen` and values from `valGen`. | `keyGen`, `valueGen`, `minSize` (def: 0), `maxSize` (def: 10)   | `Gen.dictionary(Gen.string(1, 2), Gen.interval(0, 5), 2, 5)` |
+| `Gen.array(elem, minL, maxL)` | Generates arrays with elements from `elem` (positional form). | `elementGen`, `minLength` (def: 0), `maxLength` (def: 20) | `Gen.array(Gen.boolean(), 2, 4)`                      |
+| `Gen.array({ elemGen, minSize?, maxSize? })` | Config-object form of `Gen.array`.              | `ArrayGenConfig<T>`                                | `Gen.array({ elemGen: Gen.interval(0, 9), maxSize: 5 })` |
+| `Gen.uniqueArray(elem, minL, maxL)` | Generates sorted arrays with unique elements (positional). | `elementGen`, `minLength` (def: 0), `maxLength` (def: 20) | `Gen.uniqueArray(Gen.interval(1, 10), 3, 3)`          |
+| `Gen.uniqueArray({ elemGen, minSize?, maxSize? })` | Config-object form of `Gen.uniqueArray`.    | `ArrayGenConfig<T>`                                | `Gen.uniqueArray({ elemGen: Gen.interval(0, 99), minSize: 2 })` |
+| `Gen.set(elem, minS, maxS)`   | Generates `Set` objects (positional form).                | `elementGen`, `minSize` (def: 0), `maxSize` (def: 20)   | `Gen.set(Gen.interval(1, 3), 1, 3)`                   |
+| `Gen.set({ elemGen, minSize?, maxSize? })` | Config-object form of `Gen.set`.                  | `SetGenConfig<T>`                                  | `Gen.set({ elemGen: Gen.interval(0, 99), maxSize: 5 })` |
+| `Gen.string(minL, maxL, charGen?)` | Generates strings (positional form, defaults to ASCII).  | `minLength` (def: 0), `maxLength` (def: 20), `charGen?` | `Gen.string(0, 5)`                                    |
+| `Gen.string({ minSize?, maxSize?, charGen? })` | Config-object form of `Gen.string`.             | `StringGenConfig`                                  | `Gen.string({ minSize: 2, maxSize: 8 })`              |
+| `Gen.dict(keyGen, valGen, minS, maxS)` | Generates objects (positional form, alias `Gen.dictionary`). | `keyGen`, `elemGen`, `minSize` (def: 0), `maxSize` (def: 20) | `Gen.dict(Gen.string(1, 2), Gen.interval(0, 5), 2, 5)` |
+| `Gen.dict({ keyGen, elemGen, minSize?, maxSize? })` | Config-object form of `Gen.dict`.              | `DictGenConfig<T>`                                 | `Gen.dict({ keyGen: Gen.string(1,4), elemGen: Gen.boolean() })` |
 | `Gen.tuple(...gens)`      | Generates fixed-size arrays (tuples) from `gens`.             | `...elementGens`                                   | `Gen.tuple(Gen.number(), Gen.string())`             |
 | **Special**               |                                                                 |                                                    |                                                       |
 | `Gen.just(value)`         | Always generates the provided `value`.                          | `value`                                            | `Gen.just(null)`                                      |
@@ -45,42 +51,58 @@ Gen.float({ nanProb: 0.05, posInfProb: 0.02, negInfProb: 0.02 });
 
 **`Gen.string()`**
 
-Generates strings. You can control the character set and length.
+Generates strings. You can control the character set and length using either positional arguments or a config object.
 
 ```typescript
-// Generates ASCII strings of length 5 to 10
-Gen.string(5, 10); // Default character set is printable ASCII
-
-// Generates Unicode strings of exactly length 3
-Gen.unicodeString(3, 3);
-
-// Generates printable ASCII strings of length 0 to 5
+// Positional form
+Gen.string(5, 10);            // ASCII strings of length 5–10
+Gen.unicodeString(3, 3);      // Unicode strings of exactly length 3
 Gen.printableAsciiString(0, 5);
+
+// Config-object form (all fields optional, defaults: minSize=0, maxSize=20, charGen=ASCII)
+Gen.string({});                         // 0–20 ASCII chars
+Gen.string({ minSize: 2, maxSize: 8 }); // 2–8 ASCII chars
+Gen.string({ maxSize: 5, charGen: Gen.printableAscii }); // printable ASCII, 0–5 chars
 ```
 
 **`Gen.array()`**
 
-Generates arrays where each element is created by the provided element generator.
+Generates arrays where each element is created by the provided element generator. Both a positional form and a config-object form are supported; the positional form is unchanged for backward compatibility.
 
 ```typescript
-// Generates arrays of 2 to 5 booleans
-// e.g., [true, false], [false, false, true, true]
+// Positional form
 Gen.array(Gen.boolean(), 2, 5);
-
-// Generates arrays of 0 to 10 strings, each 1-3 chars long
 Gen.array(Gen.string(1, 3), 0, 10);
+
+// Config-object form (minSize defaults to 0, maxSize defaults to 20)
+Gen.array({ elemGen: Gen.boolean() });                        // 0–20 elements
+Gen.array({ elemGen: Gen.interval(0, 9), minSize: 2, maxSize: 5 });
+Gen.array({ elemGen: Gen.string(1, 4), maxSize: 3 });         // minSize defaults to 0
 ```
 
-**`Gen.dictionary()`**
+**`Gen.set()`** and **`Gen.uniqueArray()`**
 
-Generates objects (dictionaries) with string keys generated by `keyGen` and values generated by the provided `valueGen`.
+Same dual-form API as `Gen.array()`:
 
 ```typescript
-// Generates objects with 1 to 3 key-value pairs,
-// where keys are 1-char strings (a-z) and values are finite floats.
-// e.g., { "a": 1.2, "b": 2.5e100 }, { "z": 10.0 }
-const keyGen = Gen.string(1, 1).map(s => String.fromCharCode(97 + (s.charCodeAt(0) % 26))) // Generate a-z keys
-Gen.dictionary(keyGen, Gen.float(), 1, 3);
+Gen.set({ elemGen: Gen.interval(0, 99), minSize: 1, maxSize: 5 });
+Gen.uniqueArray({ elemGen: Gen.interval(0, 99), minSize: 2 });  // maxSize defaults to 20
+```
+
+**`Gen.dict()`** (alias: `Gen.dictionary()`)
+
+Generates objects (dictionaries) with string keys generated by `keyGen` and values generated by `elemGen`. Supports both positional and config-object forms.
+
+```typescript
+// Positional form
+Gen.dict(Gen.string(1, 2), Gen.interval(0, 5), 2, 5);
+
+// Config-object form (minSize defaults to 0, maxSize defaults to 20)
+Gen.dict({ keyGen: Gen.string(1, 4), elemGen: Gen.boolean() });
+Gen.dict({ keyGen: Gen.string(1, 2), elemGen: Gen.interval(0, 99), minSize: 1, maxSize: 5 });
+
+// Config interfaces are exported for TypeScript users
+import type { ArrayGenConfig, SetGenConfig, StringGenConfig, DictGenConfig } from 'jsproptest';
 ```
 
 **`Gen.tuple()`**

@@ -6,23 +6,13 @@ Tracks open tasks and feature gaps relative to the C++ reference implementation 
 
 ## Open
 
-### [x] Floating point generator — nan/inf probability parameters
-- **What**: Allow callers to control the probability of generating `NaN`, `+Infinity`, and `-Infinity` in addition to finite values. Default behaviour (finite-only) must remain unchanged.
-- **API**: `Gen.float({ nanProb?: number, posInfProb?: number, negInfProb?: number })`
-- **Implementation**: `FloatGenConfig` interface in `src/generator/floating.ts`; uses raw IEEE-754 bit generation with rejection for finite values, `oneOf` + `weightedGen` for special values, and validation for individual probs and sum ≤ 1.0.
-- **Tests**: `test/generator.test.ts` — `Gen.float with nanProb/posInfProb/negInfProb config`
-- **Lab demo**: `lab/jsproptest/src/poc_float_config.mjs`
-
-### [x] maxDurationMs — time-box the test loop
-- **What**: Stop running new trials after a wall-clock duration, even if `numRuns` hasn't been reached.
-- **C++ API**: `ForAllConfig{ .maxDurationMs = 5000 }`
-- **JS API**: `new Property(...).setMaxDurationMs(5000)`
-- **Use case**: CI time budgets; slow generators or properties where you'd rather run fewer trials than time out the build.
-
 ---
 
 ## Completed
 
+- **[x] Container/string/dict/set named-param config overloads** — `Gen.array({ elemGen, minSize?, maxSize? })`, `Gen.set({ elemGen, minSize?, maxSize? })`, `Gen.string({ minSize?, maxSize?, charGen? })`, `Gen.dict({ keyGen, elemGen, minSize?, maxSize? })`, `Gen.uniqueArray({ elemGen, minSize?, maxSize? })`; positional forms fully backward-compatible; config interfaces (`ArrayGenConfig`, `SetGenConfig`, `StringGenConfig`, `DictGenConfig`) exported from package root; 21 tests in `test/generator.config.test.ts`
+- **[x] Floating point generator — nan/inf probability parameters** — `Gen.float({ nanProb?, posInfProb?, negInfProb? })`; `FloatGenConfig` interface exported; validated; lab demo in `lab/jsproptest/src/poc_float_config.mjs`
+- **[x] maxDurationMs — time-box the test loop** — `new Property(...).setMaxDurationMs(5000)`; stops new trials after wall-clock budget even if `numRuns` not reached
 - **[x] noShrink combinator** — `Gen.noShrink(gen)` and `gen.noShrink()`; strips shrink stream; instance method on both `Arbitrary` and `ArbiContainer`; exported via `Gen.noShrink`
 - **[x] Batch property configuration** — `property.setConfig({ seed, numRuns, maxDurationMs, shrinkMaxRetries, ... })`; applies only supplied keys; equivalent to individual fluent setters
 - **[x] Matrix/example table testing helper** — `property.matrix([a1, a2], [b1, b2])`; Cartesian product of value lists; throws with failing combination on first failure
