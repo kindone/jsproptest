@@ -307,6 +307,70 @@ describe('stateful', () => {
         expect(prop.getLastReproductionStats()).toBeDefined()
     })
 
+    /**
+     * Phase 2b (PrefixParams): verifies that the shrinker improves non-last-slot action
+     * parameters using a fresh shrink tree rooted in the actual state at that position.
+     *
+     * Scenario: an accumulator that starts at 0; each Add(v) adds v and throws if sum > 5.
+     * The factory is state-dependent (although here the generation range is fixed, the
+     * replay mechanism in PrefixParams is exercised whenever the sequence is multi-action).
+     *
+     * With seed "42" and minActions=2:
+     *  - Phase 1 cannot prune to 1 action (a single Add(v) ≤ 5 always passes)
+     *  - Phase 2b fires at slot 0 (non-last), replays the empty prefix, regenerates Add
+     *    from the stored bookmark, and finds Add(1) as a smaller still-failing pair partner
+     *  - Phase 3 then shrinks the last slot to Add(5)
+     *  - Final CE: [{sum:0}], ["add(1)","add(5)"] — sum = 6 > 5
+     */
+    it('stateful shrink: Phase 2b PrefixParams fires and improves non-last-slot parameters', () => {
+        type State = { sum: number }
+        type Model = Record<string, never>
+        const LIMIT = 5
+        const pfxOutput: string[] = []
+
+        const factory = (_obj: State, _model: Model) =>
+            Gen.interval(1, 7).map(
+                (v: number) =>
+                    new Action<State, Model>(
+                        (s, _m) => {
+                            s.sum += v
+                            if (s.sum > LIMIT) throw new Error(`sum ${s.sum} > ${LIMIT}`)
+                        },
+                        `add(${v})`
+                    )
+            )
+
+        let errMsg: string | null = null
+        try {
+            statefulProperty(
+                new Arbitrary<State>(() => new Shrinkable({ sum: 0 })),
+                () => ({}) as Model,
+                factory
+            )
+                .setSeed('42')
+                .setNumRuns(300)
+                .setMinActions(2)
+                .setMaxActions(4)
+                .setOutputStream({
+                    write: m => {
+                        if (m.includes('prefix params')) pfxOutput.push(m.trim())
+                    },
+                })
+                .go()
+        } catch (e) {
+            errMsg = (e as Error).message
+        }
+
+        // The property must have failed
+        expect(errMsg).not.toBeNull()
+        expect(errMsg).toContain('args found by shrinking')
+        // Phase 2b must have fired and improved at least one non-last slot
+        expect(pfxOutput.length).toBeGreaterThan(0)
+        // Minimal CE: add(1) + add(5) = 6 > 5
+        expect(errMsg).toContain('add(1)')
+        expect(errMsg).toContain('add(5)')
+    })
+
     it('stateful shrink parity options validate configured values', () => {
         const prop = simpleStatefulProperty(Gen.just({}), () => Gen.just(new SimpleAction(() => {}, 'noop')))
 
