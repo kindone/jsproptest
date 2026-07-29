@@ -21,8 +21,11 @@
         <link rel="next" href="../combinators/">
       
       
+        
+      
+      
       <link rel="icon" href="../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -30,10 +33,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.4b4a2bd9.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.356b1318.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -52,11 +55,10 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
-    
     
     
   </head>
@@ -69,7 +71,6 @@
     
     <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="light-green">
   
-    
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -96,12 +97,12 @@
     <a href=".." title="jsproptest" class="md-header__button md-logo" aria-label="jsproptest" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
@@ -124,26 +125,29 @@
     
     
     
-      <label class="md-header__button md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
         
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
         
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
       
@@ -151,7 +155,7 @@
       
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
@@ -162,13 +166,14 @@
     </div>
   </div>
 </div>
+      
     
     
       <div class="md-header__source">
         <a href="https://github.com/kindone/jsproptest" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
     kindone/jsproptest
@@ -204,7 +209,7 @@
     <a href=".." title="jsproptest" class="md-nav__button md-logo" aria-label="jsproptest" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     jsproptest
@@ -214,7 +219,7 @@
       <a href="https://github.com/kindone/jsproptest" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
     kindone/jsproptest
@@ -229,13 +234,21 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href=".." class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Introduction
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -245,6 +258,7 @@
     
       
       
+  
   
   
   
@@ -252,9 +266,16 @@
       <a href="../properties/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Properties
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -267,6 +288,7 @@
   
   
     
+  
   
   
     
@@ -284,16 +306,22 @@
       
         
         
-        
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Generating Inputs
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -302,7 +330,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
-            Generating Inputs
+            
+  
+    Generating Inputs
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -311,6 +343,7 @@
   
   
     
+  
   
   
     <li class="md-nav__item md-nav__item--active">
@@ -324,9 +357,16 @@
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
+  
   <span class="md-ellipsis">
+    
+  
     Generators
+  
+
+    
   </span>
+  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -335,9 +375,16 @@
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Generators
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -359,14 +406,22 @@
       
         <li class="md-nav__item">
   <a href="#generator-summary-table" class="md-nav__link">
-    Generator Summary Table
+    <span class="md-ellipsis">
+      
+        Generator Summary Table
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
-    Examples
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
   </a>
   
 </li>
@@ -385,13 +440,21 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href="../combinators/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Combinators
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -412,13 +475,21 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href="../shrinking/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Shrinking
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -431,13 +502,21 @@
   
   
   
+  
     <li class="md-nav__item">
       <a href="../stateful-testing/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Stateful & Concurrency Testing
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -473,14 +552,22 @@
       
         <li class="md-nav__item">
   <a href="#generator-summary-table" class="md-nav__link">
-    Generator Summary Table
+    <span class="md-ellipsis">
+      
+        Generator Summary Table
+      
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
-    Examples
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
   </a>
   
 </li>
@@ -495,9 +582,59 @@
           
           
             <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Generating Inputs
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
   
   
@@ -509,138 +646,174 @@
 <table>
 <thead>
 <tr>
-<th align="left">Generator</th>
-<th align="left">Description</th>
-<th align="left">Key Parameters</th>
-<th align="left">Example Usage</th>
+<th style="text-align: left;">Generator</th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Key Parameters</th>
+<th style="text-align: left;">Example Usage</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td align="left"><strong>Primitives</strong></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
+<td style="text-align: left;"><strong>Primitives</strong></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.boolean()</code></td>
-<td align="left">Generates <code>true</code> or <code>false</code>.</td>
-<td align="left"><code>trueProb</code> (def: 0.5)</td>
-<td align="left"><code>Gen.boolean()</code></td>
+<td style="text-align: left;"><code>Gen.boolean()</code></td>
+<td style="text-align: left;">Generates <code>true</code> or <code>false</code>.</td>
+<td style="text-align: left;"><code>trueProb</code> (def: 0.5)</td>
+<td style="text-align: left;"><code>Gen.boolean()</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.float()</code></td>
-<td align="left">Generates floating-point numbers (incl. <code>Infinity</code>, <code>NaN</code>).</td>
-<td align="left">-</td>
-<td align="left"><code>Gen.float()</code></td>
+<td style="text-align: left;"><code>Gen.float()</code></td>
+<td style="text-align: left;">Generates finite IEEE-754 floating-point numbers by default.</td>
+<td style="text-align: left;"><code>{ nanProb, posInfProb, negInfProb }</code></td>
+<td style="text-align: left;"><code>Gen.float()</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.interval(min, max)</code></td>
-<td align="left">Generates integers in the range <code>[min, max]</code>.</td>
-<td align="left"><code>min</code>, <code>max</code></td>
-<td align="left"><code>Gen.interval(0, 10)</code></td>
+<td style="text-align: left;"><code>Gen.interval(min, max)</code></td>
+<td style="text-align: left;">Generates integers in the range <code>[min, max]</code>.</td>
+<td style="text-align: left;"><code>min</code>, <code>max</code></td>
+<td style="text-align: left;"><code>Gen.interval(0, 10)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.inRange(min, max)</code></td>
-<td align="left">Generates integers in the range <code>[min, max)</code>.</td>
-<td align="left"><code>min</code>, <code>max</code></td>
-<td align="left"><code>Gen.inRange(0, 10)</code></td>
+<td style="text-align: left;"><code>Gen.inRange(min, max)</code></td>
+<td style="text-align: left;">Generates integers in the range <code>[min, max)</code>.</td>
+<td style="text-align: left;"><code>min</code>, <code>max</code></td>
+<td style="text-align: left;"><code>Gen.inRange(0, 10)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.ascii()</code></td>
-<td align="left">Generates single ASCII characters (code 0-127).</td>
-<td align="left">-</td>
-<td align="left"><code>Gen.ascii()</code></td>
+<td style="text-align: left;"><code>Gen.ascii()</code></td>
+<td style="text-align: left;">Generates single ASCII characters (code 0-127).</td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;"><code>Gen.ascii()</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.unicode()</code></td>
-<td align="left">Generates single Unicode characters.</td>
-<td align="left">-</td>
-<td align="left"><code>Gen.unicode()</code></td>
+<td style="text-align: left;"><code>Gen.unicode()</code></td>
+<td style="text-align: left;">Generates single Unicode characters.</td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;"><code>Gen.unicode()</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.printableAscii()</code></td>
-<td align="left">Generates single printable ASCII characters.</td>
-<td align="left">-</td>
-<td align="left"><code>Gen.printableAscii()</code></td>
+<td style="text-align: left;"><code>Gen.printableAscii()</code></td>
+<td style="text-align: left;">Generates single printable ASCII characters.</td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;"><code>Gen.printableAscii()</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.string(minL, maxL)</code></td>
-<td align="left">Generates strings (defaults to ASCII).</td>
-<td align="left"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.string(0, 5)</code></td>
+<td style="text-align: left;"><code>Gen.string(minL, maxL)</code></td>
+<td style="text-align: left;">Generates strings (defaults to ASCII).</td>
+<td style="text-align: left;"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
+<td style="text-align: left;"><code>Gen.string(0, 5)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.asciiString(...)</code></td>
-<td align="left">Generates strings containing only ASCII chars (0-127).</td>
-<td align="left"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.asciiString(1, 8)</code></td>
+<td style="text-align: left;"><code>Gen.asciiString(...)</code></td>
+<td style="text-align: left;">Generates strings containing only ASCII chars (0-127).</td>
+<td style="text-align: left;"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
+<td style="text-align: left;"><code>Gen.asciiString(1, 8)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.unicodeString(...)</code></td>
-<td align="left">Generates strings containing Unicode chars.</td>
-<td align="left"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.unicodeString(1, 8)</code></td>
+<td style="text-align: left;"><code>Gen.unicodeString(...)</code></td>
+<td style="text-align: left;">Generates strings containing Unicode chars.</td>
+<td style="text-align: left;"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
+<td style="text-align: left;"><code>Gen.unicodeString(1, 8)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.printableAsciiString(...)</code></td>
-<td align="left">Generates strings containing only printable ASCII chars.</td>
-<td align="left"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.printableAsciiString(5, 5)</code></td>
+<td style="text-align: left;"><code>Gen.printableAsciiString(...)</code></td>
+<td style="text-align: left;">Generates strings containing only printable ASCII chars.</td>
+<td style="text-align: left;"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
+<td style="text-align: left;"><code>Gen.printableAsciiString(5, 5)</code></td>
 </tr>
 <tr>
-<td align="left"><strong>Containers</strong></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
+<td style="text-align: left;"><strong>Containers</strong></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.array(elem, minL, maxL)</code></td>
-<td align="left">Generates arrays with elements from <code>elem</code>.</td>
-<td align="left"><code>elementGen</code>, <code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.array(Gen.boolean(), 2, 4)</code></td>
+<td style="text-align: left;"><code>Gen.array(elem, minL, maxL)</code></td>
+<td style="text-align: left;">Generates arrays with elements from <code>elem</code> (positional form).</td>
+<td style="text-align: left;"><code>elementGen</code>, <code>minLength</code> (def: 0), <code>maxLength</code> (def: 20)</td>
+<td style="text-align: left;"><code>Gen.array(Gen.boolean(), 2, 4)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.uniqueArray(elem, minL, maxL)</code></td>
-<td align="left">Generates arrays with unique elements from <code>elem</code>.</td>
-<td align="left"><code>elementGen</code>, <code>minLength</code> (def: 0), <code>maxLength</code> (def: 10)</td>
-<td align="left"><code>Gen.uniqueArray(Gen.interval(1, 10), 3, 3)</code></td>
+<td style="text-align: left;"><code>Gen.array({ elemGen, minSize?, maxSize? })</code></td>
+<td style="text-align: left;">Config-object form of <code>Gen.array</code>.</td>
+<td style="text-align: left;"><code>ArrayGenConfig&lt;T&gt;</code></td>
+<td style="text-align: left;"><code>Gen.array({ elemGen: Gen.interval(0, 9), maxSize: 5 })</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.set(elem, minS, maxS)</code></td>
-<td align="left">Generates <code>Set</code> objects with elements from <code>elem</code>.</td>
-<td align="left"><code>elementGen</code>, <code>minSize</code> (def: 0), <code>maxSize</code> (def: 10)</td>
-<td align="left"><code>Gen.set(Gen.interval(1, 3), 1, 3)</code></td>
+<td style="text-align: left;"><code>Gen.uniqueArray(elem, minL, maxL)</code></td>
+<td style="text-align: left;">Generates sorted arrays with unique elements (positional).</td>
+<td style="text-align: left;"><code>elementGen</code>, <code>minLength</code> (def: 0), <code>maxLength</code> (def: 20)</td>
+<td style="text-align: left;"><code>Gen.uniqueArray(Gen.interval(1, 10), 3, 3)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.dictionary(keyGen, valGen, minS, maxS)</code></td>
-<td align="left">Generates objects with keys from <code>keyGen</code> and values from <code>valGen</code>.</td>
-<td align="left"><code>keyGen</code>, <code>valueGen</code>, <code>minSize</code> (def: 0), <code>maxSize</code> (def: 10)</td>
-<td align="left"><code>Gen.dictionary(Gen.string(1, 2), Gen.interval(0, 5), 2, 5)</code></td>
+<td style="text-align: left;"><code>Gen.uniqueArray({ elemGen, minSize?, maxSize? })</code></td>
+<td style="text-align: left;">Config-object form of <code>Gen.uniqueArray</code>.</td>
+<td style="text-align: left;"><code>ArrayGenConfig&lt;T&gt;</code></td>
+<td style="text-align: left;"><code>Gen.uniqueArray({ elemGen: Gen.interval(0, 99), minSize: 2 })</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.tuple(...gens)</code></td>
-<td align="left">Generates fixed-size arrays (tuples) from <code>gens</code>.</td>
-<td align="left"><code>...elementGens</code></td>
-<td align="left"><code>Gen.tuple(Gen.number(), Gen.string())</code></td>
+<td style="text-align: left;"><code>Gen.set(elem, minS, maxS)</code></td>
+<td style="text-align: left;">Generates <code>Set</code> objects (positional form).</td>
+<td style="text-align: left;"><code>elementGen</code>, <code>minSize</code> (def: 0), <code>maxSize</code> (def: 20)</td>
+<td style="text-align: left;"><code>Gen.set(Gen.interval(1, 3), 1, 3)</code></td>
 </tr>
 <tr>
-<td align="left"><strong>Special</strong></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
+<td style="text-align: left;"><code>Gen.set({ elemGen, minSize?, maxSize? })</code></td>
+<td style="text-align: left;">Config-object form of <code>Gen.set</code>.</td>
+<td style="text-align: left;"><code>SetGenConfig&lt;T&gt;</code></td>
+<td style="text-align: left;"><code>Gen.set({ elemGen: Gen.interval(0, 99), maxSize: 5 })</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.just(value)</code></td>
-<td align="left">Always generates the provided <code>value</code>.</td>
-<td align="left"><code>value</code></td>
-<td align="left"><code>Gen.just(null)</code></td>
+<td style="text-align: left;"><code>Gen.string(minL, maxL, charGen?)</code></td>
+<td style="text-align: left;">Generates strings (positional form, defaults to ASCII).</td>
+<td style="text-align: left;"><code>minLength</code> (def: 0), <code>maxLength</code> (def: 20), <code>charGen?</code></td>
+<td style="text-align: left;"><code>Gen.string(0, 5)</code></td>
 </tr>
 <tr>
-<td align="left"><code>Gen.lazy(() =&gt; value)</code></td>
-<td align="left">Defers execution of a function to produce <code>value</code> until needed.</td>
-<td align="left"><code>valueFactory: () =&gt; T</code></td>
-<td align="left"><code>Gen.lazy(() =&gt; expensiveCalculation())</code></td>
+<td style="text-align: left;"><code>Gen.string({ minSize?, maxSize?, charGen? })</code></td>
+<td style="text-align: left;">Config-object form of <code>Gen.string</code>.</td>
+<td style="text-align: left;"><code>StringGenConfig</code></td>
+<td style="text-align: left;"><code>Gen.string({ minSize: 2, maxSize: 8 })</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>Gen.dict(keyGen, valGen, minS, maxS)</code></td>
+<td style="text-align: left;">Generates objects (positional form, alias <code>Gen.dictionary</code>).</td>
+<td style="text-align: left;"><code>keyGen</code>, <code>elemGen</code>, <code>minSize</code> (def: 0), <code>maxSize</code> (def: 20)</td>
+<td style="text-align: left;"><code>Gen.dict(Gen.string(1, 2), Gen.interval(0, 5), 2, 5)</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>Gen.dict({ keyGen, elemGen, minSize?, maxSize? })</code></td>
+<td style="text-align: left;">Config-object form of <code>Gen.dict</code>.</td>
+<td style="text-align: left;"><code>DictGenConfig&lt;T&gt;</code></td>
+<td style="text-align: left;"><code>Gen.dict({ keyGen: Gen.string(1,4), elemGen: Gen.boolean() })</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>Gen.tuple(...gens)</code></td>
+<td style="text-align: left;">Generates fixed-size arrays (tuples) from <code>gens</code>.</td>
+<td style="text-align: left;"><code>...elementGens</code></td>
+<td style="text-align: left;"><code>Gen.tuple(Gen.number(), Gen.string())</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Special</strong></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>Gen.just(value)</code></td>
+<td style="text-align: left;">Always generates the provided <code>value</code>.</td>
+<td style="text-align: left;"><code>value</code></td>
+<td style="text-align: left;"><code>Gen.just(null)</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>Gen.lazy(() =&gt; value)</code></td>
+<td style="text-align: left;">Defers execution of a function to produce <code>value</code> until needed.</td>
+<td style="text-align: left;"><code>valueFactory: () =&gt; T</code></td>
+<td style="text-align: left;"><code>Gen.lazy(() =&gt; expensiveCalculation())</code></td>
 </tr>
 </tbody>
 </table>
@@ -648,37 +821,49 @@
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <p>Here are some more detailed examples illustrating how to use various generators:</p>
 <p><strong><code>Gen.float()</code></strong></p>
-<p>Generates standard floating-point numbers, but also includes special values crucial for testing numerical robustness:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Can produce: 3.14, -0.0, Infinity, -Infinity, NaN</span>
-<span class="nx">Gen</span><span class="p">.</span><span class="kr">float</span><span class="p">();</span>
+<p>Generates finite IEEE-754 floating-point numbers, including very large values and subnormals. Special values are opt-in through probability configuration:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">Gen</span><span class="p">.</span><span class="kr">float</span><span class="p">();</span><span class="w"> </span><span class="c1">// finite only</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="kr">float</span><span class="p">({</span><span class="w"> </span><span class="nx">nanProb</span><span class="o">:</span><span class="w"> </span><span class="kt">0.05</span><span class="p">,</span><span class="w"> </span><span class="nx">posInfProb</span><span class="o">:</span><span class="w"> </span><span class="kt">0.02</span><span class="p">,</span><span class="w"> </span><span class="nx">negInfProb</span><span class="o">:</span><span class="w"> </span><span class="kt">0.02</span><span class="w"> </span><span class="p">});</span>
 </code></pre></div>
 <p><strong><code>Gen.string()</code></strong></p>
-<p>Generates strings. You can control the character set and length.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Generates ASCII strings of length 5 to 10</span>
-<span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">(</span><span class="mf">5</span><span class="p">,</span><span class="w"> </span><span class="mf">10</span><span class="p">);</span><span class="w"> </span><span class="c1">// Default character set is printable ASCII</span>
-
-<span class="c1">// Generates Unicode strings of exactly length 3</span>
-<span class="nx">Gen</span><span class="p">.</span><span class="nx">unicodeString</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">);</span>
-
-<span class="c1">// Generates printable ASCII strings of length 0 to 5</span>
+<p>Generates strings. You can control the character set and length using either positional arguments or a config object.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Positional form</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">(</span><span class="mf">5</span><span class="p">,</span><span class="w"> </span><span class="mf">10</span><span class="p">);</span><span class="w">            </span><span class="c1">// ASCII strings of length 5–10</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">unicodeString</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">);</span><span class="w">      </span><span class="c1">// Unicode strings of exactly length 3</span>
 <span class="nx">Gen</span><span class="p">.</span><span class="nx">printableAsciiString</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">);</span>
+
+<span class="c1">// Config-object form (all fields optional, defaults: minSize=0, maxSize=20, charGen=ASCII)</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">({});</span><span class="w">                         </span><span class="c1">// 0–20 ASCII chars</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">({</span><span class="w"> </span><span class="nx">minSize</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="p">,</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">8</span><span class="w"> </span><span class="p">});</span><span class="w"> </span><span class="c1">// 2–8 ASCII chars</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">({</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">5</span><span class="p">,</span><span class="w"> </span><span class="nx">charGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.printableAscii</span><span class="w"> </span><span class="p">});</span><span class="w"> </span><span class="c1">// printable ASCII, 0–5 chars</span>
 </code></pre></div>
 <p><strong><code>Gen.array()</code></strong></p>
-<p>Generates arrays where each element is created by the provided element generator.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Generates arrays of 2 to 5 booleans</span>
-<span class="c1">// e.g., [true, false], [false, false, true, true]</span>
+<p>Generates arrays where each element is created by the provided element generator. Both a positional form and a config-object form are supported; the positional form is unchanged for backward compatibility.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Positional form</span>
 <span class="nx">Gen</span><span class="p">.</span><span class="nx">array</span><span class="p">(</span><span class="nx">Gen</span><span class="p">.</span><span class="kt">boolean</span><span class="p">(),</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">);</span>
-
-<span class="c1">// Generates arrays of 0 to 10 strings, each 1-3 chars long</span>
 <span class="nx">Gen</span><span class="p">.</span><span class="nx">array</span><span class="p">(</span><span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">),</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">10</span><span class="p">);</span>
+
+<span class="c1">// Config-object form (minSize defaults to 0, maxSize defaults to 20)</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">array</span><span class="p">({</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.boolean</span><span class="p">()</span><span class="w"> </span><span class="p">});</span><span class="w">                        </span><span class="c1">// 0–20 elements</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">array</span><span class="p">({</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.interval</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">9</span><span class="p">),</span><span class="w"> </span><span class="nx">minSize</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="p">,</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">5</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">array</span><span class="p">({</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">4</span><span class="p">),</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">3</span><span class="w"> </span><span class="p">});</span><span class="w">         </span><span class="c1">// minSize defaults to 0</span>
 </code></pre></div>
-<p><strong><code>Gen.dictionary()</code></strong></p>
-<p>Generates objects (dictionaries) with string keys generated by <code>keyGen</code> and values generated by the provided <code>valueGen</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Generates objects with 1 to 3 key-value pairs,</span>
-<span class="c1">// where keys are 1-char strings (a-z) and values are floats.</span>
-<span class="c1">// e.g., { &quot;a&quot;: 1.2, &quot;b&quot;: -Infinity }, { &quot;z&quot;: 10.0 }</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">keyGen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">1</span><span class="p">).</span><span class="nx">map</span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nb">String</span><span class="p">.</span><span class="nx">fromCharCode</span><span class="p">(</span><span class="mf">97</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">charCodeAt</span><span class="p">(</span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mf">26</span><span class="p">)))</span><span class="w"> </span><span class="c1">// Generate a-z keys</span>
-<span class="nx">Gen</span><span class="p">.</span><span class="nx">dictionary</span><span class="p">(</span><span class="nx">keyGen</span><span class="p">,</span><span class="w"> </span><span class="nx">Gen</span><span class="p">.</span><span class="kr">float</span><span class="p">(),</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">);</span>
+<p><strong><code>Gen.set()</code></strong> and <strong><code>Gen.uniqueArray()</code></strong></p>
+<p>Same dual-form API as <code>Gen.array()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">Gen</span><span class="p">.</span><span class="nx">set</span><span class="p">({</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.interval</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">99</span><span class="p">),</span><span class="w"> </span><span class="nx">minSize</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">5</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">uniqueArray</span><span class="p">({</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.interval</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">99</span><span class="p">),</span><span class="w"> </span><span class="nx">minSize</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="w"> </span><span class="p">});</span><span class="w">  </span><span class="c1">// maxSize defaults to 20</span>
+</code></pre></div>
+<p><strong><code>Gen.dict()</code></strong> (alias: <code>Gen.dictionary()</code>)</p>
+<p>Generates objects (dictionaries) with string keys generated by <code>keyGen</code> and values generated by <code>elemGen</code>. Supports both positional and config-object forms.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Positional form</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">dict</span><span class="p">(</span><span class="nx">Gen</span><span class="p">.</span><span class="kt">string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">2</span><span class="p">),</span><span class="w"> </span><span class="nx">Gen</span><span class="p">.</span><span class="nx">interval</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">),</span><span class="w"> </span><span class="mf">2</span><span class="p">,</span><span class="w"> </span><span class="mf">5</span><span class="p">);</span>
+
+<span class="c1">// Config-object form (minSize defaults to 0, maxSize defaults to 20)</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">dict</span><span class="p">({</span><span class="w"> </span><span class="nx">keyGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">4</span><span class="p">),</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.boolean</span><span class="p">()</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">Gen</span><span class="p">.</span><span class="nx">dict</span><span class="p">({</span><span class="w"> </span><span class="nx">keyGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.string</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="mf">2</span><span class="p">),</span><span class="w"> </span><span class="nx">elemGen</span><span class="o">:</span><span class="w"> </span><span class="kt">Gen.interval</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">99</span><span class="p">),</span><span class="w"> </span><span class="nx">minSize</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span><span class="w"> </span><span class="nx">maxSize</span><span class="o">:</span><span class="w"> </span><span class="kt">5</span><span class="w"> </span><span class="p">});</span>
+
+<span class="c1">// Config interfaces are exported for TypeScript users</span>
+<span class="k">import</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ArrayGenConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">SetGenConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">StringGenConfig</span><span class="p">,</span><span class="w"> </span><span class="nx">DictGenConfig</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;jsproptest&#39;</span><span class="p">;</span>
 </code></pre></div>
 <p><strong><code>Gen.tuple()</code></strong></p>
 <p>Generates fixed-size arrays (tuples) with elements of potentially different types, determined by the sequence of generators provided.</p>
@@ -711,16 +896,33 @@
 <p>Beyond the built-in generators, <code>jsproptest</code> provides <strong>combinators</strong>: functions that transform or combine existing generators to create new, more complex ones. This is how you build generators for your specific data types and constraints.</p>
 <p>These combinators are essential tools for tailoring data generation precisely to your testing needs. For a comprehensive guide on how to use them, see the <a href="../combinators/">Combinators</a> documentation.</p>
 
-  <hr>
-<div class="md-source-file">
-  <small>
+
+
+
+
+
+
+  
     
-      Last update:
-      <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">May 3, 2025</span>
+  
+  
+
+
+  <aside class="md-source-file">
+    
       
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 01:50:33 UTC">July 23, 2026</span>
+  </span>
+
     
-  </small>
-</div>
+    
+    
+    
+  </aside>
 
 
 
@@ -731,11 +933,12 @@
             </div>
           
           
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
           <button type="button" class="md-top md-icon" data-md-component="top" hidden>
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
   Back to top
 </button>
         
@@ -765,10 +968,13 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tracking", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "toc.follow", "navigation.top", "search.highlight", "search.suggest", "navigation.expand"], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.tabs.sticky", "navigation.indexes", "navigation.path", "toc.follow", "navigation.top", "search.highlight", "search.suggest", "navigation.expand"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.aecac24b.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
