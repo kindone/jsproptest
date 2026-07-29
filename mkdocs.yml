@@ -50,7 +50,7 @@ plugins:
   - search
   - git-revision-date-localized
   - kroki:
-      DownloadImages: true
+      http_method: POST
 
 nav:
   - 'Introduction': index.md
