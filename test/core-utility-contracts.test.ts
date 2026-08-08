@@ -4,20 +4,18 @@
  * shrink trees coherently, seeded randomness replays, and Option/Either/Try
  * preserve success/failure branches through map and flatMap.
  *
- * Scope: this file starts the replacement track for `random.test.ts`,
- * `stream.test.ts`, `shrinkable.test.ts`, and the stable Option/Either/Try
- * section of `lib.test.ts`. Exact serialized shrink-tree examples remain in the
- * legacy tests until a later review decides whether they are API promises or
- * implementation-sensitive regressions.
+ * Scope: this file covers public behavior for Random, Stream, Shrinkable,
+ * Option, Either, and Try. Exact serialized shrink-tree composition examples
+ * live in `shrinkable-composition-compatibility.test.ts`.
  *
  * Helpers: stream and shrink helpers observe public iterators and shrink streams
  * only. Seed behavior is tested with generated no-shrink seeds.
  */
 
-import { Gen, Property, Random, Shrinkable, Stream } from '../../src'
-import { None, Some } from '../../src/Option'
-import { Left, Right } from '../../src/Either'
-import { Try } from '../../src/Try'
+import { Gen, Property, Random, Shrinkable, Stream } from '../src'
+import { None, Some } from '../src/Option'
+import { Left, Right } from '../src/Either'
+import { Try } from '../src/Try'
 import { directShrinkValues, seedGen, seededRandom, streamFromValues, streamToValues } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
@@ -26,7 +24,7 @@ const probabilitySmoke = {
     margin: 0.18,
 }
 
-describe('v2 core utility contracts', () => {
+describe('core utility contracts', () => {
     it('Random clone and same-seed construction replay the same generated sequence', () => {
         const property = new Property((seed: number) => {
             const first = seededRandom(seed)
@@ -191,24 +189,44 @@ describe('v2 core utility contracts', () => {
             const some = Some(value)
             const none = None<number>()
 
+            expect(some.isEmpty()).toBe(false)
+            expect(none.isEmpty()).toBe(true)
             expect(some.map(v => v + 1).get()).toBe(value + 1)
             expect(none.map(v => v + 1).isEmpty()).toBe(true)
             expect(some.flatMap(v => Some(v * 2)).get()).toBe(value * 2)
             expect(some.flatMap(_ => None()).isEmpty()).toBe(true)
+            expect(some.filter(v => v === value).isEmpty()).toBe(false)
+            expect(some.filter(v => v !== value).isEmpty()).toBe(true)
+            expect(none.filter(_ => true).isEmpty()).toBe(true)
 
             const right = Right<number, Error>(value)
             const left = Left<Error, number>(new Error('left'))
 
+            expect(right.isRight()).toBe(true)
+            expect(right.isLeft()).toBe(false)
+            expect(left.isLeft()).toBe(true)
+            expect(left.isRight()).toBe(false)
+            expect(right.getRight()).toBe(value)
+            expect(left.getLeft().message).toBe('left')
+            expect(() => right.getLeft()).toThrow()
+            expect(() => left.getRight()).toThrow()
             expect(right.map(v => v + 1).getRight()).toBe(value + 1)
             expect(left.map(v => v + 1).isLeft()).toBe(true)
             expect(right.flatMap(v => Right<number, Error>(v * 2)).getRight()).toBe(value * 2)
             expect(left.flatMap(v => Right<number, Error>(v * 2)).isLeft()).toBe(true)
+            expect(right.filterOrElse(v => v === value, new Error('filtered')).getRight()).toBe(value)
+            expect(right.filterOrElse(v => v !== value, new Error('filtered')).isLeft()).toBe(true)
+            expect(left.filterOrElse(_ => true, new Error('filtered')).isLeft()).toBe(true)
 
             const success = Try(() => value)
             const failure = Try<number>(() => {
                 throw new Error('failure')
             })
 
+            expect(success.isSuccessful()).toBe(true)
+            expect(success.isFailure()).toBe(false)
+            expect(failure.isFailure()).toBe(true)
+            expect(failure.isSuccessful()).toBe(false)
             expect(success.map(v => v + 1).get()).toBe(value + 1)
             expect(failure.map(v => v + 1).isFailure()).toBe(true)
             expect(success.flatMap(v => Try(() => v * 2)).get()).toBe(value * 2)

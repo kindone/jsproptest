@@ -3,15 +3,16 @@
  * Cartesian product, short-circuit on the first failure, and report failing
  * arguments. Matrix tests are for fixed examples, not randomized exploration.
  *
- * Scope: this subsumes the stable public API cases from `property.matrix.test.ts`.
+ * Scope: this file covers Cartesian ordering, single-axis matrices,
+ * short-circuiting, failure messages, and empty matrices.
  *
  * Helpers: all cases are explicit examples because matrix is itself the finite
  * example interface.
  */
 
-import { Property } from '../../src'
+import { Property } from '../src'
 
-describe('v2 property matrix contracts', () => {
+describe('property matrix contracts', () => {
     it('runs every Cartesian-product combination and preserves argument order', () => {
         const seen: [number, string, boolean][] = []
 

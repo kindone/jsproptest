@@ -3,19 +3,19 @@
  * statistics, and reporting should behave as public runner contracts. Reporting
  * state must be scoped to one `forAll` execution.
  *
- * Scope: this promotes the strongest checks from `property.config.test.ts` and
- * `property.classification.test.ts`, while leaving specific failure-message
- * shrink regressions in `property-runner-contracts.test.ts`.
+ * Scope: this file covers setConfig equivalence, lifecycle hooks, output/error
+ * streams, classification summaries, stat assertions, context isolation, and
+ * failure-reporting boundaries.
  *
  * Helpers: local streams collect only public outputStream writes. The tests use
  * public `Property` configuration APIs rather than reading runner internals.
  */
 
-import { Gen, Property, classify, stat, tag } from '../../src'
+import { Gen, Property, classify, stat, tag } from '../src'
 import { capturePropertyOutput, seedGen } from './helpers'
 import { DOMAINS, RUNS, SAMPLES } from './run-config'
 
-describe('v2 property reporting contracts', () => {
+describe('property reporting contracts', () => {
     it('setConfig reproduces generated seed traces and lifecycle hooks run around each successful case', () => {
         const property = new Property((seed: number) => {
             const firstTrace: number[] = []
@@ -83,12 +83,12 @@ describe('v2 property reporting contracts', () => {
         configTrace.length = 0
 
         individualProperty
-            .setSeed('v2-config-equivalence')
+            .setSeed('config-equivalence')
             .setNumRuns(SAMPLES.lifecycleRuns)
             .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
 
         configProperty
-            .setConfig({ seed: 'v2-config-equivalence', numRuns: SAMPLES.lifecycleRuns })
+            .setConfig({ seed: 'config-equivalence', numRuns: SAMPLES.lifecycleRuns })
             .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
 
         expect(configTrace).toEqual(individualTrace)

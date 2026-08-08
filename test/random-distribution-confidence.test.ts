@@ -3,14 +3,14 @@
  * confidence for probability parameters. These are confidence checks, not exact
  * statistical proofs.
  *
- * Scope: this preserves the stronger distribution smoke from `random.test.ts`
- * while keeping exact distribution claims out of core contract tests.
+ * Scope: this file covers probabilistic confidence checks while keeping exact
+ * distribution claims out of core contract tests.
  *
  * Helpers: margins are intentionally loose enough for CI variance and local
  * reduced-budget runs.
  */
 
-import { Random } from '../../src'
+import { Random } from '../src'
 import { SAMPLES } from './run-config'
 
 const distributionProfile = {
@@ -20,7 +20,7 @@ const distributionProfile = {
     uniformSpreadMargin: 0.55,
 }
 
-describe('v2 random distribution confidence', () => {
+describe('random distribution confidence', () => {
     it('nextBoolean tracks requested true probabilities within a loose confidence margin', () => {
         const random = new Random()
 

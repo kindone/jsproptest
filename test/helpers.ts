@@ -1,4 +1,4 @@
-import { Gen, type Generator, Random, Shrinkable, Stream } from '../../src'
+import { Gen, type Generator, Random, Shrinkable, Stream } from '../src'
 import { DOMAINS } from './run-config'
 
 export type GeneratedTrace<T> = {
@@ -61,6 +61,10 @@ export function traverseShrinkTree<T>(root: Shrinkable<T>, visit: (node: Shrinka
     }
 }
 
+export function serializeShrinkable<T>(shrinkable: Shrinkable<T>): string {
+    return JSON.stringify(shrinkableToObject(shrinkable))
+}
+
 export function collectSeededTrace<T>(gen: Generator<T>, seed: number, runs: number): GeneratedTrace<T> {
     const random = seededRandom(seed)
     const values: T[] = []
@@ -115,4 +119,11 @@ function shrinkPrefixValues<T>(root: Shrinkable<T>, limit = 32): T[] {
         queue.push(...directShrinkChildren(current, limit - values.length))
     }
     return values
+}
+
+function shrinkableToObject<T>(shrinkable: Shrinkable<T>): unknown {
+    const result: { value: T; shrinks?: unknown[] } = { value: shrinkable.value }
+    const children = directShrinkChildren(shrinkable, Number.MAX_SAFE_INTEGER)
+    if (children.length > 0) result.shrinks = children.map(child => shrinkableToObject(child))
+    return result
 }

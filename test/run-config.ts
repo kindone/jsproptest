@@ -46,6 +46,10 @@ export const SAMPLES = {
     booleanValues: scaled(400),
     distributionValues: scaledAtLeast(600, 200),
     finiteFloatValues: scaled(1000),
+    finiteFloatFrontierValues: scaledAtLeast(50_000, 5_000),
+    specialFloatValues: scaledAtLeast(2_000, 400),
+    stringCoverageValues: scaledAtLeast(5_000, 500),
+    setShrinkRoots: scaledAtLeast(120, 30),
 }
 
 export const DOMAINS = {
@@ -57,6 +61,8 @@ export const DOMAINS = {
     replayElement: { min: -20, max: 20 },
     uniqueElement: { min: 0, max: 30 },
     wideSigned: { min: -100, max: 100 },
+    asciiCode: { min: 0, max: 127 },
+    unicodeCode: { min: 0, max: 0x10ffff },
     filteredMultiple: { min: -30, max: 30, divisor: 3 },
     noShrinkValue: { min: 5, max: 100 },
     shrinkNegativeWindow: { min: -8, max: -4 },
@@ -65,6 +71,7 @@ export const DOMAINS = {
     weightedChoiceLow: { min: 1, max: 3 },
     weightedChoiceHigh: { min: 6, max: 8 },
     weightedElement: { preferred: 1, alternate: 10 },
+    bigTupleLength: 800,
     reportingMixed: { min: -10, max: 10 },
     reportingSmall: { min: 0, max: 10 },
     reportingFailure: { min: 5, max: 10 },

@@ -3,18 +3,19 @@
  * report useful shrinking behavior. These are named regressions, not general
  * property runner contracts.
  *
- * Scope: this preserves the shrink, nested shrink, and fastcheck-style
- * regression cases from `property.test.ts`.
+ * Scope: this file covers no-useful-shrink failures, multi-argument shrinking,
+ * dependent tuple shrinking, nested property failures, and fastcheck-style
+ * sorted tuple regressions.
  *
  * Helpers: each regression names the bug shape directly and uses bounded domains
  * so failures remain fast and diagnosable.
  */
 
-import { Gen, Property, forAll } from '../../src'
+import { Gen, Property, forAll } from '../src'
 import { expectThrownMessage } from './helpers'
 import { DOMAINS, RUNS } from './run-config'
 
-describe('v2 property shrink regressions', () => {
+describe('property shrink regressions', () => {
     it('reports a generated failure even when no useful shrink exists', () => {
         const property = new Property((count: number, label: string) => count < 10 || label.length > 3)
 

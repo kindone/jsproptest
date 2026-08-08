@@ -2,14 +2,14 @@
  * Contract: config-form dictionary generators should preserve useful shrinking
  * behavior for keys, values, and membership size.
  *
- * Scope: this preserves the dict shrink regressions from `generator.config.test.ts`
- * with clearer names and failure parsing.
+ * Scope: this file covers dictionary key, value, and membership shrink
+ * regressions with named failure parsing.
  *
  * Helpers: these are named regressions because they depend on shrink result
  * reporting, not only value-domain correctness.
  */
 
-import { Gen, Property } from '../../src'
+import { Gen, Property } from '../src'
 import { expectThrownMessage } from './helpers'
 import { RUNS } from './run-config'
 
@@ -18,7 +18,7 @@ function parseFirstObjectCounterexample(message: string): Record<string, number>
     return JSON.parse(match?.[1] ?? '{}') as Record<string, number>
 }
 
-describe('v2 generator config regressions', () => {
+describe('generator config regressions', () => {
     it('dict key shrinking reaches one entry with minimum failing key length', () => {
         const property = new Property((dict: Record<string, number>) =>
             Object.keys(dict).every(key => key.length <= 1)

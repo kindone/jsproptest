@@ -2,15 +2,16 @@
  * Contract: Stream string formatting should remain compatible for simple public
  * constructors and transformations.
  *
- * Scope: this preserves exact `Stream.toString()` examples from `stream.test.ts`.
+ * Scope: this file covers exact `Stream.toString()` output for public
+ * constructors, truncation, filtering, concatenation, taking, and transforms.
  *
  * Helpers: these are compatibility examples, not broad stream algebra checks.
  */
 
-import { Stream } from '../../src'
+import { Stream } from '../src'
 import { streamFromValues } from './helpers'
 
-describe('v2 stream format compatibility', () => {
+describe('stream format compatibility', () => {
     it('formats empty, small, and truncated streams exactly', () => {
         const many = streamFromValues(Array.from({ length: 20 }, (_, index) => index))
 

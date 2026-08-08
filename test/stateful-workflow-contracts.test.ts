@@ -3,18 +3,19 @@
  * against a real object and a simpler model, run lifecycle hooks at the right
  * boundary, shrink failing action traces, and expose reproduction information.
  *
- * Scope: this promotes the strongest model workflow, parameter shrink, prefix
- * shrink, and reproduction-reporting checks from `stateful.test.ts`.
+ * Scope: this file covers successful lifecycle hooks, model comparison,
+ * postcheck failure cleanup behavior, action-parameter shrinking,
+ * prefix-parameter shrinking, and reproduction reporting.
  *
  * Helpers: action factories use public `Action`, `SimpleAction`, and
  * `statefulProperty` APIs. The model is intentionally simpler than the object
  * and assertions observe public error/output behavior.
  */
 
-import { Action, Arbitrary, Gen, Shrinkable, SimpleAction, Stream, simpleStatefulProperty, statefulProperty } from '../../src'
+import { Action, Arbitrary, Gen, Shrinkable, SimpleAction, Stream, simpleStatefulProperty, statefulProperty } from '../src'
 import { DOMAINS, RUNS, SAMPLES, STATEFUL } from './run-config'
 
-describe('v2 stateful workflow contracts', () => {
+describe('stateful workflow contracts', () => {
     it('simple stateful properties run lifecycle hooks once per successful generated sequence', () => {
         type Subject = number[]
         const pushGen = Gen.interval(DOMAINS.noShrinkValue.min - 5, DOMAINS.noShrinkValue.max).map(
@@ -107,6 +108,37 @@ describe('v2 stateful workflow contracts', () => {
                 expect(subject).toEqual(model.values)
             })
             .go()
+    })
+
+    it('postcheck failures run startup but skip cleanup for the failing generated sequence', () => {
+        type Subject = number[]
+        type Model = { values: number[] }
+        const lifecycle: string[] = []
+
+        expect(() =>
+            statefulProperty(
+                Gen.array(
+                    Gen.interval(DOMAINS.mediumNatural.min, DOMAINS.mediumNatural.max),
+                    STATEFUL.modelInitialSize.min,
+                    STATEFUL.modelInitialSize.max
+                ),
+                values => ({ values: [...values] }),
+                Gen.actionOf<Subject, Model>(Gen.just(new Action((_subject, _model) => {}, 'noop')))
+            )
+                .setSeed('stateful-postcheck-cleanup')
+                .setNumRuns(RUNS.tiny)
+                .setMinActions(STATEFUL.singleReplayAction.min)
+                .setMaxActions(STATEFUL.singleReplayAction.max)
+                .setOnStartup(() => lifecycle.push('startup'))
+                .setOnCleanup(() => lifecycle.push('cleanup'))
+                .setPostCheck(() => {
+                    throw new Error('postcheck failure')
+                })
+                .go()
+        ).toThrow('postcheck failure')
+
+        expect(lifecycle.filter(event => event === 'startup').length).toBeGreaterThanOrEqual(1)
+        expect(lifecycle).not.toContain('cleanup')
     })
 
     it('regression replay: stateful shrinking reports the smallest boundary action parameter', () => {

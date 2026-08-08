@@ -1,18 +1,18 @@
 /**
  * Contract: documentation examples should remain executable API promises. These
  * checks are intentionally illustrative; broader behavior belongs in the
- * contract-focused v2 files.
+ * contract-focused files.
  *
- * Scope: this starts the replacement track for `readme.test.ts` without trying
- * to absorb every README snippet into behavioral property tests.
+ * Scope: this file covers curated documentation-style API examples without
+ * trying to absorb every README snippet into behavioral property tests.
  *
  * Helpers: examples use public API entry points only.
  */
 
-import { Gen, Property, forAll } from '../../src'
+import { Gen, Property, forAll } from '../src'
 import { DOMAINS, RUNS, SIZES } from './run-config'
 
-describe('v2 documentation example contracts', () => {
+describe('documentation example contracts', () => {
     it('illustrates a round-trip property with generated query strings', () => {
         const pairGen = Gen.tuple(Gen.asciiString(1, 6), Gen.asciiString(0, 8))
         const queryGen = Gen.array(pairGen, SIZES.docsQueryPairs.min, SIZES.docsQueryPairs.max)

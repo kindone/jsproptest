@@ -3,9 +3,10 @@
  * their declared domains while preserving dependent constraints. Distribution
  * checks are loose smoke contracts, not exact probability proofs.
  *
- * Scope: this file promotes the strongest domain and combinator checks from
- * `generator.test.ts`, `generator.config.test.ts`, and `combinator.test.ts`.
- * Legacy dependent-shrink regressions live in `generator-shrink-reachability`.
+ * Scope: this file covers primitive generators, container configuration forms,
+ * special-value float profiles, string/unicode domains, construction helpers,
+ * recursive/lazy generation, dependent combinators, weighted choices, and
+ * no-shrink generation.
  *
  * Helpers: sampling helpers use the public `Generator.generate` API with fresh
  * randomness for ordinary exploration and generated no-shrink seeds when seed is
@@ -13,7 +14,7 @@
  * public shrink streams, not private generator internals.
  */
 
-import { Gen, type Generator, Property, Random } from '../../src'
+import { Gen, type Generator, Property, Random } from '../src'
 import { collectGeneratedValues, seedGen } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
@@ -113,7 +114,21 @@ class ConstructedRecord {
     constructor(readonly count: number, readonly label: string) {}
 }
 
-describe('v2 generator behavior contracts', () => {
+type LinkedNode = { value: number; next: LinkedNode | null }
+
+function linkedNodeDepth(node: LinkedNode | null): number {
+    let depth = 0
+    let current = node
+    while (current !== null && depth <= SIZES.emptyToMedium.max) {
+        expect(current.value).toBeGreaterThanOrEqual(DOMAINS.smallNatural.min)
+        expect(current.value).toBeLessThanOrEqual(DOMAINS.mediumNatural.max)
+        current = current.next
+        depth++
+    }
+    return depth
+}
+
+describe('generator behavior contracts', () => {
     it('integer, boolean, and finite-float generators stay inside their public domains', () => {
         const integers = collectGeneratedValues(
             Gen.interval(DOMAINS.smallSigned.min, DOMAINS.smallSigned.max),
@@ -131,6 +146,55 @@ describe('v2 generator behavior contracts', () => {
         expect(floats.every(Number.isFinite)).toBe(true)
         expect(floats.some(value => value < 0)).toBe(true)
         expect(floats.some(value => value > 0)).toBe(true)
+    })
+
+    it('finite-float generation explores broad IEEE-754 regions without special values', () => {
+        const values = collectGeneratedValues(Gen.float(), SAMPLES.finiteFloatFrontierValues, DOMAINS.seed.min)
+
+        expect(values.every(Number.isFinite)).toBe(true)
+        expect(values.some(value => value < 0)).toBe(true)
+        expect(values.some(value => value > 0)).toBe(true)
+        expect(values.some(value => Math.abs(value) > Number.MAX_SAFE_INTEGER)).toBe(true)
+        expect(values.some(value => value !== 0 && Math.abs(value) < 2 ** -1022)).toBe(true)
+    })
+
+    it('float special-value configuration preserves probability mass and validation contracts', () => {
+        const property = new Property((seed: number) => {
+            const random = new Random(String(seed))
+
+            const nanValues = collectGeneratedValues(Gen.float({ nanProb: 0.2 }), SAMPLES.specialFloatValues, seed)
+            const nanRatio = nanValues.filter(Number.isNaN).length / nanValues.length
+            expect(nanRatio).toBeGreaterThan(0.1)
+            expect(nanRatio).toBeLessThan(0.3)
+            nanValues.filter(value => !Number.isNaN(value)).forEach(value => expect(Number.isFinite(value)).toBe(true))
+
+            const mixedValues = collectGeneratedValues(
+                Gen.float({ nanProb: 0.1, posInfProb: 0.1, negInfProb: 0.1 }),
+                SAMPLES.specialFloatValues,
+                seed + 1
+            )
+            const specialRatio = mixedValues.filter(value => !Number.isFinite(value)).length / mixedValues.length
+            expect(specialRatio).toBeGreaterThan(0.15)
+            expect(specialRatio).toBeLessThan(0.45)
+            expect(mixedValues).toContain(Number.POSITIVE_INFINITY)
+            expect(mixedValues).toContain(Number.NEGATIVE_INFINITY)
+            expect(mixedValues.some(Number.isNaN)).toBe(true)
+
+            const allNaN = Gen.float({ nanProb: 1.0 })
+            for (let i = 0; i < 20; i++) expect(Number.isNaN(allNaN.generate(random).value)).toBe(true)
+        })
+
+        property.matrix([DOMAINS.seed.min])
+
+        property
+            .setConfig({ numRuns: RUNS.smoke })
+            .forAll(seedGen)
+
+        expect(() => Gen.float({ nanProb: -0.1 })).toThrow()
+        expect(() => Gen.float({ nanProb: 1.1 })).toThrow()
+        expect(() => Gen.float({ nanProb: Number.NaN })).toThrow()
+        expect(() => Gen.float({ posInfProb: 1.5 })).toThrow()
+        expect(() => Gen.float({ nanProb: 0.5, posInfProb: 0.3, negInfProb: 0.3 })).toThrow()
     })
 
     it('container config profiles preserve size and element-domain contracts', () => {
@@ -237,6 +301,73 @@ describe('v2 generator behavior contracts', () => {
         })
 
         property.matrix(containerCompatibilityCases)
+    })
+
+    it('string and unicode generators cover declared length and character domains', () => {
+        const asciiValues = collectGeneratedValues(
+            Gen.string(0, SIZES.emptyToSmall.max),
+            SAMPLES.stringCoverageValues,
+            DOMAINS.seed.min
+        )
+        const asciiLengths = new Set(asciiValues.map(value => value.length))
+        for (let length = 0; length <= SIZES.emptyToSmall.max; length++) expect(asciiLengths.has(length)).toBe(true)
+        asciiValues.forEach(value => {
+            for (const ch of value) {
+                expect(ch.charCodeAt(0)).toBeGreaterThanOrEqual(DOMAINS.asciiCode.min)
+                expect(ch.charCodeAt(0)).toBeLessThanOrEqual(DOMAINS.asciiCode.max)
+            }
+        })
+
+        const unicodeValues = collectGeneratedValues(
+            Gen.unicodeString(0, SIZES.emptyToSmall.max),
+            SAMPLES.stringCoverageValues,
+            DOMAINS.seed.min + 1
+        )
+        const unicodeLengths = new Set(unicodeValues.map(value => value.length))
+        for (let length = 0; length <= SIZES.emptyToSmall.max; length++) expect(unicodeLengths.has(length)).toBe(true)
+        unicodeValues.forEach(value => {
+            for (const ch of value) {
+                expect(ch.codePointAt(0)).toBeGreaterThanOrEqual(DOMAINS.unicodeCode.min)
+                expect(ch.codePointAt(0)).toBeLessThanOrEqual(DOMAINS.unicodeCode.max)
+            }
+        })
+    })
+
+    it('large tuple, lazy, and recursive generators preserve public construction contracts', () => {
+        const tupleValues = collectGeneratedValues(
+            Gen.tuple(
+                ...Array.from(
+                    { length: DOMAINS.bigTupleLength },
+                    () => Gen.interval(DOMAINS.dependentBase.min, DOMAINS.dependentOuter.max)
+                )
+            ),
+            RUNS.smoke
+        )
+        tupleValues.forEach(value => {
+            expect(value.length).toBe(DOMAINS.bigTupleLength)
+            value.forEach(item => assertIntegerInRange(item, DOMAINS.dependentBase.min, DOMAINS.dependentOuter.max))
+        })
+
+        let lazyCallCount = 0
+        const lazyGen = Gen.lazy(() => {
+            lazyCallCount++
+            return { value: lazyCallCount }
+        })
+        expect(lazyCallCount).toBe(0)
+        expect(lazyGen.generate(new Random()).value).toEqual({ value: 1 })
+        expect(lazyGen.generate(new Random()).value).toEqual({ value: 2 })
+
+        const linkedNodeGen: Generator<LinkedNode | null> = Gen.oneOf(
+            Gen.weightedGen(Gen.just(null), 0.8),
+            Gen.weightedGen(
+                Gen.interval(DOMAINS.smallNatural.min, DOMAINS.mediumNatural.max)
+                    .flatMap(value => linkedNodeGen.map(next => ({ value, next }))),
+                0.2
+            )
+        )
+        const depths = collectGeneratedValues(linkedNodeGen, SAMPLES.dependentValues, DOMAINS.seed.min)
+            .map(linkedNodeDepth)
+        expect(depths.some(depth => depth > 0)).toBe(true)
     })
 
     it('dependent combinators preserve generated constraints across chains and accumulated traces', () => {

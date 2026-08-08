@@ -4,20 +4,40 @@
  * a combinator still produces valid values but hides useful shrinks too deep in the
  * tree to find practical counterexamples.
  *
- * Scope: this file starts by migrating the strongest v1 generator topology tests:
- * dependent `chain` U-axis shrinking and `accumulate` element-axis shrinking. The
- * original v1 tests remain in place until this v2 portfolio subsumes their coverage.
+ * Scope: this file covers interval shrink validity, dependent `chain`
+ * inner-axis shrinking, `accumulate` element-axis shrinking, bounded set-subset
+ * enumeration, and noShrink/flatMap topology.
  *
  * Helpers: these checks inspect only direct child values from public Shrinkable
  * streams. They intentionally use fresh randomness; exact examples should be
  * covered separately through example or matrix tests.
  */
 
-import { Gen, Property, Random } from '../../src'
+import { Gen, Property, Random } from '../src'
 import { directShrinkValues, seedGen, seededRandom, traverseShrinkTree } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
-describe('v2 generator shrink reachability', () => {
+function combination(n: number, r: number): number {
+    let result = 1
+    for (let i = 1; i <= r; i++) {
+        result *= n--
+        result /= i
+    }
+    return result
+}
+
+function sumCombinations(n: number, maxR: number): number {
+    if (maxR < 0) return 0
+    let result = 0
+    for (let r = 0; r <= maxR; r++) result += combination(n, r)
+    return result
+}
+
+function setKey(value: Set<number>): string {
+    return JSON.stringify([...value].sort((a, b) => a - b))
+}
+
+describe('generator shrink reachability', () => {
     it('interval shrink trees preserve the generated integer domain without duplicate nodes per tree', () => {
         const min = DOMAINS.shrinkNegativeWindow.min
         const max = DOMAINS.shrinkNegativeWindow.max
@@ -93,5 +113,53 @@ describe('v2 generator shrink reachability', () => {
 
         expect(checkedEligibleRoot).toBe(true)
         expect(foundElementAxisAtNonMinimumLength).toBe(true)
+    })
+
+    it('set shrink trees enumerate valid unique subset candidates for bounded roots', () => {
+        const minMaxSizeGen = Gen.interval(0, SIZES.emptyToSmall.max)
+            .chain(minSize => Gen.interval(minSize, SIZES.emptyToSmall.max))
+
+        const property = new Property(([minSize, maxSize]: [number, number]) => {
+            const random = new Random()
+            const generator = Gen.set(Gen.interval(DOMAINS.smallNatural.min, DOMAINS.smallNatural.max), minSize, maxSize)
+
+            for (let rootIndex = 0; rootIndex < 3; rootIndex++) {
+                const root = generator.generate(random)
+                const seen = new Set<string>()
+
+                traverseShrinkTree(root, shrinkable => {
+                    expect(shrinkable.value.size).toBeGreaterThanOrEqual(minSize)
+                    expect(shrinkable.value.size).toBeLessThanOrEqual(maxSize)
+                    Array.from(shrinkable.value).forEach(value => {
+                        expect(value).toBeGreaterThanOrEqual(DOMAINS.smallNatural.min)
+                        expect(value).toBeLessThanOrEqual(DOMAINS.smallNatural.max)
+                    })
+                    const key = setKey(shrinkable.value)
+                    expect(seen.has(key)).toBe(false)
+                    seen.add(key)
+                })
+
+                const rootSize = root.value.size
+                expect(seen.size).toBe(2 ** rootSize - sumCombinations(rootSize, minSize - 1))
+            }
+        })
+
+        property.matrix([[0, 0], [0, 3], [2, 4]])
+
+        property
+            .setConfig({ numRuns: RUNS.smoke })
+            .forAll(minMaxSizeGen)
+    })
+
+    it('noShrink composed through flatMap keeps outer values fixed while inner shrinks remain reachable', () => {
+        const random = new Random()
+        const generator = Gen.noShrink(Gen.interval(2, 5)).flatMap(outer => Gen.interval(0, outer))
+
+        for (let i = 0; i < SAMPLES.setShrinkRoots; i++) {
+            const root = generator.generate(random)
+            directShrinkValues(root).forEach(child => {
+                expect(child).toBeLessThanOrEqual(root.value)
+            })
+        }
     })
 })

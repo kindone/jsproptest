@@ -3,16 +3,17 @@
  * boolean-returning predicates and assertion/void callbacks. These are
  * illustrative API witnesses, not broad runner stress tests.
  *
- * Scope: this subsumes the basic return/void examples from `property.test.ts`.
+ * Scope: this file covers the basic return-value and assertion-only callback
+ * forms for `Property.example()` and generated `forAll()` execution.
  *
  * Helpers: examples are deterministic and generated runs use tiny explicit
  * domains so the API behavior is easy to read.
  */
 
-import { Gen, Property } from '../../src'
+import { Gen, Property } from '../src'
 import { RUNS } from './run-config'
 
-describe('v2 property API illustrations', () => {
+describe('property API illustrations', () => {
     it('example and forAll execute boolean-returning property callbacks', () => {
         const seen: Array<[number, number]> = []
         const property = new Property((left: number, right: number) => {

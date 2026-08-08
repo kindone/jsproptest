@@ -1,19 +1,20 @@
 /**
- * Contract: v2 property runner tests should assert reusable behavior, not only
+ * Contract: property runner tests should assert reusable behavior, not only
  * that examples run. A passing test must say something concrete about generation,
  * shrinking, replay, reporting, or statistical classification.
  *
- * Scope: this file covers cross-cutting runner/generator laws that subsume weaker
- * seed, shrink, and frontier-profile smoke tests from the v1 suite. Seed replay
- * checks generate no-shrink seeds as part of the property domain instead of
- * pinning named seed constants.
+ * Scope: this file covers cross-cutting runner/generator laws for seed replay,
+ * shrink-domain preservation, failure reporting, time budgets, option
+ * validation, and frontier-profile execution. Seed replay checks generate
+ * no-shrink seeds as part of the property domain instead of pinning named seed
+ * constants.
  *
  * Helpers: local helpers intentionally capture observable traces and bounded shrink
  * tree prefixes. They avoid inspecting private runner state, so the tests remain
  * black-box checks over the public API surface.
  */
 
-import { Arbitrary, Gen, Property, Random, Shrinkable, stat, Stream } from '../../src'
+import { Arbitrary, Gen, Property, Random, Shrinkable, stat, Stream } from '../src'
 import {
     collectSeededTrace,
     expectShrinkTreeValues,
@@ -23,7 +24,7 @@ import {
 } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES, TIME_BUDGETS } from './run-config'
 
-describe('v2 property runner contracts', () => {
+describe('property runner contracts', () => {
     it('same generated seed reproduces generated values and shrink-tree prefixes', () => {
         const gen = Gen.array({
             elemGen: Gen.interval(DOMAINS.replayElement.min, DOMAINS.replayElement.max).chain(n =>
