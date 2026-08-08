@@ -21,6 +21,11 @@ import { Try } from '../../src/Try'
 import { directShrinkValues, seedGen, seededRandom, streamFromValues, streamToValues } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
+const probabilitySmoke = {
+    cases: [0.1, 0.5, 0.9],
+    margin: 0.18,
+}
+
 describe('v2 core utility contracts', () => {
     it('Random clone and same-seed construction replay the same generated sequence', () => {
         const property = new Property((seed: number) => {
@@ -66,6 +71,34 @@ describe('v2 core utility contracts', () => {
             .forAll(boundsGen)
     })
 
+    it('Random boundary-probability APIs stay near their requested ratios', () => {
+        const property = new Property((probability: number) => {
+            const random = new Random()
+            const longBounds = new Set(Random.LONG_BOUNDS)
+            const intBounds = new Set(Random.INT_BOUNDS)
+
+            const booleanRatio = Array.from(
+                { length: SAMPLES.distributionValues },
+                () => random.nextBoolean(probability)
+            ).filter(Boolean).length / SAMPLES.distributionValues
+            expect(Math.abs(booleanRatio - probability)).toBeLessThan(probabilitySmoke.margin)
+
+            const longRatio = Array.from(
+                { length: SAMPLES.distributionValues },
+                () => random.nextLong(probability)
+            ).filter(value => longBounds.has(value)).length / SAMPLES.distributionValues
+            expect(Math.abs(longRatio - probability)).toBeLessThan(probabilitySmoke.margin)
+
+            const intRatio = Array.from(
+                { length: SAMPLES.distributionValues },
+                () => random.nextInt(probability)
+            ).filter(value => intBounds.has(value)).length / SAMPLES.distributionValues
+            expect(Math.abs(intRatio - probability)).toBeLessThan(probabilitySmoke.margin)
+        })
+
+        property.matrix(probabilitySmoke.cases)
+    })
+
     it('Stream preserves ordered sequence semantics for concat, filter, take, and transform', () => {
         const property = new Property((values: number[]) => {
             const stream = streamFromValues(values)
@@ -93,6 +126,19 @@ describe('v2 core utility contracts', () => {
             )
     })
 
+    it('Stream string representations remain stable for simple public constructors and limits', () => {
+        const many = streamFromValues(Array.from({ length: 20 }, (_, index) => index))
+        const transformed = streamFromValues(Array.from({ length: 5 }, (_, index) => index)).transform(value => value * 2)
+
+        expect(Stream.empty<number>().toString()).toBe('Stream()')
+        expect(Stream.one(1).toString()).toBe('Stream(1)')
+        expect(Stream.two(1, 2).toString()).toBe('Stream(1, 2)')
+        expect(Stream.three(1, 2, 3).toString()).toBe('Stream(1, 2, 3)')
+        expect(many.toString(10)).toBe('Stream(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...)')
+        expect(many.take(5).toString()).toBe('Stream(0, 1, 2, 3, 4)')
+        expect(transformed.toString()).toBe('Stream(0, 2, 4, 6, 8)')
+    })
+
     it('Shrinkable map, filter, and flatMap transform direct shrink candidates coherently', () => {
         const property = new Property((root: number) => {
             const shrinkable = new Shrinkable(root, () =>
@@ -114,6 +160,30 @@ describe('v2 core utility contracts', () => {
         property
             .setConfig({ numRuns: RUNS.contract })
             .forAll(Gen.interval(DOMAINS.wideSigned.min, DOMAINS.wideSigned.max))
+    })
+
+    it('Shrinkable child lookup and path retrieval expose public shrink navigation', () => {
+        const shrinkable = new Shrinkable(4, () =>
+            Stream.three(
+                new Shrinkable(0),
+                new Shrinkable(2, () => Stream.one(new Shrinkable(1))),
+                new Shrinkable(3)
+            )
+        )
+
+        expect(directShrinkValues(shrinkable)).toEqual([0, 2, 3])
+        expect(shrinkable.getNthChild(0).value).toBe(0)
+        expect(shrinkable.getNthChild(1).value).toBe(2)
+        expect(shrinkable.getNthChild(2).value).toBe(3)
+        expect(() => shrinkable.getNthChild(-1)).toThrow()
+        expect(() => shrinkable.getNthChild(3)).toThrow()
+
+        expect(shrinkable.retrieve([])).toBe(shrinkable)
+        expect(shrinkable.retrieve([1]).value).toBe(2)
+        expect(shrinkable.retrieve([1, 0]).value).toBe(1)
+        expect(() => shrinkable.retrieve([-1])).toThrow()
+        expect(() => shrinkable.retrieve([1, 1])).toThrow()
+        expect(() => shrinkable.filter(value => value > 10)).toThrow()
     })
 
     it('Option, Either, and Try preserve branch semantics through map and flatMap', () => {

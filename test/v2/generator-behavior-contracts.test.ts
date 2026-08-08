@@ -13,7 +13,7 @@
  * public shrink streams, not private generator internals.
  */
 
-import { Gen, Property, Random } from '../../src'
+import { Gen, type Generator, Property, Random } from '../../src'
 import { collectGeneratedValues, seedGen } from './helpers'
 import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
@@ -29,6 +29,14 @@ type ContainerProfile =
     | { kind: 'string'; minSize: number; maxSize: number }
     | { kind: 'dict'; minSize: number; maxSize: number }
     | { kind: 'uniqueArray'; minSize: number; maxSize: number }
+
+type ContainerCompatibilityCase = {
+    name: string
+    gen: Generator<unknown>
+    minSize: number
+    maxSize: number
+    assertValue?: (value: unknown) => void
+}
 
 const containerProfileGen = Gen.elementOf<ContainerProfile>(
     { kind: 'array', minSize: SIZES.emptyToSmall.min, maxSize: SIZES.emptyToSmall.max },
@@ -47,6 +55,63 @@ const containerProfiles: ContainerProfile[] = [
     { kind: 'dict', minSize: 1, maxSize: 4 },
     { kind: 'uniqueArray', minSize: SIZES.nonEmptySmallTrace.min, maxSize: SIZES.nonEmptySmallTrace.max },
 ]
+
+const containerCompatibilityCases: ContainerCompatibilityCase[] = [
+    { name: 'array max-only config', gen: Gen.array({ elemGen: Gen.interval(0, 9), maxSize: 4 }), minSize: 0, maxSize: 4 },
+    { name: 'array min-only config', gen: Gen.array({ elemGen: Gen.interval(0, 9), minSize: 3 }), minSize: 3, maxSize: 20 },
+    { name: 'array default-size config', gen: Gen.array({ elemGen: Gen.boolean() }), minSize: 0, maxSize: 20 },
+    { name: 'array positional form', gen: Gen.array(Gen.interval(0, 9), 1, 6), minSize: 1, maxSize: 6 },
+    { name: 'set max-only config', gen: Gen.set({ elemGen: Gen.interval(0, 99), maxSize: 3 }), minSize: 0, maxSize: 3 },
+    { name: 'set positional form', gen: Gen.set(Gen.interval(0, 99), 0, 5), minSize: 0, maxSize: 5 },
+    { name: 'string default-size config', gen: Gen.string({}), minSize: 0, maxSize: 20 },
+    {
+        name: 'string custom-char config',
+        gen: Gen.string({ minSize: 1, maxSize: 5, charGen: Gen.printableAscii }),
+        minSize: 1,
+        maxSize: 5,
+        assertValue: value => {
+            for (const ch of value as string) {
+                expect(ch.charCodeAt(0)).toBeGreaterThanOrEqual(0x20)
+                expect(ch.charCodeAt(0)).toBeLessThanOrEqual(0x7f)
+            }
+        },
+    },
+    { name: 'string positional form', gen: Gen.string(0, 8), minSize: 0, maxSize: 8 },
+    {
+        name: 'dict default-size config',
+        gen: Gen.dict({ keyGen: Gen.asciiString(1, 4), elemGen: Gen.boolean() }),
+        minSize: 0,
+        maxSize: 20,
+    },
+    {
+        name: 'dict max-only config',
+        gen: Gen.dict({ keyGen: Gen.asciiString(1, 4), elemGen: Gen.interval(0, 9), maxSize: 3 }),
+        minSize: 0,
+        maxSize: 3,
+    },
+    { name: 'dict positional form', gen: Gen.dict(Gen.asciiString(1, 4), Gen.interval(0, 99), 0, 6), minSize: 0, maxSize: 6 },
+    {
+        name: 'uniqueArray positional form',
+        gen: Gen.uniqueArray(Gen.interval(0, 99), 1, 8),
+        minSize: 1,
+        maxSize: 8,
+        assertValue: value => {
+            const values = value as number[]
+            expect(values.length).toBe(new Set(values).size)
+            expect(values).toEqual([...values].sort((a, b) => a - b))
+        },
+    },
+]
+
+function containerSize(value: unknown): number {
+    if (Array.isArray(value) || typeof value === 'string') return value.length
+    if (value instanceof Set) return value.size
+    return Object.keys(value as Record<string, unknown>).length
+}
+
+class ConstructedRecord {
+    constructor(readonly count: number, readonly label: string) {}
+}
 
 describe('v2 generator behavior contracts', () => {
     it('integer, boolean, and finite-float generators stay inside their public domains', () => {
@@ -160,6 +225,20 @@ describe('v2 generator behavior contracts', () => {
             .forAll(containerProfileGen)
     })
 
+    it('container config defaults and positional forms preserve public size contracts', () => {
+        const property = new Property((testCase: ContainerCompatibilityCase) => {
+            const values = collectGeneratedValues(testCase.gen, SAMPLES.containerValues)
+
+            values.forEach(value => {
+                expect(containerSize(value)).toBeGreaterThanOrEqual(testCase.minSize)
+                expect(containerSize(value)).toBeLessThanOrEqual(testCase.maxSize)
+                testCase.assertValue?.(value)
+            })
+        })
+
+        property.matrix(containerCompatibilityCases)
+    })
+
     it('dependent combinators preserve generated constraints across chains and accumulated traces', () => {
         const chained = Gen.interval(DOMAINS.dependentOuter.min, DOMAINS.dependentOuter.max)
             .chain(n => Gen.interval(DOMAINS.dependentBase.min, n))
@@ -191,6 +270,40 @@ describe('v2 generator behavior contracts', () => {
             values.forEach((value, index) => {
                 if (index > 0) expect(value).toBeGreaterThanOrEqual(values[index - 1])
             })
+        })
+    })
+
+    it('construct and tuple-chain combinators preserve constructor and dependency contracts', () => {
+        const constructed = collectGeneratedValues(
+            Gen.construct(
+                ConstructedRecord,
+                Gen.interval(DOMAINS.weightedChoiceLow.min, DOMAINS.weightedChoiceLow.max),
+                Gen.elementOf('record', 'fixture')
+            ),
+            SAMPLES.containerValues
+        )
+
+        constructed.forEach(value => {
+            expect(value).toBeInstanceOf(ConstructedRecord)
+            assertIntegerInRange(value.count, DOMAINS.weightedChoiceLow.min, DOMAINS.weightedChoiceLow.max)
+            expect(['record', 'fixture']).toContain(value.label)
+        })
+
+        const pairGen = Gen.interval(DOMAINS.dependentOuter.min, DOMAINS.dependentOuter.max)
+            .chain(value => Gen.interval(DOMAINS.dependentBase.min, value)) as Generator<[number, number]>
+        const chainedTuple = Gen.chainTuple(
+            pairGen,
+            ([_outer, inner]: [number, number]) => Gen.interval(DOMAINS.dependentBase.min, inner)
+        )
+            .chainAsTuple(([_outer, _inner, third]: [number, number, number]) =>
+                Gen.interval(DOMAINS.dependentBase.min, third)
+            ) as Generator<[number, number, number, number]>
+
+        collectGeneratedValues(chainedTuple, SAMPLES.dependentValues).forEach(([outer, inner, third, fourth]) => {
+            assertIntegerInRange(outer, DOMAINS.dependentOuter.min, DOMAINS.dependentOuter.max)
+            assertIntegerInRange(inner, DOMAINS.dependentBase.min, outer)
+            assertIntegerInRange(third, DOMAINS.dependentBase.min, inner)
+            assertIntegerInRange(fourth, DOMAINS.dependentBase.min, third)
         })
     })
 

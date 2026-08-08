@@ -64,6 +64,79 @@ describe('v2 property reporting contracts', () => {
             .forAll(seedGen)
     })
 
+    it('setConfig matches individual setters and leaves unspecified options unchanged', () => {
+        const individualTrace: number[] = []
+        const configTrace: number[] = []
+
+        const individualProperty = new Property((value: number) => {
+            individualTrace.push(value)
+            return true
+        })
+        const configProperty = new Property((value: number) => {
+            configTrace.push(value)
+            return true
+        })
+
+        expect(individualProperty.example(DOMAINS.reportingSmall.min)).toBe(true)
+        expect(configProperty.example(DOMAINS.reportingSmall.min)).toBe(true)
+        individualTrace.length = 0
+        configTrace.length = 0
+
+        individualProperty
+            .setSeed('v2-config-equivalence')
+            .setNumRuns(SAMPLES.lifecycleRuns)
+            .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
+
+        configProperty
+            .setConfig({ seed: 'v2-config-equivalence', numRuns: SAMPLES.lifecycleRuns })
+            .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
+
+        expect(configTrace).toEqual(individualTrace)
+
+        let partialConfigRuns = 0
+        const partialConfigProperty = new Property((_value: number) => {
+            partialConfigRuns++
+            return true
+        })
+
+        expect(partialConfigProperty.example(DOMAINS.reportingSmall.min)).toBe(true)
+        partialConfigRuns = 0
+
+        partialConfigProperty
+            .setConfig({ numRuns: SAMPLES.lifecycleRuns })
+            .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
+
+        expect(partialConfigRuns).toBe(SAMPLES.lifecycleRuns)
+    })
+
+    it('setConfig accepts output, error, and shrink retry options without changing successful execution', () => {
+        const output = capturePropertyOutput()
+        const error = capturePropertyOutput()
+        let runs = 0
+
+        const property = new Property((value: number) => {
+            runs++
+            return value >= DOMAINS.reportingSmall.min
+        })
+
+        expect(property.example(DOMAINS.reportingSmall.min)).toBe(true)
+        runs = 0
+
+        expect(() => {
+            property
+                .setConfig({
+                    numRuns: SAMPLES.lifecycleRuns,
+                    outputStream: output,
+                    errorStream: error,
+                    shrinkMaxRetries: 2,
+                })
+                .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
+        }).not.toThrow()
+
+        expect(runs).toBe(SAMPLES.lifecycleRuns)
+        expect(error.text()).toBe('')
+    })
+
     it('tag, classify, and stat summaries describe successful runs only', () => {
         const output = capturePropertyOutput()
 
@@ -92,6 +165,23 @@ describe('v2 property reporting contracts', () => {
         expect(summary).toContain('positive:')
     })
 
+    it('classification helpers are safe outside active runs and without output streams', () => {
+        expect(() => {
+            tag('outside-run', 'value')
+            classify(true, 'outside-run', 'classified')
+            stat('outside-run', true)
+        }).not.toThrow()
+
+        expect(() => {
+            new Property((value: number) => {
+                tag('without-output', value)
+                return true
+            })
+                .setConfig({ numRuns: RUNS.smoke })
+                .forAll(Gen.interval(DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max))
+        }).not.toThrow()
+    })
+
     it('stat assertion failures report every failed assertion and still write the summary', () => {
         const output = capturePropertyOutput()
         const property = new Property((value: number) => {
@@ -117,6 +207,42 @@ describe('v2 property reporting contracts', () => {
 
         expect(output.text()).toContain('big:')
         expect(output.text()).toContain('huge:')
+    })
+
+    it('stat assertion variants pass and fail at their public boundaries', () => {
+        const property = new Property((value: number) => {
+            stat('positive', value > 0)
+            return true
+        })
+
+        property.matrix([DOMAINS.reportingSmall.min, DOMAINS.reportingSmall.max])
+
+        expect(() => {
+            property
+                .setConfig({ numRuns: RUNS.coreSeedReplay })
+                .assertStatLe('positive', 0.1)
+                .forAll(Gen.interval(DOMAINS.reportingMixed.min, -1))
+        }).not.toThrow()
+
+        expect(() => {
+            new Property((value: number) => {
+                stat('positive', value > 0)
+                return true
+            })
+                .setConfig({ numRuns: RUNS.coreSeedReplay })
+                .assertStatLe('positive', 0.5)
+                .forAll(Gen.interval(1, DOMAINS.reportingSmall.max))
+        }).toThrow(/assertStatLe/)
+
+        expect(() => {
+            new Property((value: number) => {
+                stat('positive', value > 0)
+                return true
+            })
+                .setConfig({ numRuns: RUNS.coreSeedReplay })
+                .assertStatInRange('positive', 0.1, 0.5)
+                .forAll(Gen.interval(1, DOMAINS.reportingSmall.max))
+        }).toThrow(/assertStatInRange/)
     })
 
     it('classification contexts do not leak between separate forAll executions', () => {

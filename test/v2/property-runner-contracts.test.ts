@@ -21,7 +21,7 @@ import {
     distinctSeedPairGen,
     seedGen,
 } from './helpers'
-import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
+import { DOMAINS, RUNS, SAMPLES, SIZES, TIME_BUDGETS } from './run-config'
 
 describe('v2 property runner contracts', () => {
     it('same generated seed reproduces generated values and shrink-tree prefixes', () => {
@@ -106,6 +106,59 @@ describe('v2 property runner contracts', () => {
 
         expect(message).toContain('simplest args found by shrinking')
         expect(message).toContain('[5]')
+    })
+
+    it('time budgets stop before starting or before the configured run count is exhausted', () => {
+        let exhaustedRuns = 0
+        const exhaustedProperty = new Property((value: number) => {
+            exhaustedRuns++
+            expect(value).toBe(1)
+        })
+
+        expect(exhaustedProperty.example(1)).toBe(true)
+        exhaustedRuns = 0
+
+        expect(
+            exhaustedProperty
+                .setConfig({ numRuns: RUNS.contract, maxDurationMs: TIME_BUDGETS.exhaustedMs })
+                .forAll(Gen.just(1))
+        ).toBe(true)
+        expect(exhaustedRuns).toBe(0)
+
+        let boundedRuns = 0
+        const boundedProperty = new Property((value: number) => {
+            boundedRuns++
+            expect(value).toBe(1)
+            const startedAt = Date.now()
+            while (Date.now() - startedAt < TIME_BUDGETS.busyWaitPerRunMs) {
+                // Consume wall-clock time so the runner can observe the budget.
+            }
+        })
+
+        expect(boundedProperty.example(1)).toBe(true)
+        boundedRuns = 0
+
+        expect(
+            boundedProperty
+                .setConfig({ numRuns: RUNS.contract, maxDurationMs: TIME_BUDGETS.shortMs })
+                .forAll(Gen.just(1))
+        ).toBe(true)
+        expect(boundedRuns).toBeGreaterThan(0)
+        expect(boundedRuns).toBeLessThan(RUNS.contract)
+    })
+
+    it('runner option validators reject invalid time, retry, and stream settings', () => {
+        const property = new Property((_value: number) => true)
+        expect(property.example(1)).toBe(true)
+
+        expect(() => property.setMaxDurationMs(-1)).toThrow(/finite non-negative/)
+        expect(() => property.setMaxDurationMs(Number.NaN)).toThrow(/finite non-negative/)
+        expect(() => property.setShrinkMaxRetries(-1)).toThrow(/non-negative integer/)
+        expect(() => property.setShrinkMaxRetries(1.5)).toThrow(/non-negative integer/)
+        expect(() => property.setShrinkTimeoutMs(-1)).toThrow(/finite non-negative/)
+        expect(() => property.setShrinkRetryTimeoutMs(Number.NaN)).toThrow(/finite non-negative/)
+        expect(() => property.setOutputStream({} as { write(message: string): void })).toThrow(/write/)
+        expect(() => property.setErrorStream({} as { write(message: string): void })).toThrow(/write/)
     })
 
     type Profile = {

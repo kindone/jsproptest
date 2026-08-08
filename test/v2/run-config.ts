@@ -3,16 +3,11 @@
  *
  * `JSPROPTEST_TEST_MULTIPLIER` scales exploration budgets only. It must not
  * change semantic contract boundaries such as threshold values or named
- * regression replay seeds. `JSPROPTEST_V2_MULTIPLIER` is accepted as a
- * temporary compatibility alias while the portfolio migration is in flight.
+ * regression replay seeds.
  */
 
 function readMultiplier(): number {
-    const raw = Number(
-        process.env.JSPROPTEST_TEST_MULTIPLIER ??
-        process.env.JSPROPTEST_V2_MULTIPLIER ??
-        '1',
-    )
+    const raw = Number(process.env.JSPROPTEST_TEST_MULTIPLIER ?? '1')
     return Number.isFinite(raw) && raw > 0 ? raw : 1
 }
 
@@ -33,6 +28,7 @@ export const RUNS = {
     coreSeedReplay: scaled(50),
     contract: scaled(80),
     shrinkDomain: scaled(100),
+    regressionReplay: scaledAtLeast(1000, 100),
     statefulModel: scaled(20),
     statefulBoundaryReplay: scaled(100),
     statefulPrefixReplay: scaled(300),
@@ -83,6 +79,12 @@ export const SIZES = {
     nonEmptySmallTrace: { min: 1, max: 6 },
     filteredContainer: { min: 2, max: 8 },
     docsQueryPairs: { min: 0, max: 6 },
+}
+
+export const TIME_BUDGETS = {
+    exhaustedMs: 0,
+    shortMs: 20,
+    busyWaitPerRunMs: 5,
 }
 
 export const STATEFUL = {

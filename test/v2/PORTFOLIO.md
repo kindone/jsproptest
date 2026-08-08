@@ -28,31 +28,36 @@ Out of scope for the fast portfolio refresh:
 
 | Legacy file | Primary category | Stability | v2 target | Status |
 |---|---|---|---|---|
-| `generator.test.ts` | generator domains, combinators, shrink regressions | mixed: contract + regression + topology | `generator-behavior-contracts.test.ts`, `generator-shrink-reachability.test.ts` | partial |
-| `generator.config.test.ts` | config-object overloads and dict shrink regressions | contract + regression | `generator-behavior-contracts.test.ts`, `generator-shrink-reachability.test.ts` | partial |
-| `combinator.test.ts` | oneOf/elementOf/construct/chain tuple examples | contract + distribution smoke | `generator-behavior-contracts.test.ts` | partial |
-| `property.test.ts` | property execution, shrinking, nested failures, time budgets | mixed: contract + regression | `property-runner-contracts.test.ts`, `property-reporting-contracts.test.ts` | partial |
-| `property.config.test.ts` | batch config and lifecycle hooks | contract | `property-reporting-contracts.test.ts` | partial |
-| `property.classification.test.ts` | tag/classify/stat and stat assertions | contract | `property-reporting-contracts.test.ts` | partial |
-| `property.matrix.test.ts` | finite matrix execution | contract | `property-matrix-contracts.test.ts` | partial |
+| `generator.test.ts` | generator domains, combinators, shrink regressions | mixed: contract + regression + topology | `generator-behavior-contracts.test.ts`, `generator-shrink-reachability.test.ts` | partial; many public contracts promoted, exact generator regressions remain mixed |
+| `generator.config.test.ts` | config-object overloads and dict shrink regressions | contract + regression | `generator-behavior-contracts.test.ts`, `generator-config-regressions.test.ts` | retired |
+| `combinator.test.ts` | oneOf/elementOf/construct/chain tuple examples | contract + distribution smoke | `generator-behavior-contracts.test.ts` | retired |
+| `property.test.ts` | property execution, shrinking, nested failures, time budgets | mixed: contract + regression | `property-runner-contracts.test.ts`, `property-api-illustrations.test.ts`, `property-shrink-regressions.test.ts` | retired |
+| `property.config.test.ts` | batch config and lifecycle hooks | contract | `property-reporting-contracts.test.ts` | retired |
+| `property.classification.test.ts` | tag/classify/stat and stat assertions | contract | `property-reporting-contracts.test.ts` | retired |
+| `property.matrix.test.ts` | finite matrix execution | contract | `property-matrix-contracts.test.ts` | retired |
 | `stateful.test.ts` | stateful model execution and shrinking | contract + regression | `stateful-workflow-contracts.test.ts` | partial |
-| `shrinkable.test.ts` | shrinkable stream composition | contract + implementation-sensitive | `core-utility-contracts.test.ts` | partial; exact tree strings remain legacy |
-| `random.test.ts` | RNG behavior and cloning | contract | `core-utility-contracts.test.ts` | partial |
-| `stream.test.ts` | lazy stream operations | contract | `core-utility-contracts.test.ts` | partial |
+| `shrinkable.test.ts` | shrinkable stream composition | contract + implementation-sensitive | `core-utility-contracts.test.ts` | partial; public navigation promoted, exact tree strings remain ambiguous |
+| `random.test.ts` | RNG behavior and cloning | contract + confidence | `core-utility-contracts.test.ts`, `random-distribution-confidence.test.ts` | retired |
+| `stream.test.ts` | lazy stream operations | contract + compatibility | `core-utility-contracts.test.ts`, `stream-format-compatibility.test.ts` | retired |
 | `lib.test.ts` | Option/Either/Try and local test harness checks | mixed | `core-utility-contracts.test.ts` | partial; Jest/Error harness checks stay legacy |
 | `readme.test.ts` | README example drift | docs/API promise | `documentation-example-contracts.test.ts` | partial; keep docs drift layer |
-| `primitive.test.ts` | old primitive smoke | weak implementation-level smoke | `generator-shrink-reachability.test.ts` | marked subsumed; user-review deletion candidate |
+| `primitive.test.ts` | old primitive smoke | weak implementation-level smoke | `generator-shrink-reachability.test.ts` | retired |
 
 ## Replacement Track
 
 | v2 file | Contract boundary | Legacy coverage it starts to subsume |
 |---|---|---|
-| `generator-behavior-contracts.test.ts` | public generator and combinator domain behavior | primitive/container/combinator examples from `generator.test.ts`, `generator.config.test.ts`, `combinator.test.ts` |
+| `generator-behavior-contracts.test.ts` | public generator and combinator domain behavior | primitive/container/config/combinator examples from `generator.test.ts`, `generator.config.test.ts`, `combinator.test.ts` |
+| `generator-config-regressions.test.ts` | config-form dictionary shrink regressions | dict key/value/membership shrink cases from `generator.config.test.ts` |
 | `generator-shrink-reachability.test.ts` | direct shrink-axis reachability for dependent generators | chain/accumulate topology regressions from `generator.test.ts` |
-| `property-runner-contracts.test.ts` | replay, shrink reporting, shrink-domain preservation, frontier profile execution | seed/shrink/frontier pieces from `property.test.ts` and generator regressions |
-| `property-reporting-contracts.test.ts` | batch config, lifecycle hooks, summaries, stat assertions, context isolation | `property.config.test.ts`, `property.classification.test.ts` |
+| `property-runner-contracts.test.ts` | replay, shrink reporting, shrink-domain preservation, time budgets, option validation, frontier profile execution | seed/shrink/time-budget/frontier pieces from `property.test.ts` and generator regressions |
+| `property-api-illustrations.test.ts` | readable `Property.example` and `forAll` API witnesses | basic return/void callback examples from `property.test.ts` |
+| `property-shrink-regressions.test.ts` | named property shrink and nested failure regressions | shrink, nested shrink, and fastcheck-style cases from `property.test.ts` |
+| `property-reporting-contracts.test.ts` | batch config equivalence, lifecycle hooks, output/error config, summaries, stat assertions, context isolation | `property.config.test.ts`, `property.classification.test.ts` |
 | `stateful-workflow-contracts.test.ts` | stateful model execution, lifecycle hooks, shrink boundaries, reproduction reporting | strongest workflow and shrink cases from `stateful.test.ts` |
 | `core-utility-contracts.test.ts` | Random, Stream, Shrinkable, Option, Either, and Try public behavior | `random.test.ts`, `stream.test.ts`, `shrinkable.test.ts`, stable parts of `lib.test.ts` |
+| `random-distribution-confidence.test.ts` | probabilistic distribution confidence checks | stronger sampling checks from `random.test.ts` |
+| `stream-format-compatibility.test.ts` | exact stream string-format compatibility | exact `Stream.toString()` examples from `stream.test.ts` |
 | `property-matrix-contracts.test.ts` | finite Cartesian-product example execution | `property.matrix.test.ts` |
 | `documentation-example-contracts.test.ts` | executable documentation/API examples | representative contracts from `readme.test.ts` |
 
@@ -71,13 +76,41 @@ following:
 
 ## Current Retirement Decision
 
-No legacy files are deleted by the first refresh batch. `primitive.test.ts` is
-the first clear user-review deletion candidate because its single
-implementation-level integer shrink smoke is represented by a public
-`Gen.interval` shrink-tree contract in
-`generator-shrink-reachability.test.ts`. Other legacy files remain because they
-are mixed enough that file-level deletion would retire useful regressions too
-early.
+Retired legacy files:
+
+- `primitive.test.ts`: its single implementation-level integer shrink smoke is
+  represented by a public `Gen.interval` shrink-tree contract in
+  `generator-shrink-reachability.test.ts`.
+- `property.matrix.test.ts`: its stable public API cases are represented by
+  `property-matrix-contracts.test.ts`, including Cartesian order, single-axis
+  matrices, success return value, short-circuiting, failing argument messages,
+  and empty matrices.
+- `property.config.test.ts`: its public batch configuration cases are
+  represented by `property-reporting-contracts.test.ts`, including seed replay,
+  run counts, lifecycle hooks, individual-setter equivalence, partial configs,
+  output/error streams, and shrink retry config acceptance.
+- `combinator.test.ts`: oneOf/elementOf, weighted variants, construct, and
+  tuple-chain APIs are represented by `generator-behavior-contracts.test.ts`.
+- `generator.config.test.ts`: config defaults, positional forms, and dict
+  shrink regressions are represented by `generator-behavior-contracts.test.ts`
+  and `generator-config-regressions.test.ts`.
+- `property.test.ts`: API examples, time budgets, option validation, shrink
+  retry reporting, and named shrink regressions are represented by
+  `property-api-illustrations.test.ts`, `property-runner-contracts.test.ts`,
+  `property-reporting-contracts.test.ts`, and
+  `property-shrink-regressions.test.ts`.
+- `property.classification.test.ts`: summary, no-output safety, outside-run
+  safety, stat assertion variants, failure summaries, and context isolation are
+  represented by `property-reporting-contracts.test.ts`.
+- `random.test.ts`: clone/range contracts and distribution confidence checks
+  are represented by `core-utility-contracts.test.ts` and
+  `random-distribution-confidence.test.ts`.
+- `stream.test.ts`: stream algebra and exact string-format compatibility are
+  represented by `core-utility-contracts.test.ts` and
+  `stream-format-compatibility.test.ts`.
+
+Other legacy files remain because they are mixed enough that file-level deletion
+would retire useful regressions or format-specific checks too early.
 
 ## Seed and Nested-Scenario Policy
 
@@ -104,6 +137,25 @@ early.
 - Reporting/statistics examples should avoid pretending to exercise summary
   aggregation; those assertions belong to the generated `forAll` context.
 
+## Test Role Taxonomy
+
+Use file names that state the role of the test, not its migration origin:
+
+- `contracts`: stable public laws and core API guarantees.
+- `regressions`: named bugs, counterexamples, fixed seeds, or shrink paths.
+- `compatibility`: exact legacy behavior users may rely on, such as formatting
+  or serialized output shape.
+- `confidence`: statistical or sampling checks that increase trust but are not
+  exact laws.
+- `illustrations`: readable API witnesses and documentation-like examples.
+- `robustness`: invalid-but-expected inputs, clean rejection, and option
+  validation.
+- `frontier`: under-sampled generated regions and profile-weighted exploration.
+
+Avoid using a softer role name to hide a stronger claim. If exact output shape
+is protected, prefer `compatibility` over `illustrations`; if a known bug is
+preserved, prefer `regressions`.
+
 ## Constants and Execution Profiles
 
 - Semantic constants name contract boundaries, generated domains, profiles, and
@@ -112,8 +164,7 @@ early.
   trace lengths, stateful action counts, and nested inner/outer budgets.
 - `JSPROPTEST_TEST_MULTIPLIER` scales portfolio execution budgets through
   `run-config.ts`. It should not alter semantic domains or regression replay
-  thresholds. `JSPROPTEST_V2_MULTIPLIER` is accepted only as a temporary
-  compatibility alias during migration.
+  thresholds.
 - Inline numeric values are reserved for illustrative matrix examples,
   probability weights, and thresholds whose meaning is explained in the local
   test.

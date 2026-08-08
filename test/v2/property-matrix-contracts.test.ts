@@ -3,7 +3,7 @@
  * Cartesian product, short-circuit on the first failure, and report failing
  * arguments. Matrix tests are for fixed examples, not randomized exploration.
  *
- * Scope: this starts the replacement track for `property.matrix.test.ts`.
+ * Scope: this subsumes the stable public API cases from `property.matrix.test.ts`.
  *
  * Helpers: all cases are explicit examples because matrix is itself the finite
  * example interface.
@@ -32,6 +32,17 @@ describe('v2 property matrix contracts', () => {
         ])
     })
 
+    it('returns true for passing finite cases and supports single-axis matrices', () => {
+        const seen: number[] = []
+        const result = new Property((value: number) => {
+            seen.push(value)
+            return value >= 0
+        }).matrix([0, 1, 2])
+
+        expect(result).toBe(true)
+        expect(seen).toEqual([0, 1, 2])
+    })
+
     it('short-circuits on the first failing combination and reports its arguments', () => {
         const seen: number[] = []
 
@@ -46,6 +57,27 @@ describe('v2 property matrix contracts', () => {
         }
 
         expect(seen).toEqual([1, 2, 3])
+    })
+
+    it('reports multi-argument failing matrix cases without evaluating later combinations', () => {
+        const seen: Array<[number, number]> = []
+
+        try {
+            new Property((left: number, right: number) => {
+                seen.push([left, right])
+                return left * right < 4
+            }).matrix([1, 2, 3], [1, 2])
+            fail('Expected matrix to fail')
+        } catch (error) {
+            expect((error as Error).message).toContain('[2,2]')
+        }
+
+        expect(seen).toEqual([
+            [1, 1],
+            [1, 2],
+            [2, 1],
+            [2, 2],
+        ])
     })
 
     it('empty matrices perform no runs and return true', () => {
