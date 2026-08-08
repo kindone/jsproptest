@@ -13,17 +13,35 @@
  * covered separately through example or matrix tests.
  */
 
-import { Gen, Shrinkable, Random } from '../../src'
+import { Gen, Property, Random } from '../../src'
+import { directShrinkValues, seedGen, seededRandom, traverseShrinkTree } from './helpers'
+import { DOMAINS, RUNS, SAMPLES, SIZES } from './run-config'
 
-function directValues<T>(shrinkable: Shrinkable<T>): T[] {
-    const values: T[] = []
-    for (let iter = shrinkable.shrinks().iterator(); iter.hasNext(); ) {
-        values.push(iter.next().value)
-    }
-    return values
-}
+describe('v2 generator shrink reachability', () => {
+    it('interval shrink trees preserve the generated integer domain without duplicate nodes per tree', () => {
+        const min = DOMAINS.shrinkNegativeWindow.min
+        const max = DOMAINS.shrinkNegativeWindow.max
+        const generator = Gen.interval(min, max)
 
-describe('v2 shrink topology laws', () => {
+        const property = new Property((seed: number) => {
+            const root = generator.generate(seededRandom(seed))
+            const seen = new Set<number>()
+
+            traverseShrinkTree(root, node => {
+                expect(node.value).toBeGreaterThanOrEqual(min)
+                expect(node.value).toBeLessThanOrEqual(max)
+                expect(seen.has(node.value)).toBe(false)
+                seen.add(node.value)
+            })
+        })
+
+        expect(property.example(DOMAINS.seed.min)).toBe(true)
+
+        property
+            .setConfig({ numRuns: RUNS.shrinkDomain })
+            .forAll(seedGen)
+    })
+
     it('chain exposes inner-generator shrinks as direct root children', () => {
         const rand = new Random()
         const gen = Gen.interval(2, 5).chain(n => Gen.interval(1, n))
@@ -31,14 +49,14 @@ describe('v2 shrink topology laws', () => {
         let checkedEligibleRoot = false
         let foundInnerAxisAtRoot = false
 
-        for (let i = 0; i < 200 && !foundInnerAxisAtRoot; i++) {
+        for (let i = 0; i < SAMPLES.shrinkReachabilityRoots && !foundInnerAxisAtRoot; i++) {
             const root = gen.generate(rand)
             const [rootOuter, rootInner] = root.value
 
             if (rootOuter <= 2 || rootInner <= 1) continue
             checkedEligibleRoot = true
 
-            foundInnerAxisAtRoot = directValues(root).some(([childOuter, childInner]) => {
+            foundInnerAxisAtRoot = directShrinkValues(root).some(([childOuter, childInner]) => {
                 return childOuter === rootOuter && childInner < rootInner
             })
         }
@@ -49,12 +67,16 @@ describe('v2 shrink topology laws', () => {
 
     it('accumulate exposes last-element shrinks before length reaches its minimum', () => {
         const rand = new Random()
-        const gen = Gen.interval(1, 3).accumulate(n => Gen.interval(n, n + 2), 2, 4)
+        const gen = Gen.interval(DOMAINS.statefulAddParam.min, DOMAINS.weightedChoiceLow.max).accumulate(
+            n => Gen.interval(n, n + 2),
+            SIZES.filteredContainer.min,
+            SIZES.filteredContainer.max
+        )
 
         let checkedEligibleRoot = false
         let foundElementAxisAtNonMinimumLength = false
 
-        for (let i = 0; i < 200 && !foundElementAxisAtNonMinimumLength; i++) {
+        for (let i = 0; i < SAMPLES.shrinkReachabilityRoots && !foundElementAxisAtNonMinimumLength; i++) {
             const root = gen.generate(rand)
             const values = root.value
             const last = values[values.length - 1]
@@ -63,7 +85,7 @@ describe('v2 shrink topology laws', () => {
             if (values.length <= 2 || last <= previous) continue
             checkedEligibleRoot = true
 
-            foundElementAxisAtNonMinimumLength = directValues(root).some(child => {
+            foundElementAxisAtNonMinimumLength = directShrinkValues(root).some(child => {
                 const childLast = child[child.length - 1]
                 return child.length === values.length && childLast < last
             })
